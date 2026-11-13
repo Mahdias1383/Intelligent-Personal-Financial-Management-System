@@ -1,0 +1,6 @@
+{
+  "name": "ترازینو",
+  "description": "سامانه جامع آفلاین مدیریت اقساط، بدهی، وام، تقویم شمسی و هوش مالی شخصی",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
