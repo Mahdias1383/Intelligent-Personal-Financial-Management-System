@@ -27,6 +27,7 @@ data class UserPreferencesState(
     val currencyUnit: CurrencyUnit = CurrencyUnit.TOMAN,
     val fontScale: FontScalePreset = FontScalePreset.STANDARD,
     val monthlyIncomeToman: Long = 58_000_000L,
+    val livingExpensePercent: Int = 50,
     val alertAdvanceDays: Int = 7,
     val privacyMaskEnabled: Boolean = false,
     val pinHash: String = "",
@@ -69,6 +70,7 @@ class TarazinoRepository(
             fontScale = runCatching { FontScalePreset.valueOf(fontName) }
                 .getOrDefault(FontScalePreset.STANDARD),
             monthlyIncomeToman = prefs.getLong("monthly_income_toman", 58_000_000L),
+            livingExpensePercent = prefs.getInt("living_expense_percent", 50),
             alertAdvanceDays = prefs.getInt("alert_advance_days", 7),
             privacyMaskEnabled = prefs.getBoolean("privacy_mask_enabled", false),
             pinHash = prefs.getString("pin_hash", "") ?: "",
@@ -92,6 +94,7 @@ class TarazinoRepository(
             .putString("currency_unit", updated.currencyUnit.name)
             .putString("font_scale", updated.fontScale.name)
             .putLong("monthly_income_toman", updated.monthlyIncomeToman)
+            .putInt("living_expense_percent", updated.livingExpensePercent)
             .putInt("alert_advance_days", updated.alertAdvanceDays)
             .putBoolean("privacy_mask_enabled", updated.privacyMaskEnabled)
             .putString("pin_hash", updated.pinHash)
@@ -164,6 +167,10 @@ class TarazinoRepository(
             dao.insertSubRecords(initialSubRecords.map { it.copy(obligationId = obligationId) })
         }
         return obligationId
+    }
+
+    suspend fun updateObligation(obligation: ObligationEntity) {
+        dao.updateObligation(obligation)
     }
 
     suspend fun deleteObligation(obligationId: Long) {

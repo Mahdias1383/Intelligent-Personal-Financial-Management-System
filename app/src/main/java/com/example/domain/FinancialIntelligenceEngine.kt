@@ -44,6 +44,10 @@ data class DecadePressureSlice(
 data class DtiHealthReport(
     val currentMonthYearLabelFa: String,
     val monthlyIncomeToman: Long,
+    val livingExpensePercent: Int = 50,
+    val essentialLivingExpenseToman: Long = 0L,
+    val safeMaxTotalDebtBudgetToman: Long = 0L,
+    val safeNewInstallmentCapacityToman: Long = 0L,
     val currentMonthDebtDueToman: Long,
     val currentMonthPaidToman: Long,
     val currentMonthRemainingDueToman: Long,
@@ -169,7 +173,8 @@ object FinancialIntelligenceEngine {
         installments: List<InstallmentEntity>,
         obligations: List<ObligationEntity>,
         monthlyIncomeToman: Long,
-        todayJalali: String = JalaliCalendarEngine.todayJalali()
+        todayJalali: String = JalaliCalendarEngine.todayJalali(),
+        livingExpensePercent: Int = 50
     ): DtiHealthReport {
         val today = JalaliCalendarEngine.parseJalali(todayJalali)
         val monthPrefix = "%04d/%02d".format(java.util.Locale.US, today.year, today.month)
@@ -193,8 +198,15 @@ object FinancialIntelligenceEngine {
         val totalMonthReceivable = receivableInstallments.sumOf { it.remainingToman }
 
         val safeIncome = monthlyIncomeToman.coerceAtLeast(1L)
+        val clampedLivingPct = livingExpensePercent.coerceIn(20, 80)
+        val essentialLivingExpense = (monthlyIncomeToman * clampedLivingPct) / 100L
+        // Leave 10% emergency savings buffer when calculating safe max monthly installment budget
+        val maxDebtSharePct = (90 - clampedLivingPct).coerceIn(15, 60)
+        val safeMaxDebtBudget = (monthlyIncomeToman * maxDebtSharePct) / 100L
+        val safeNewCapacity = (safeMaxDebtBudget - totalMonthDebt).coerceAtLeast(0L)
+
         val dtiPercent = ((totalMonthDebt.toDouble() / safeIncome.toDouble()) * 100.0).roundToInt()
-        val freeCashflow = (monthlyIncomeToman - totalMonthDebt).coerceAtLeast(0L)
+        val freeCashflow = (monthlyIncomeToman - essentialLivingExpense - totalMonthDebt).coerceAtLeast(0L)
 
         // Decade Crunch analysis (1..10, 11..20, 21..31)
         val d1Items = debtInstallments.filter { JalaliCalendarEngine.parseJalali(it.dueDateJalali).day in 1..10 }
@@ -246,8 +258,8 @@ object FinancialIntelligenceEngine {
         val coverageScore = rawHealth.coerceIn(10, 100)
 
         val (statusBadge, statusColor) = when {
-            dtiPercent <= 30 && overdueCount == 0 -> "تراز عالی و کم‌ریسک" to 0xFF10B981L
-            dtiPercent <= 50 && overdueCount == 0 -> "تراز متعادل (نیازمند مدیریت)" to 0xFFF59E0BL
+            dtiPercent <= maxDebtSharePct && overdueCount == 0 -> "تراز عالی و کم‌ریسک" to 0xFF10B981L
+            dtiPercent <= (maxDebtSharePct + 15) && overdueCount == 0 -> "تراز متعادل (نیازمند مدیریت)" to 0xFFF59E0BL
             else -> "فشار نقدینگی بالا / هشدار تعهدات" to 0xFFEF4444L
         }
 
@@ -264,15 +276,14 @@ object FinancialIntelligenceEngine {
                 "تمرکز فشار در ${peakSlice.labelFa}: حدود $shareFa٪ از اقساط این ماه در بازه (${peakSlice.rangeLabelFa}) متمرکز است. بخشی از نقدینگی حقوق پایان ماه قبل را برای این دهه رزرو نگه دارید."
             )
         }
-        if (dtiPercent > 40) {
-            val dtiFa = PersianCurrencyEngine.toPersianDigits(dtiPercent.toString())
+        if (safeNewCapacity > 0L) {
+            val capFa = PersianCurrencyEngine.formatAmount(safeNewCapacity)
             advisories.add(
-                "نسبت اقساط به درآمد شما $dtiFa٪ است (بالاتر از مرز استاندارد ۳۵٪). تا تسویه خریدهای اقساطی کوتاه‌مدت (BNPL)، از ایجاد تعهد اقساطی جدید خودداری نمایید."
+                "ظرفیت تعهد جدید: با توجه به درآمد و هزینه‌های زندگی، این ماه حداکثر تا سقف $capFa می‌توانید قسط جدید اضافه کنید بدون اینکه دچار کسری بودجه شوید."
             )
         } else {
-            val freeFormatted = PersianCurrencyEngine.formatAmount(freeCashflow)
             advisories.add(
-                "وضعیت نقدینگی آزاد شما ($freeFormatted در ماه) مناسب است. با اختصاص ۱۰ تا ۱۵ درصد از این مبلغ در شبیه‌ساز تسویه زودهنگام، می‌توانید ماه‌ها زودتر به آزادی مالی برسید."
+                "سقف مجاز اقساط ماهانه شما پر شده است. پیشنهاد می‌شود تا تسویه یکی از پرونده‌های فعلی (مانند خریدهای ۴ قسطه اسنپ‌پی/دیجی‌پی)، تعهد جدیدی ایجاد نکنید."
             )
         }
         if (totalMonthReceivable > 0L) {
@@ -285,6 +296,10 @@ object FinancialIntelligenceEngine {
         return DtiHealthReport(
             currentMonthYearLabelFa = monthLabelFa,
             monthlyIncomeToman = monthlyIncomeToman,
+            livingExpensePercent = clampedLivingPct,
+            essentialLivingExpenseToman = essentialLivingExpense,
+            safeMaxTotalDebtBudgetToman = safeMaxDebtBudget,
+            safeNewInstallmentCapacityToman = safeNewCapacity,
             currentMonthDebtDueToman = totalMonthDebt,
             currentMonthPaidToman = paidMonthDebt,
             currentMonthRemainingDueToman = remainingMonthDebt,

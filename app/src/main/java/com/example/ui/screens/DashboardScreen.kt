@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,13 +43,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -78,6 +80,7 @@ import com.example.data.TrustPriority
 import com.example.domain.AlertUrgencyBucket
 import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
+import com.example.ui.components.tourSpotlightTarget
 
 private data class CategoryShareSlice(
     val category: EntityCategory,
@@ -98,13 +101,21 @@ fun DashboardScreen(
     onOpenCounterpartyInTree: (CounterpartyEntity) -> Unit,
     onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
     onOpenIntelligenceTab: () -> Unit,
-    onOpenFullA4Report: () -> Unit
+    onOpenFullA4Report: () -> Unit,
+    tourScrollIndex: Int? = null
 ) {
     val unit = uiState.preferences.currencyUnit
     val masked = uiState.preferences.privacyMaskEnabled
     val todayVerbose = remember { JalaliCalendarEngine.formatJalaliVerbose(JalaliCalendarEngine.todayJalali()) }
+    val listState = rememberLazyListState()
 
     var showAllAlertsModal by remember { mutableStateOf(false) }
+
+    LaunchedEffect(tourScrollIndex) {
+        if (tourScrollIndex != null && tourScrollIndex >= 0) {
+            listState.animateScrollToItem(tourScrollIndex)
+        }
+    }
 
     val totalPayable = uiState.totalDebtPayableToman
     val totalPaid = uiState.totalDebtPaidToman
@@ -155,6 +166,7 @@ fun DashboardScreen(
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .testTag("dashboard_screen"),
@@ -166,7 +178,9 @@ fun DashboardScreen(
             Card(
                 shape = RoundedCornerShape(24.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .tourSpotlightTarget("dashboard_monthly_summary")
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Image(
@@ -218,7 +232,6 @@ fun DashboardScreen(
                                 )
                             }
 
-                            // Clean Progress Ring
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(64.dp)
@@ -257,7 +270,6 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Focused 3-Metric Strip (Current Month Due, Total Remaining Debt, Paid So Far)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -285,13 +297,14 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Primary Actions Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Button(
                                 onClick = onOpenNewObligationWizard,
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                 modifier = Modifier
                                     .weight(1.25f)
@@ -307,12 +320,16 @@ fun DashboardScreen(
                                 Text(
                                     text = "ثبت قسط / خرید جدید",
                                     color = Color(0xFF042F2E),
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
                             OutlinedButton(
                                 onClick = onOpenFullA4Report,
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("dashboard_open_a4_report_btn")
@@ -326,7 +343,9 @@ fun DashboardScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "گزارش A4 و اکسل",
-                                    color = Color.White
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -343,6 +362,7 @@ fun DashboardScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .tourSpotlightTarget("dashboard_category_donut")
                     .testTag("dashboard_category_donut_card")
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -380,7 +400,6 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Interactive Multi-Segment Donut Canvas
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.size(132.dp)
@@ -426,7 +445,6 @@ fun DashboardScreen(
                             }
                         }
 
-                        // Category Breakdown Legend with 1-Tap Drill into Tree
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -463,13 +481,16 @@ fun DashboardScreen(
                                                 Text(
                                                     text = "${slice.category.badgeFa} (${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪)",
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                                 Text(
                                                     text = slice.subProvidersPreviewFa,
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
@@ -485,7 +506,6 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Quick Sub-Provider Shortcut Pills (اسنپ‌پی، دیجی‌پی، بانک مهر و...)
                     if (uiState.counterparties.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
@@ -515,6 +535,7 @@ fun DashboardScreen(
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(cp.avatarColorHex),
+                                        maxLines = 1,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                     )
                                 }
@@ -560,7 +581,8 @@ fun DashboardScreen(
                     ) {
                         Text(
                             text = "همه (${PersianCurrencyEngine.toPersianDigits(uiState.smartAlertQueue.size.toString())}) ‹",
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                     }
                 }
@@ -574,7 +596,9 @@ fun DashboardScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .tourSpotlightTarget("dashboard_urgent_alerts")
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -599,6 +623,7 @@ fun DashboardScreen(
             }
         } else {
             items(top3UrgentAlerts, key = { "top_alert_${it.installment.id}" }) { alert ->
+                val isFirstAlert = alert.installment.id == top3UrgentAlerts.first().installment.id
                 SmartAlertRadarCard(
                     alert = alert,
                     currencyUnit = unit,
@@ -607,12 +632,15 @@ fun DashboardScreen(
                     onSnoozeTomorrow = { onSnoozeTomorrow(alert.installment) },
                     onOpenInTree = {
                         onOpenObligationInTree(alert.obligation, alert.counterparty?.categoryEnum)
-                    }
+                    },
+                    modifier = if (isFirstAlert) {
+                        Modifier.tourSpotlightTarget("dashboard_urgent_alerts")
+                    } else Modifier
                 )
             }
         }
 
-        // Compact Cashflow & Intelligence Link Footer Card
+        // Compact Cashflow & Safe New Installment Capacity Footer Card
         uiState.dtiHealthReport?.let { dti ->
             item {
                 Card(
@@ -641,20 +669,28 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "شاخص سلامت نقدینگی: ${dti.statusBadgeFa}",
+                                    text = "سقف مجاز قسط جدید: ${
+                                        PersianCurrencyEngine.formatAmount(
+                                            dti.safeNewInstallmentCapacityToman,
+                                            unit,
+                                            privacyMasked = masked
+                                        )
+                                    }",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "نقدینگی آزاد ماه: ${
+                                    text = "نقدینگی آزاد: ${
                                         PersianCurrencyEngine.formatAmount(
                                             dti.freeCashflowToman,
                                             unit,
                                             privacyMasked = masked
                                         )
-                                    } • مشاهده تقویم حرارتی ‹",
+                                    } • برنامه‌ریزی بودجه و تقویم حرارتی ‹",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -711,7 +747,8 @@ private fun HeroKpiPill(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = Color(0xFFCBD5E1),
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(3.dp))
         Text(
@@ -719,7 +756,8 @@ private fun HeroKpiPill(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = accentColor,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -731,7 +769,8 @@ private fun SmartAlertRadarCard(
     privacyMasked: Boolean,
     onQuickPay: () -> Unit,
     onSnoozeTomorrow: () -> Unit,
-    onOpenInTree: () -> Unit
+    onOpenInTree: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val bucketColor = Color(alert.bucket.colorHex)
     val isCritical = alert.obligation.priorityEnum == TrustPriority.CRITICAL ||
@@ -747,7 +786,7 @@ private fun SmartAlertRadarCard(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .border(
                 width = if (isCritical || alert.bucket == AlertUrgencyBucket.OVERDUE) 1.4.dp else 0.8.dp,
@@ -823,14 +862,20 @@ private fun SmartAlertRadarCard(
                     Text(
                         text = alert.installment.title,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = "${alert.counterparty?.name ?: "طرف‌حساب"} • ${alert.obligation.title}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
                     text = PersianCurrencyEngine.formatAmount(
@@ -840,7 +885,8 @@ private fun SmartAlertRadarCard(
                     ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
                 )
             }
 
@@ -852,6 +898,8 @@ private fun SmartAlertRadarCard(
             ) {
                 Button(
                     onClick = onQuickPay,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier
                         .weight(1.2f)
@@ -865,12 +913,15 @@ private fun SmartAlertRadarCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (alert.obligation.categoryEnum.isReceivable) "ثبت وصول سریع" else "ثبت پرداخت سریع",
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
 
                 OutlinedButton(
                     onClick = onSnoozeTomorrow,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .testTag("snooze_btn_${alert.installment.id}")
@@ -881,7 +932,7 @@ private fun SmartAlertRadarCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("یادآوری فردا")
+                    Text("یادآوری فردا", maxLines = 1)
                 }
             }
         }
@@ -944,7 +995,7 @@ private fun AllAlertsModalDialog(
                     FilterChip(
                         selected = selectedBucketFilter == null,
                         onClick = { selectedBucketFilter = null },
-                        label = { Text("همه (${PersianCurrencyEngine.toPersianDigits(alerts.size.toString())})") }
+                        label = { Text("همه (${PersianCurrencyEngine.toPersianDigits(alerts.size.toString())})", maxLines = 1) }
                     )
                     AlertUrgencyBucket.entries.forEach { bucket ->
                         val c = alerts.count { it.bucket == bucket }
@@ -953,7 +1004,7 @@ private fun AllAlertsModalDialog(
                             onClick = {
                                 selectedBucketFilter = if (selectedBucketFilter == bucket) null else bucket
                             },
-                            label = { Text("${bucket.badgeFa} (${PersianCurrencyEngine.toPersianDigits(c.toString())})") }
+                            label = { Text("${bucket.badgeFa} (${PersianCurrencyEngine.toPersianDigits(c.toString())})", maxLines = 1) }
                         )
                     }
                 }

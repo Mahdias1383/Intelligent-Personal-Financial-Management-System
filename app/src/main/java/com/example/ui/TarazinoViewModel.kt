@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.CurrencyUnit
 import com.example.core.JalaliCalendarEngine
+import com.example.core.PersianCurrencyEngine
 import com.example.core.SecurityVaultEngine
 import com.example.data.CounterpartyEntity
 import com.example.data.EntityCategory
@@ -14,7 +15,6 @@ import com.example.data.InstallmentEntity
 import com.example.data.InstallmentStatus
 import com.example.data.LedgerSubRecordEntity
 import com.example.data.ObligationEntity
-import com.example.data.ScheduleMode
 import com.example.data.TarazinoDatabase
 import com.example.data.TarazinoRepository
 import com.example.data.TarazinoThemeMode
@@ -26,8 +26,6 @@ import com.example.domain.EnrichedInstallmentAlert
 import com.example.domain.FinancialIntelligenceEngine
 import com.example.domain.InstallmentScheduleEngine
 import com.example.domain.MonthlyForwardLoadBar
-import com.example.domain.QaDiagnosticsEngine
-import com.example.domain.QaSuiteResult
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +57,8 @@ data class WizardLaunchPreset(
 data class InteractiveTourStep(
     val stepIndex: Int,
     val targetTab: TarazinoNavTab,
+    val targetElementId: String,
+    val scrollItemIndex: Int,
     val badgeTitleFa: String,
     val headlineFa: String,
     val descriptionFa: String,
@@ -87,7 +87,6 @@ data class TarazinoUiState(
     val isTourActive: Boolean = false,
     val currentTourStepIndex: Int = 0,
     val activeA4ReportPayload: A4ReportPayload? = null,
-    val qaSuiteResults: List<QaSuiteResult> = emptyList(),
     val toastMessageFa: String? = null,
     val celebrationMessageFa: String? = null
 ) {
@@ -131,7 +130,6 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val _isTourActive = MutableStateFlow(false)
     private val _tourStepIndex = MutableStateFlow(0)
     private val _activeA4Report = MutableStateFlow<A4ReportPayload?>(null)
-    private val _qaResults = MutableStateFlow(QaDiagnosticsEngine.runAll10DiagnosticSuites())
     private val _toastMessage = MutableStateFlow<String?>(null)
     private val _celebrationMessage = MutableStateFlow<String?>(null)
 
@@ -139,61 +137,118 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         InteractiveTourStep(
             stepIndex = 0,
             targetTab = TarazinoNavTab.DASHBOARD,
-            badgeTitleFa = "گام ۱ از ۵ — داشبورد خلوت و نمودار حلقه‌ای دسته‌ها",
-            headlineFa = "به ترازینو خوش آمدید! تجربه مالی ساده، خلوت و هوشمند",
-            descriptionFa = "در داشبورد بازطراحی‌شده، وضعیت کلی ماه جاری، نمودار حلقه‌ای سهم هر دسته و ۳ سررسید فوری را در یک نگاه شفاف می‌بینید.",
+            targetElementId = "top_bar_controls",
+            scrollItemIndex = 0,
+            badgeTitleFa = "گام ۱ از ۹ — نوار ابزار سریع بالا",
+            headlineFa = "تغییر آنی تومان/ریال، مخفی‌سازی ارقام و قفل امنیتی",
+            descriptionFa = "از دکمه‌های بالای صفحه می‌توانید در هر لحظه واحد پول را بین تومان و ریال تغییر دهید، مبالغ را در محیط عمومی مخفی کنید یا برنامه را قفل نمایید.",
             highlightFeaturesFa = listOf(
-                "نمودار حلقه‌ای تعاملی؛ با لمس هر دسته مستقیم وارد پوشه آن می‌شوید",
-                "ثبت پرداخت تک‌کلیکی ۳ سررسید فوری بدون شلوغی صفحه",
-                "دکمه چشم برای مخفی‌سازی فوری مبالغ و سوئیچ آنی تومان/ریال در نوار بالا"
+                "سوئیچ آنی تومان و ریال در کل صفحات و گزارش‌ها",
+                "دکمه چشم برای مخفی‌سازی فوری مبالغ در حضور دیگران"
             )
         ),
         InteractiveTourStep(
             stepIndex = 1,
-            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
-            badgeTitleFa = "گام ۲ از ۵ — ساختار درختی دسته‌ها و زیرمجموعه‌ها",
-            headlineFa = "دسته‌بندی درختی بر اساس طرف پرداخت (اسنپ‌پی، دیجی‌پی، بانک‌ها...)",
-            descriptionFa = "در تب «پوشه اقساط»، ابتدا دسته‌های مادر (مثل خرید اقساطی یا بانک‌ها) و سپس زیرمجموعه‌های آن (مثل اسنپ‌پی و دیجی‌پی) را مشاهده می‌کنید.",
+            targetTab = TarazinoNavTab.DASHBOARD,
+            targetElementId = "dashboard_monthly_summary",
+            scrollItemIndex = 0,
+            badgeTitleFa = "گام ۲ از ۹ — کارت فرماندهی وضعیت ماه",
+            headlineFa = "خلاصه وضعیت ماه جاری، ثبت قسط جدید و چاپ A4",
+            descriptionFa = "در این کارت درصد پیشرفت تسویه کل، اقساط مانده ماه جاری و دو دکمه اصلی «ثبت قسط / خرید جدید» و «گزارش A4 و اکسل» همیشه در دسترس شماست.",
             highlightFeaturesFa = listOf(
-                "مسیر درختی شفاف: دسته اصلی ← زیرمجموعه (اسنپ‌پی / دیجی‌پی) ← لیست خریدها و اقساط",
-                "کپی آنی شماره کارت ۱۶ رقمی و شبا + خروجی صورتحساب A4 برای هر زیرمجموعه",
-                "امکان افزودن زیرمجموعه جدید در هر دسته (مانند تارا، ازکی‌وام، بانک ملت)"
+                "حلقه گرافیکی درصد تسویه کل تعهدات",
+                "باز کردن ویزارد ۳ مرحله‌ای ثبت قسط با یک کلیک"
             )
         ),
         InteractiveTourStep(
             stepIndex = 2,
-            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
-            badgeTitleFa = "گام ۳ از ۵ — ویزارد ۳ مرحله‌ای و جدول تفکیکی اقساط",
-            headlineFa = "ورود و ویرایش تک‌تک قسط‌ها به صورت کاملاً تفکیک‌شده",
-            descriptionFa = "با زدن دکمه «+ ثبت قسط / خرید جدید»، ویزارد ۳ مرحله‌ای باز می‌شود که در گام سوم می‌توانید مبلغ و تاریخ شمسی تک‌تک قسط‌ها را به دلخواه تغییر دهید.",
+            targetTab = TarazinoNavTab.DASHBOARD,
+            targetElementId = "dashboard_category_donut",
+            scrollItemIndex = 1,
+            badgeTitleFa = "گام ۳ از ۹ — نمودار حلقه‌ای سهم هر دسته",
+            headlineFa = "مشاهده سهم هر دسته و ورود مستقیم به پوشه اسنپ‌پی/دیجی‌پی",
+            descriptionFa = "این نمودار سهم هر دسته (خرید اقساطی، بانک‌ها، صندوق‌ها و اشخاص) را نشان می‌دهد. با لمس هر دسته یا میانبرهای پایین آن، مستقیم وارد پوشه آن می‌شوید.",
             highlightFeaturesFa = listOf(
-                "ویرایش مستقیم مبلغ، تاریخ سررسید شمسی و وضعیت هر قسط به صورت مجزا",
-                "افزودن یا حذف ردیف قسط و توزیع مساوی خودکار بدون خطای گرد کردن",
-                "مبدل زنده عدد به حروف فارسی و چیپ‌های افزایش سریع مبلغ"
+                "تفکیک رنگی سهم هر دسته از بدهی‌های فعال",
+                "چیپ‌های میانبر برای ورود مستقیم به اسنپ‌پی، دیجی‌پی، بانک مهر و..."
             )
         ),
         InteractiveTourStep(
             stepIndex = 3,
-            targetTab = TarazinoNavTab.INTELLIGENCE,
-            badgeTitleFa = "گام ۴ از ۵ — هوش مالی، تقویم حرارتی و شبیه‌ساز تسویه",
-            headlineFa = "نقشه حرارتی ماه شمسی و شبیه‌ساز گلوله برفی در برابر بهمن",
-            descriptionFa = "در تب «هوش مالی» دهه‌های اوج فشار مالی ماه، تقویم حرارتی ۳۰/۳۱ روزه و مقایسه استراتژی‌های تسویه زودهنگام را بررسی کنید.",
+            targetTab = TarazinoNavTab.DASHBOARD,
+            targetElementId = "dashboard_urgent_alerts",
+            scrollItemIndex = 3,
+            badgeTitleFa = "گام ۴ از ۹ — ۳ سررسید فوری و پرداخت تک‌کلیکی",
+            headlineFa = "تسویه سریع نزدیک‌ترین اقساط بدون شلوغی صفحه",
+            descriptionFa = "مهم‌ترین اقساط نزدیک یا معوقه در این بخش نمایش داده می‌شوند تا با یک کلیک «ثبت پرداخت سریع» یا «یادآوری فردا» را انجام دهید.",
             highlightFeaturesFa = listOf(
-                "نقشه حرارتی تقویم شمسی با نمایش تعهدات هر روز با یک لمس",
-                "شبیه‌ساز تعاملی تسویه زودهنگام با محاسبه تاریخ دقیق آزادی از بدهی",
-                "نمودار میله‌ای بار اقساط ۱۲ ماه آینده"
+                "اولویت‌بندی هوشمند بر اساس فوریت سررسید و چک صیادی",
+                "دکمه مشاهده همه سررسیدها برای فیلتر کامل هشدارها"
             )
         ),
         InteractiveTourStep(
             stepIndex = 4,
-            targetTab = TarazinoNavTab.REPORTS_SETTINGS,
-            badgeTitleFa = "گام ۵ از ۵ — چاپ رسمی A4 PDF، اکسل و خزانه امنیتی",
-            headlineFa = "گزارش رنگی استاندارد A4، قفل پین/بیومتریک و کنترل داده‌ها",
-            descriptionFa = "در تب پایانی می‌توانید گزارش رسمی A4 PDF و اکسل بگیرید، تم روشن/تیره و قفل اثر انگشت را تنظیم کنید یا داده‌های نمونه را پاکسازی نمایید.",
+            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
+            targetElementId = "tree_command_bar",
+            scrollItemIndex = 0,
+            badgeTitleFa = "گام ۵ از ۹ — مدیریت درختی، جستجو و فیلتر هوشمند",
+            headlineFa = "ثبت قسط مرحله‌ای، جستجوی آنی و مرتب‌سازی اقساط",
+            descriptionFa = "در تب «پوشه اقساط» می‌توانید با دکمه «ثبت قسط جدید» تک‌تک اقساط را به صورت تفکیک‌شده وارد کنید یا اقساط را بر اساس مبلغ و فوریت مرتب نمایید.",
             highlightFeaturesFa = listOf(
-                "پیش‌نمایش و چاپ مستقیم برگه استاندارد A4 رنگی و اکسل راست‌به‌چپ (.xls / .csv)",
-                "قفل پین ۴ یا ۶ رقمی با صفحه‌کلید شیشه‌ای فارسی و سنسور بیومتریک",
-                "دکمه «پاکسازی داده‌های نمونه (شروع از صفر)» و پشتیبان‌گیری JSON"
+                "ویزارد ۳ مرحله‌ای با جدول قابل ویرایش برای مبلغ و تاریخ تک‌تک قسط‌ها",
+                "فیلتر و مرتب‌سازی هوشمند بر اساس فوری‌ترین سررسید یا بیشترین مبلغ"
+            )
+        ),
+        InteractiveTourStep(
+            stepIndex = 5,
+            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
+            targetElementId = "tree_parent_category_bnpl",
+            scrollItemIndex = 1,
+            badgeTitleFa = "گام ۶ از ۹ — پوشه‌های درختی طرف پرداخت",
+            headlineFa = "ساختار درختی: دسته اصلی ← اسنپ‌پی / دیجی‌پی ← تسویه گروهی",
+            descriptionFa = "با باز کردن هر پوشه یا لمس چیپ زیرمجموعه (مثل اسنپ‌پی یا دیجی‌پی)، لیست خریدها و جدول اقساط آن باز شده و می‌توانید چند قسط را یکجا تسویه کنید.",
+            highlightFeaturesFa = listOf(
+                "ویرایش سریع پرونده وام/خرید و افزودن زیرمجموعه جدید در هر دسته",
+                "امکان انتخاب چند قسط با هم و تسویه گروهی یکجا (Batch Pay)"
+            )
+        ),
+        InteractiveTourStep(
+            stepIndex = 6,
+            targetTab = TarazinoNavTab.INTELLIGENCE,
+            targetElementId = "intel_budget_planner",
+            scrollItemIndex = 0,
+            badgeTitleFa = "گام ۷ از ۹ — برنامه‌ریزی بودجه ماهانه و سقف قسط جدید",
+            headlineFa = "محاسبه هوشمند «سقف مجاز اقساط جدید» در ماه",
+            descriptionFa = "در تب «هوش مالی»، با تنظیم درآمد ماهانه و درصد هزینه‌های ضروری زندگی، ترازینو دقیقاً محاسبه می‌کند چقدر ظرفیت امن برای اضافه کردن قسط جدید دارید.",
+            highlightFeaturesFa = listOf(
+                "نمایش سقف مجاز تعهد جدید بر اساس درآمد و هزینه‌های زندگی",
+                "تحلیل دهه‌های اوج فشار مالی ماه (دهه اول، دوم و سوم)"
+            )
+        ),
+        InteractiveTourStep(
+            stepIndex = 7,
+            targetTab = TarazinoNavTab.INTELLIGENCE,
+            targetElementId = "intel_payoff_simulator",
+            scrollItemIndex = 3,
+            badgeTitleFa = "گام ۸ از ۹ — شبیه‌ساز تسویه زودهنگام بدهی‌ها",
+            headlineFa = "مقایسه استراتژی بهمن و گلوله برفی برای آزادی مالی",
+            descriptionFa = "با اسلایدر بودجه مازاد ماهانه ببینید چند ماه زودتر و در چه تاریخ شمسی دقیق از تمام بدهی‌ها رها می‌شوید.",
+            highlightFeaturesFa = listOf(
+                "سوییچر متقارن استراتژی بهمن (حداقل ریسک) و گلوله برفی (حذف سریع خرده‌بدهی)",
+                "تقویم حرارتی ۳۰/۳۱ روزه ماه شمسی"
+            )
+        ),
+        InteractiveTourStep(
+            stepIndex = 8,
+            targetTab = TarazinoNavTab.REPORTS_SETTINGS,
+            targetElementId = "reports_a4_export_studio",
+            scrollItemIndex = 1,
+            badgeTitleFa = "گام ۹ از ۹ — استودیو چاپ A4، اکسل و امنیت",
+            headlineFa = "گزارش رسمی A4 رنگی، اکسل راست‌به‌چپ و شخصی‌سازی",
+            descriptionFa = "در تب پایانی می‌توانید پیش‌نمایش برگه A4 رنگی را ببینید و چاپ کنید، خروجی اکسل بگیرید، پوسته روشن/تیره و قفل پین/بیومتریک را تنظیم نمایید.",
+            highlightFeaturesFa = listOf(
+                "دکمه‌های مجزا برای پیش‌نمایش A4، فایل PDF، اکسل (.xls) و CSV",
+                "پاکسازی داده‌های نمونه برای شروع از صفر یا پشتیبان‌گیری کامل JSON"
             )
         )
     )
@@ -216,7 +271,6 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val isTourActive: Boolean,
         val tourStep: Int,
         val activeReport: A4ReportPayload?,
-        val qaResults: List<QaSuiteResult>,
         val toast: String?,
         val celebration: String?
     )
@@ -235,7 +289,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         combine(_activeTab, _treeDrill, _wizardPreset) { t, d, w -> Triple(t, d, w) },
         combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
         combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
-        combine(_qaResults, _toastMessage, _celebrationMessage) { qa, tst, cel -> Triple(qa, tst, cel) }
+        combine(_toastMessage, _celebrationMessage) { tst, cel -> tst to cel }
     ) { g1, g2, g3, g4 ->
         UiOverlayBundle(
             activeTab = g1.first,
@@ -247,9 +301,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             isTourActive = g3.first,
             tourStep = g3.second,
             activeReport = g3.third,
-            qaResults = g4.first,
-            toast = g4.second,
-            celebration = g4.third
+            toast = g4.first,
+            celebration = g4.second
         )
     }
 
@@ -266,7 +319,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             installments = core.installments,
             obligations = core.obligations,
             monthlyIncomeToman = core.preferences.monthlyIncomeToman,
-            todayJalali = today
+            todayJalali = today,
+            livingExpensePercent = core.preferences.livingExpensePercent
         )
         val simResult = FinancialIntelligenceEngine.simulateEarlyPayoffStrategies(
             obligations = core.obligations,
@@ -311,7 +365,6 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             isTourActive = over.isTourActive,
             currentTourStepIndex = over.tourStep,
             activeA4ReportPayload = over.activeReport,
-            qaSuiteResults = over.qaResults,
             toastMessageFa = over.toast,
             celebrationMessageFa = over.celebration
         )
@@ -443,12 +496,13 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 selectedCounterpartyId = finalCounterpartyId,
                 selectedObligationId = newObId
             )
-            showToast("«${obligation.title}» با ${customInstallments.size} قسط تفکیک‌شده ثبت شد.")
+            showToast("«${obligation.title}» با ${PersianCurrencyEngine.toPersianDigits(customInstallments.size.toString())} قسط تفکیک‌شده ثبت شد.")
         }
     }
 
-    // Interactive Tour Controls
+    // Interactive Element-by-Element Spotlight Tour Controls
     fun startGuidedTour() {
+        _treeDrill.value = TreeDrillState()
         _tourStepIndex.value = 0
         _activeTab.value = guidedTourSteps[0].targetTab
         _isTourActive.value = true
@@ -458,7 +512,11 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val next = _tourStepIndex.value + 1
         if (next < guidedTourSteps.size) {
             _tourStepIndex.value = next
-            _activeTab.value = guidedTourSteps[next].targetTab
+            val targetStep = guidedTourSteps[next]
+            if (targetStep.targetTab == TarazinoNavTab.PORTFOLIO_TREE) {
+                _treeDrill.value = TreeDrillState()
+            }
+            _activeTab.value = targetStep.targetTab
         } else {
             finishGuidedTour()
         }
@@ -467,7 +525,11 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     fun previousTourStep() {
         val prev = (_tourStepIndex.value - 1).coerceAtLeast(0)
         _tourStepIndex.value = prev
-        _activeTab.value = guidedTourSteps[prev].targetTab
+        val targetStep = guidedTourSteps[prev]
+        if (targetStep.targetTab == TarazinoNavTab.PORTFOLIO_TREE) {
+            _treeDrill.value = TreeDrillState()
+        }
+        _activeTab.value = targetStep.targetTab
     }
 
     fun finishGuidedTour() {
@@ -489,7 +551,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         _celebrationMessage.value = null
     }
 
-    // Quick Pay, Partial Pay, Granular Installment Edit & Snooze
+    // Quick Pay, Batch Pay, Partial Pay, Granular Installment Edit & Snooze
     fun quickPayInstallment(installment: InstallmentEntity, trackingCode: String = "") {
         viewModelScope.launch {
             val today = JalaliCalendarEngine.todayJalali()
@@ -502,6 +564,30 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             )
             repository.updateInstallment(updated)
             _celebrationMessage.value = "تبریک! «${installment.title}» با موفقیت تسویه شد."
+        }
+    }
+
+    fun batchPayInstallments(installmentIds: Set<Long>, trackingCode: String = "") {
+        if (installmentIds.isEmpty()) return
+        viewModelScope.launch {
+            val today = JalaliCalendarEngine.todayJalali()
+            val targets = uiState.value.installments.filter { it.id in installmentIds && it.statusEnum != InstallmentStatus.PAID }
+            val batchCode = trackingCode.ifBlank { "BATCH-${System.currentTimeMillis() % 10000}" }
+            var totalSettledToman = 0L
+            targets.forEach { inst ->
+                totalSettledToman += inst.remainingToman
+                val updated = InstallmentScheduleEngine.applyPaymentUpdate(
+                    installment = inst,
+                    paidAmountToman = inst.effectiveTotalToman,
+                    paidDateJalali = today,
+                    trackingCode = batchCode,
+                    todayJalali = today
+                )
+                repository.updateInstallment(updated)
+            }
+            val countFa = PersianCurrencyEngine.toPersianDigits(targets.size.toString())
+            val amountFa = PersianCurrencyEngine.formatAmount(totalSettledToman, uiState.value.preferences.currencyUnit)
+            _celebrationMessage.value = "تسویه گروهی موفق! $countFa قسط به مجموع $amountFa یکجا تسویه شد."
         }
     }
 
@@ -589,7 +675,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Counterparty (Sub-Category Provider) Actions
+    // Counterparty (Sub-Category Provider) & Obligation Edit Actions
     fun saveCounterparty(entity: CounterpartyEntity) {
         viewModelScope.launch {
             val createdDate = entity.createdAtJalali.ifBlank { JalaliCalendarEngine.todayJalali() }
@@ -612,6 +698,13 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun updateObligationDetails(obligation: ObligationEntity) {
+        viewModelScope.launch {
+            repository.updateObligation(obligation)
+            showToast("مشخصات پرونده «${obligation.title}» با موفقیت ویرایش شد.")
+        }
+    }
+
     fun addSubRecordToObligation(obligation: ObligationEntity, subRecord: LedgerSubRecordEntity) {
         viewModelScope.launch {
             repository.addSubRecordAndSyncLedger(obligation, subRecord)
@@ -629,7 +722,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Intelligence Simulator & Heatmap Controls
+    // Intelligence Simulator, Budget Planner & Heatmap Controls
     fun updateExtraPayoffBudget(budgetToman: Long) {
         _extraPayoffBudgetToman.value = budgetToman.coerceAtLeast(0L)
     }
@@ -639,6 +732,17 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val cur = "%04d/%02d/01".format(java.util.Locale.US, y, m)
         val next = JalaliCalendarEngine.parseJalali(JalaliCalendarEngine.addJalaliMonths(cur, deltaMonths))
         _heatmapYearMonth.value = next.year to next.month
+    }
+
+    fun updateBudgetPlannerSettings(monthlyIncomeToman: Long, livingExpensePercent: Int, alertDays: Int) {
+        repository.updatePreferences {
+            it.copy(
+                monthlyIncomeToman = monthlyIncomeToman.coerceAtLeast(1_000_000L),
+                livingExpensePercent = livingExpensePercent.coerceIn(20, 80),
+                alertAdvanceDays = alertDays.coerceIn(1, 30)
+            )
+        }
+        showToast("برنامه بودجه ماهانه و سقف مجاز اقساط به‌روزرسانی شد.")
     }
 
     // A4 Report & Excel Export Studio Controls
@@ -774,16 +878,6 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         repository.updatePreferences { it.copy(fontScale = scale) }
     }
 
-    fun updateMonthlyIncomeAndAlertDays(monthlyIncomeToman: Long, alertDays: Int) {
-        repository.updatePreferences {
-            it.copy(
-                monthlyIncomeToman = monthlyIncomeToman.coerceAtLeast(1_000_000L),
-                alertAdvanceDays = alertDays.coerceIn(1, 30)
-            )
-        }
-        showToast("درآمد ماهانه و بازه هشدار هوشمند به‌روزرسانی شد.")
-    }
-
     // Data Seed, Reset & JSON Backup
     fun clearAllDataToZero() {
         viewModelScope.launch {
@@ -818,10 +912,5 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 showToast("خطا در ساختار فایل JSON واردشده.")
             }
         }
-    }
-
-    fun reRunQaDiagnostics() {
-        _qaResults.value = QaDiagnosticsEngine.runAll10DiagnosticSuites()
-        showToast("هر ۱۰ سوئیت تست خودکار QA با موفقیت اجرا و بررسی شدند.")
     }
 }

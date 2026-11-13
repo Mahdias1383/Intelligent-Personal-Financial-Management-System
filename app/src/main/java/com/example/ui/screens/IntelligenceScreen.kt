@@ -1,16 +1,17 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,35 +19,39 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AutoGraph
-import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,57 +60,65 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.core.JalaliCalendarEngine
-import com.example.core.JalaliDate
 import com.example.core.PersianCurrencyEngine
 import com.example.domain.CalendarHeatmapDay
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.MoneyInputField
-import kotlin.math.roundToLong
+import com.example.ui.components.tourSpotlightTarget
+import kotlin.math.roundToInt
 
 @Composable
 fun IntelligenceScreen(
     uiState: TarazinoUiState,
     onUpdateExtraPayoffBudget: (Long) -> Unit,
     onChangeHeatmapMonth: (Int) -> Unit,
-    onUpdateIncomeAndAlertDays: (Long, Int) -> Unit
+    onUpdateBudgetPlannerSettings: (monthlyIncomeToman: Long, livingExpensePercent: Int, alertDays: Int) -> Unit,
+    tourScrollIndex: Int? = null
 ) {
     val unit = uiState.preferences.currencyUnit
     val masked = uiState.preferences.privacyMaskEnabled
-    val dti = uiState.dtiHealthReport
-    val sim = uiState.payoffSimulation
+    val listState = rememberLazyListState()
 
-    var selectedStrategyTab by remember { mutableIntStateOf(0) } // 0 = Avalanche, 1 = Snowball
-    var selectedHeatmapDay by remember(uiState.heatmapDays) {
-        mutableStateOf(
-            uiState.heatmapDays.firstOrNull { it.items.isNotEmpty() }
-                ?: uiState.heatmapDays.firstOrNull { it.isToday }
-                ?: uiState.heatmapDays.firstOrNull()
-        )
+    var selectedHeatmapDay by remember { mutableStateOf<CalendarHeatmapDay?>(null) }
+    var showBudgetConfigModal by remember { mutableStateOf(false) }
+    var selectedStrategyTab by remember { mutableIntStateOf(0) } // 0 = Avalanche (بهمن), 1 = Snowball (گلوله برفی)
+
+    LaunchedEffect(tourScrollIndex) {
+        if (tourScrollIndex != null && tourScrollIndex >= 0) {
+            listState.animateScrollToItem(tourScrollIndex)
+        }
     }
-    var selectedBarMonthIndex by remember { mutableIntStateOf(0) }
-    var showIncomeConfigModal by remember { mutableStateOf(false) }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .testTag("intelligence_screen"),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Cashflow Stress, DTI Radar & Decade Crunch Card
-        if (dti != null) {
+        // 1. Monthly Budget Planner & Safe New Installment Capacity Card (پنل برنامه‌ریزی بودجه ماهانه و سقف قسط جدید)
+        uiState.dtiHealthReport?.let { dti ->
             item {
                 Card(
                     shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                        .tourSpotlightTarget("intel_budget_planner")
+                        .testTag("intel_budget_planner_card")
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
@@ -113,36 +126,110 @@ fun IntelligenceScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Speed,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "رادار سلامت مالی و فشار نقدینگی (DTI)",
+                                        text = "برنامه‌ریز بودجه و سقف مجاز قسط جدید",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "تحلیل ماه جاری: ${dti.currentMonthYearLabelFa}",
+                                        text = "تحلیل ماه جاری: ${dti.currentMonthYearLabelFa} • ${dti.statusBadgeFa}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(dti.statusColorHex)
+                                    )
+                                }
+                            }
+                            OutlinedButton(
+                                onClick = { showBudgetConfigModal = true },
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.testTag("edit_budget_planner_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "تنظیم درآمد و بودجه",
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "تنظیم بودجه",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Highlight Box: Safe New Monthly Installment Capacity (سقف مجاز اقساط جدید در ماه)
+                        val hasCapacity = dti.safeNewInstallmentCapacityToman > 0L
+                        val capAccent = if (hasCapacity) Color(0xFF10B981) else Color(0xFFEF4444)
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = capAccent.copy(alpha = 0.12f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, capAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "سقف مجاز افزودن قسط جدید در ماه:",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = PersianCurrencyEngine.formatAmount(
+                                            dti.safeNewInstallmentCapacityToman,
+                                            unit,
+                                            privacyMasked = masked
+                                        ),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = capAccent
+                                    )
+                                }
+                                if (!masked && dti.safeNewInstallmentCapacityToman > 0L) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "معادل حروفی: ${
+                                            PersianCurrencyEngine.amountToPersianWords(
+                                                dti.safeNewInstallmentCapacityToman,
+                                                unit
+                                            )
+                                        }",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
-                            IconButton(onClick = { showIncomeConfigModal = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "تنظیم درآمد ماهانه"
-                                )
-                            }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
+                        // 3-Column Metrics Row
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -154,15 +241,15 @@ fun IntelligenceScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             MetricMiniCard(
-                                label = "نسبت اقساط (DTI)",
-                                value = "${PersianCurrencyEngine.toPersianDigits(dti.dtiPercent.toString())}٪",
-                                color = Color(dti.statusColorHex),
+                                label = "مخارج زندگی (${PersianCurrencyEngine.toPersianDigits(dti.livingExpensePercent.toString())}٪)",
+                                value = PersianCurrencyEngine.formatAmount(dti.essentialLivingExpenseToman, unit, privacyMasked = masked),
+                                color = Color(0xFF38BDF8),
                                 modifier = Modifier.weight(1f)
                             )
                             MetricMiniCard(
-                                label = "امتیاز سلامت",
-                                value = "${PersianCurrencyEngine.toPersianDigits(dti.obligationCoverageScore.toString())}/۱۰۰",
-                                color = MaterialTheme.colorScheme.primary,
+                                label = "بار اقساط (${PersianCurrencyEngine.toPersianDigits(dti.dtiPercent.toString())}٪)",
+                                value = PersianCurrencyEngine.formatAmount(dti.currentMonthDebtDueToman, unit, privacyMasked = masked),
+                                color = Color(dti.statusColorHex),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -171,11 +258,11 @@ fun IntelligenceScreen(
 
                         // Peak Crunch Windows (دهه‌های اوج فشار مالی ماه شمسی)
                         Text(
-                            text = "تحلیل دهه‌های اوج فشار مالی در ماه شمسی:",
+                            text = "توزیع فشار اقساط در دهه‌های ماه شمسی:",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         dti.decadeSlices.forEach { slice ->
                             val isPeak = slice.decadeIndex == dti.peakDecadeIndex && slice.amountToman > 0L
@@ -217,7 +304,7 @@ fun IntelligenceScreen(
                         // Smart Heuristic Persian Advisories
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
@@ -250,220 +337,12 @@ fun IntelligenceScreen(
             }
         }
 
-        // 2. Interactive Early Payoff Strategy Simulator (Snowball vs. Avalanche)
-        if (sim != null) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.AutoGraph,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = "شبیه‌ساز تسویه زودهنگام: گلوله برفی در برابر بهمن",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "اگر ماهانه بودجه اضافه‌ای برای تسویه بدهی‌ها کنار بگذارم...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "بودجه مازاد ماهانه: ${
-                                PersianCurrencyEngine.formatAmount(
-                                    uiState.extraPayoffBudgetToman,
-                                    unit,
-                                    privacyMasked = masked
-                                )
-                            } (${PersianCurrencyEngine.amountToPersianWords(uiState.extraPayoffBudgetToman, unit)})",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Slider(
-                            value = uiState.extraPayoffBudgetToman.toFloat(),
-                            onValueChange = { raw ->
-                                val stepped = ((raw / 500_000f).roundToLong() * 500_000L).coerceIn(0L, 25_000_000L)
-                                onUpdateExtraPayoffBudget(stepped)
-                            },
-                            valueRange = 0f..25_000_000f,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("extra_payoff_budget_slider")
-                        )
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.horizontalScroll(rememberScrollState())
-                        ) {
-                            listOf(
-                                "بدون بودجه اضافه" to 0L,
-                                "۱ میلیون تومان" to 1_000_000L,
-                                "۳ میلیون تومان" to 3_000_000L,
-                                "۵ میلیون تومان" to 5_000_000L,
-                                "۱۰ میلیون تومان" to 10_000_000L
-                            ).forEach { (lbl, amt) ->
-                                AssistChip(
-                                    onClick = { onUpdateExtraPayoffBudget(amt) },
-                                    label = { Text(lbl) }
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Comparative Metrics Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            MetricMiniCard(
-                                label = "زمان تسویه عادی",
-                                value = "${PersianCurrencyEngine.toPersianDigits(sim.baselineMonthsToClear.toString())} ماه",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f)
-                            )
-                            MetricMiniCard(
-                                label = "با بودجه مازاد",
-                                value = "${PersianCurrencyEngine.toPersianDigits(sim.avalancheMonthsToClear.toString())} ماه",
-                                color = Color(0xFF10B981),
-                                modifier = Modifier.weight(1f)
-                            )
-                            MetricMiniCard(
-                                label = "صرفه‌جویی زمانی",
-                                value = "${PersianCurrencyEngine.toPersianDigits(sim.monthsSavedAvalanche.toString())} ماه زودتر!",
-                                color = Color(0xFFF59E0B),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = "تاریخ دقیق شمسی آزادی کامل از بدهی: «${
-                                        JalaliCalendarEngine.formatJalaliVerbose(sim.projectedAcceleratedDateJalali)
-                                    }»",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = sim.recommendationFa,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Strategy Switcher: Avalanche vs Snowball
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(
-                                selected = selectedStrategyTab == 0,
-                                onClick = { selectedStrategyTab = 0 },
-                                label = { Text("استراتژی بهمن (حداقل هزینه و ریسک)") }
-                            )
-                            FilterChip(
-                                selected = selectedStrategyTab == 1,
-                                onClick = { selectedStrategyTab = 1 },
-                                label = { Text("استراتژی گلوله برفی (حذف سریع بدهی‌های کوچک)") }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        val steps = if (selectedStrategyTab == 0) sim.avalancheOrder else sim.snowballOrder
-                        steps.forEachIndexed { idx, step ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(26.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary)
-                                    ) {
-                                        Text(
-                                            text = PersianCurrencyEngine.toPersianDigits((idx + 1).toString()),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimary
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = step.title,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        Text(
-                                            text = "${step.counterpartyName} • تسویه کامل در ماه ${
-                                                PersianCurrencyEngine.toPersianDigits(step.estimatedClearMonthIndex.toString())
-                                            }",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = PersianCurrencyEngine.formatAmount(
-                                        step.remainingToman,
-                                        unit,
-                                        privacyMasked = masked
-                                    ),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Monthly Jalali Calendar Due-Date Heatmap (نقشه حرارتی ۳۰/۳۱ روزه تقویم شمسی)
+        // 2. Interactive Jalali Monthly Calendar Heatmap (تقویم حرارتی ۳۰/۳۱ روزه ماه شمسی)
         item {
             Card(
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -479,46 +358,64 @@ fun IntelligenceScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "نقشه حرارتی سررسیدهای تقویم شمسی",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { onChangeHeatmapMonth(-1) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = "ماه قبل"
+                            Column {
+                                Text(
+                                    text = "تقویم حرارتی سررسیدها (Shamsi Heatmap)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
                                 )
-                            }
-                            Text(
-                                text = "${JalaliCalendarEngine.getMonthName(uiState.heatmapMonth)} ${
-                                    PersianCurrencyEngine.toPersianDigits(uiState.heatmapYear.toString())
-                                }",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            IconButton(onClick = { onChangeHeatmapMonth(1) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                    contentDescription = "ماه بعد"
+                                Text(
+                                    text = "روی هر روز دارای قسط بزنید تا جزئیات تعهدات آن روز باز شود",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Weekday Header
+                    // Month Stepper
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { onChangeHeatmapMonth(-1) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = "ماه قبل"
+                            )
+                        }
+                        Text(
+                            text = "${JalaliCalendarEngine.getMonthName(uiState.heatmapMonth)} ${
+                                PersianCurrencyEngine.toPersianDigits(uiState.heatmapYear.toString())
+                            }",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        IconButton(onClick = { onChangeHeatmapMonth(1) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = "ماه بعد"
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // 7-Column Weekday Header
                     Row(modifier = Modifier.fillMaxWidth()) {
-                        JalaliCalendarEngine.WEEKDAY_SHORT.forEach { w ->
+                        for (w in 0..6) {
                             Text(
-                                text = w,
-                                style = MaterialTheme.typography.labelSmall,
+                                text = JalaliCalendarEngine.WEEKDAY_SHORT[w],
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.weight(1f)
                             )
@@ -527,80 +424,225 @@ fun IntelligenceScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    val firstWeekdayOffset = remember(uiState.heatmapYear, uiState.heatmapMonth) {
-                        JalaliCalendarEngine.getPersianWeekdayIndex(
-                            JalaliDate(uiState.heatmapYear, uiState.heatmapMonth, 1)
-                        )
-                    }
-                    val days = uiState.heatmapDays
-                    val totalCells = firstWeekdayOffset + days.size
-                    val rowsCount = (totalCells + 6) / 7
+                    val firstDayStr = "%04d/%02d/01".format(
+                        java.util.Locale.US,
+                        uiState.heatmapYear,
+                        uiState.heatmapMonth
+                    )
+                    val firstDayOffset = JalaliCalendarEngine.getPersianWeekdayIndex(firstDayStr)
+                    val totalSlots = firstDayOffset + uiState.heatmapDays.size
+                    val rowCount = (totalSlots + 6) / 7
 
-                    for (r in 0 until rowsCount) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            for (c in 0 until 7) {
-                                val idx = r * 7 + c - firstWeekdayOffset
-                                val dayItem = days.getOrNull(idx)
-                                if (dayItem != null) {
-                                    HeatmapDayCell(
-                                        dayItem = dayItem,
-                                        isSelected = selectedHeatmapDay?.dateJalali == dayItem.dateJalali,
-                                        onClick = { selectedHeatmapDay = dayItem },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.weight(1f).size(36.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for (r in 0 until rowCount) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                for (c in 0..6) {
+                                    val slot = r * 7 + c
+                                    val dayIdx = slot - firstDayOffset
+                                    if (dayIdx in uiState.heatmapDays.indices) {
+                                        val dayItem = uiState.heatmapDays[dayIdx]
+                                        val hasUnpaid = dayItem.unpaidDebtToman > 0L
+                                        val hasPaid = dayItem.paidDebtToman > 0L
+                                        val hasRec = dayItem.receivableToman > 0L
+
+                                        val cellColor = when {
+                                            dayItem.unpaidDebtToman >= 10_000_000L -> Color(0xFFEF4444).copy(alpha = 0.28f)
+                                            hasUnpaid -> Color(0xFFF59E0B).copy(alpha = 0.25f)
+                                            hasRec -> Color(0xFF06B6D4).copy(alpha = 0.25f)
+                                            hasPaid -> Color(0xFF10B981).copy(alpha = 0.22f)
+                                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                        }
+
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(44.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(cellColor)
+                                                .then(
+                                                    if (dayItem.isToday) {
+                                                        Modifier.border(
+                                                            1.5.dp,
+                                                            MaterialTheme.colorScheme.primary,
+                                                            RoundedCornerShape(10.dp)
+                                                        )
+                                                    } else Modifier
+                                                )
+                                                .clickable {
+                                                    if (dayItem.items.isNotEmpty()) {
+                                                        selectedHeatmapDay = dayItem
+                                                    }
+                                                }
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    text = PersianCurrencyEngine.toPersianDigits(dayItem.dayOfMonth.toString()),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = if (dayItem.items.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                if (dayItem.items.isNotEmpty()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(6.dp)
+                                                            .clip(CircleShape)
+                                                            .background(
+                                                                when {
+                                                                    hasUnpaid -> Color(0xFFEF4444)
+                                                                    hasRec -> Color(0xFF06B6D4)
+                                                                    else -> Color(0xFF10B981)
+                                                                }
+                                                            )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Spacer(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(44.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // Selected Heatmap Day Details
-                    selectedHeatmapDay?.let { selDay ->
-                        Spacer(modifier = Modifier.height(10.dp))
+                    selectedHeatmapDay?.let { sel ->
+                        Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "تعهدات روز ${JalaliCalendarEngine.formatJalaliVerbose(selDay.dateJalali)}:",
+                            text = "تعهدات روز ${JalaliCalendarEngine.formatJalaliVerbose(sel.dateJalali)}:",
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        if (selDay.items.isEmpty()) {
-                            Text(
-                                text = "در این تاریخ هیچ سررسید یا قسطی ثبت نشده است.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Spacer(modifier = Modifier.height(6.dp))
+                        sel.items.forEach { alert ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${alert.installment.title} (${alert.counterparty?.name ?: ""})",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = PersianCurrencyEngine.formatAmount(
+                                        alert.installment.remainingToman,
+                                        unit,
+                                        privacyMasked = masked
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. 12-Month Forward Installment Load Bar Chart (نمودار بار اقساط ۱۲ ماه آینده)
+        if (uiState.forward12MonthBars.isNotEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
-                        } else {
-                            selDay.items.forEach { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        .padding(8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "چشم‌انداز بار اقساط ۱۲ ماه آینده",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "مقایسه تعهدات پرداخت‌شده (سبز) و مانده هر ماه (نارنجی)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        val maxMonthly = uiState.forward12MonthBars.maxOfOrNull { it.totalDebtToman }
+                            ?.coerceAtLeast(1L) ?: 1L
+
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                        ) {
+                            val barCount = uiState.forward12MonthBars.size
+                            val slotWidth = size.width / barCount
+                            val barWidth = (slotWidth * 0.56f).coerceAtMost(28.dp.toPx())
+
+                            uiState.forward12MonthBars.forEachIndexed { idx, bar ->
+                                val x = size.width - ((idx + 1) * slotWidth) + (slotWidth - barWidth) / 2f
+                                val totalRatio = (bar.totalDebtToman.toFloat() / maxMonthly.toFloat()).coerceIn(0.04f, 1f)
+                                val paidRatio = (bar.paidToman.toFloat() / maxMonthly.toFloat()).coerceIn(0f, totalRatio)
+
+                                val totalH = size.height * totalRatio
+                                val paidH = size.height * paidRatio
+
+                                drawRoundRect(
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.78f),
+                                    topLeft = Offset(x, size.height - totalH),
+                                    size = Size(barWidth, totalH),
+                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                )
+                                if (paidH > 0f) {
+                                    drawRoundRect(
+                                        color = Color(0xFF10B981),
+                                        topLeft = Offset(x, size.height - paidH),
+                                        size = Size(barWidth, paidH),
+                                        cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            uiState.forward12MonthBars.take(6).forEach { bar ->
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = "${item.installment.title} (${item.counterparty?.name ?: ""})",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f)
+                                        text = bar.monthLabelFa,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
                                         text = PersianCurrencyEngine.formatAmount(
-                                            item.installment.effectiveTotalToman,
+                                            bar.unpaidToman,
                                             unit,
+                                            includeUnit = false,
                                             privacyMasked = masked
                                         ),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -610,108 +652,218 @@ fun IntelligenceScreen(
             }
         }
 
-        // 4. 12-Month Forward Installment Load Bar Chart
-        item {
-            Card(
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.BarChart,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "نمودار بار اقساط ۱۲ ماه آینده",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+        // 4. Interactive Early Payoff Simulator: Snowball vs. Avalanche (Fixed Symmetrical Segmented Selector!)
+        uiState.payoffSimulation?.let { sim ->
+            item {
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .tourSpotlightTarget("intel_payoff_simulator")
+                        .testTag("intel_payoff_simulator_card")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.RocketLaunch,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
                             )
-                            Text(
-                                text = "برای مشاهده جزئیات هر ماه، روی ستون آن ضربه بزنید",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    val maxMonthLoad = uiState.forward12MonthBars.maxOfOrNull { it.totalDebtToman }?.coerceAtLeast(1L) ?: 1L
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        uiState.forward12MonthBars.forEachIndexed { idx, bar ->
-                            val ratio = (bar.totalDebtToman.toFloat() / maxMonthLoad.toFloat()).coerceIn(0.06f, 1f)
-                            val isSelected = selectedBarMonthIndex == idx
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Bottom,
-                                modifier = Modifier
-                                    .width(46.dp)
-                                    .clickable { selectedBarMonthIndex = idx }
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(26.dp)
-                                        .height((95 * ratio).dp)
-                                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                                        .background(
-                                            if (isSelected) Color(0xFFF59E0B) else MaterialTheme.colorScheme.primary
-                                        )
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
                                 Text(
-                                    text = bar.monthLabelFa,
+                                    text = "شبیه‌ساز تسویه زودهنگام (بهمن در برابر گلوله برفی)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "محاسبه تاریخ دقیق آزادی از بدهی با افزودن بودجه مازاد ماهانه",
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    maxLines = 1
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                    }
 
-                    uiState.forward12MonthBars.getOrNull(selectedBarMonthIndex)?.let { selBar ->
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "بودجه مازاد ماهانه برای تسویه سریع‌تر: ${
+                                PersianCurrencyEngine.formatAmount(
+                                    uiState.extraPayoffBudgetToman,
+                                    unit,
+                                    privacyMasked = masked
+                                )
+                            }",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        var sliderValue by remember(uiState.extraPayoffBudgetToman) {
+                            mutableFloatStateOf(uiState.extraPayoffBudgetToman.toFloat())
+                        }
+                        Slider(
+                            value = sliderValue,
+                            onValueChange = {
+                                sliderValue = it
+                                val stepped = ((it.toLong() / 500_000L) * 500_000L)
+                                onUpdateExtraPayoffBudget(stepped)
+                            },
+                            valueRange = 0f..25_000_000f,
+                            steps = 49,
+                            modifier = Modifier.testTag("payoff_extra_budget_slider")
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            MetricMiniCard(
+                                label = "زمان تسویه عادی",
+                                value = "${PersianCurrencyEngine.toPersianDigits(sim.baselineMonthsToClear.toString())} ماه",
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            MetricMiniCard(
+                                label = "با بودجه مازاد",
+                                value = "${PersianCurrencyEngine.toPersianDigits(sim.avalancheMonthsToClear.toString())} ماه",
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            MetricMiniCard(
+                                label = "صرفه‌جویی زمانی",
+                                value = "${PersianCurrencyEngine.toPersianDigits(sim.monthsSavedAvalanche.toString())} ماه زودتر!",
+                                color = Color(0xFFF59E0B),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(10.dp))
+
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f),
                             modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "تاریخ دقیق شمسی آزادی کامل از بدهی: «${
+                                        JalaliCalendarEngine.formatJalaliVerbose(sim.projectedAcceleratedDateJalali)
+                                    }»",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = sim.recommendationFa,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // FIXED SYMMETRICAL 2-COLUMN SEGMENTED STRATEGY SELECTOR (No multi-line wrapping!)
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(
-                                    text = "${selBar.monthLabelFa} (${PersianCurrencyEngine.toPersianDigits(selBar.count.toString())} قسط)",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold
+                                StrategySegmentButton(
+                                    selected = selectedStrategyTab == 0,
+                                    titleFa = "استراتژی بهمن",
+                                    subtitleFa = "حداقل ریسک و هزینه",
+                                    icon = Icons.Default.Shield,
+                                    accentColor = Color(0xFFF59E0B),
+                                    onClick = { selectedStrategyTab = 0 },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("strategy_segment_avalanche")
                                 )
-                                Text(
-                                    text = "مجموع: ${
-                                        PersianCurrencyEngine.formatAmount(
-                                            selBar.totalDebtToman,
-                                            unit,
-                                            privacyMasked = masked
+                                StrategySegmentButton(
+                                    selected = selectedStrategyTab == 1,
+                                    titleFa = "استراتژی گلوله برفی",
+                                    subtitleFa = "حذف سریع خرده‌بدهی",
+                                    icon = Icons.Default.Speed,
+                                    accentColor = Color(0xFF10B981),
+                                    onClick = { selectedStrategyTab = 1 },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("strategy_segment_snowball")
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        val targetList = if (selectedStrategyTab == 0) sim.avalancheOrder else sim.snowballOrder
+                        targetList.forEachIndexed { idx, step ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Text(
+                                            text = PersianCurrencyEngine.toPersianDigits((idx + 1).toString()),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimary
                                         )
-                                    }",
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = step.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${step.counterpartyName} • تسویه کامل در ماه ${
+                                                PersianCurrencyEngine.toPersianDigits(step.estimatedClearMonthIndex.toString())
+                                            }",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = PersianCurrencyEngine.formatAmount(step.remainingToman, unit, privacyMasked = masked),
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                             }
                         }
@@ -721,50 +873,145 @@ fun IntelligenceScreen(
         }
     }
 
-    if (showIncomeConfigModal) {
-        var tempIncome by remember { mutableLongStateOf(uiState.preferences.monthlyIncomeToman) }
-        var tempDays by remember { mutableIntStateOf(uiState.preferences.alertAdvanceDays) }
+    if (showBudgetConfigModal) {
+        var newIncome by remember { mutableLongStateOf(uiState.preferences.monthlyIncomeToman) }
+        var newLivingPct by remember { mutableFloatStateOf(uiState.preferences.livingExpensePercent.toFloat()) }
+        var newAlertDays by remember { mutableFloatStateOf(uiState.preferences.alertAdvanceDays.toFloat()) }
 
         AlertDialog(
-            onDismissRequest = { showIncomeConfigModal = false },
-            title = { Text("تنظیم درآمد ماهانه و بازه هشدار سررسید", fontWeight = FontWeight.Bold) },
+            onDismissRequest = { showBudgetConfigModal = false },
+            title = {
+                Text("تنظیم بودجه ماهانه و سقف مجاز اقساط", fontWeight = FontWeight.Bold)
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     MoneyInputField(
-                        labelFa = "میانگین درآمد ماهانه شما",
-                        amountToman = tempIncome,
-                        onAmountChange = { tempIncome = it },
-                        currencyUnit = unit
+                        labelFa = "درآمد ماهانه خالص شما",
+                        amountToman = newIncome,
+                        currencyUnit = unit,
+                        onAmountChange = { newIncome = it }
                     )
 
-                    Text("هشدار زودهنگام چند روز قبل از سررسید فعال شود؟", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(1, 3, 7, 14).forEach { d ->
-                            FilterChip(
-                                selected = tempDays == d,
-                                onClick = { tempDays = d },
-                                label = { Text("${PersianCurrencyEngine.toPersianDigits(d.toString())} روز قبل") }
+                    Text(
+                        text = "سهم مخارج ضروری زندگی از درآمد: ${
+                            PersianCurrencyEngine.toPersianDigits(newLivingPct.roundToInt().toString())
+                        }٪ (${
+                            PersianCurrencyEngine.formatAmount(
+                                (newIncome * newLivingPct.roundToInt()) / 100L,
+                                unit
                             )
-                        }
-                    }
+                        })",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Slider(
+                        value = newLivingPct,
+                        onValueChange = { newLivingPct = it },
+                        valueRange = 25f..75f,
+                        steps = 9
+                    )
+
+                    Text(
+                        text = "بازه هشدار زودهنگام قبل از سررسید: ${
+                            PersianCurrencyEngine.toPersianDigits(newAlertDays.roundToInt().toString())
+                        } روز",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Slider(
+                        value = newAlertDays,
+                        onValueChange = { newAlertDays = it },
+                        valueRange = 1f..20f,
+                        steps = 18
+                    )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        onUpdateIncomeAndAlertDays(tempIncome, tempDays)
-                        showIncomeConfigModal = false
-                    }
+                        onUpdateBudgetPlannerSettings(
+                            newIncome,
+                            newLivingPct.roundToInt(),
+                            newAlertDays.roundToInt()
+                        )
+                        showBudgetConfigModal = false
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("ذخیره تنظیمات")
+                    Text("ذخیره برنامه بودجه", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showIncomeConfigModal = false }) {
+                TextButton(onClick = { showBudgetConfigModal = false }) {
                     Text("انصراف")
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun StrategySegmentButton(
+    selected: Boolean,
+    titleFa: String,
+    subtitleFa: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bgColor by animateColorAsState(
+        targetValue = if (selected) accentColor.copy(alpha = 0.18f) else Color.Transparent,
+        label = "SegmentBg"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+        label = "SegmentBorder"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = bgColor,
+        modifier = modifier
+            .height(64.dp)
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = if (selected) Icons.Default.CheckCircle else icon,
+                contentDescription = null,
+                tint = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Column {
+                Text(
+                    text = titleFa,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) accentColor else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitleFa,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 
@@ -776,82 +1023,26 @@ private fun MetricMiniCard(
     modifier: Modifier = Modifier
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(vertical = 10.dp, horizontal = 6.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 8.dp, vertical = 10.dp)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = color,
-            textAlign = TextAlign.Center
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@Composable
-private fun HeatmapDayCell(
-    dayItem: CalendarHeatmapDay,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val hasUnpaid = dayItem.unpaidDebtToman > 0L
-    val hasPaid = dayItem.paidDebtToman > 0L
-    val hasReceivable = dayItem.receivableToman > 0L
-
-    val bgColor = when {
-        hasUnpaid -> Color(0xFFEF4444).copy(alpha = 0.25f)
-        hasReceivable -> Color(0xFF06B6D4).copy(alpha = 0.25f)
-        hasPaid -> Color(0xFF10B981).copy(alpha = 0.22f)
-        dayItem.isToday -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-    }
-
-    val dotColor = when {
-        hasUnpaid -> Color(0xFFEF4444)
-        hasReceivable -> Color(0xFF06B6D4)
-        hasPaid -> Color(0xFF10B981)
-        else -> Color.Transparent
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(bgColor)
-            .border(
-                width = if (isSelected) 2.dp else if (dayItem.isToday) 1.2.dp else 0.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .clickable(onClick = onClick)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = PersianCurrencyEngine.toPersianDigits(dayItem.dayOfMonth.toString()),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (hasUnpaid || isSelected || dayItem.isToday) FontWeight.Bold else FontWeight.Normal
-            )
-            if (dotColor != Color.Transparent) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(dotColor)
-                )
-            }
-        }
     }
 }

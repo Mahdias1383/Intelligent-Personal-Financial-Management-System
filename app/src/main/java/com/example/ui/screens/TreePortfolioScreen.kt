@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
@@ -38,11 +41,11 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HomeWork
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingBag
@@ -64,6 +67,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +81,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -87,12 +92,27 @@ import com.example.data.EntityCategory
 import com.example.data.InstallmentEntity
 import com.example.data.InstallmentStatus
 import com.example.data.LedgerSubRecordEntity
+import com.example.data.ObligationCategory
 import com.example.data.ObligationEntity
 import com.example.data.SubRecordType
 import com.example.data.TrustPriority
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.JalaliDateSelectorField
 import com.example.ui.components.MoneyInputField
+import com.example.ui.components.tourSpotlightTarget
+
+enum class InstallmentSortOption(val labelFa: String) {
+    BY_DUE_DATE("نزدیک‌ترین سررسید"),
+    HIGHEST_AMOUNT("بیشترین مبلغ"),
+    LOWEST_REMAINING("کمترین مانده")
+}
+
+enum class InstallmentFilterMode(val labelFa: String) {
+    ALL("همه اقساط"),
+    UNPAID_ONLY("پرداخت‌نشده"),
+    OVERDUE_ONLY("فقط معوقه"),
+    PAID_ONLY("تسویه‌شده")
+}
 
 @Composable
 fun TreePortfolioScreen(
@@ -105,8 +125,10 @@ fun TreePortfolioScreen(
     onOpenWizard: (EntityCategory?, Long?) -> Unit,
     onSaveCounterparty: (CounterpartyEntity) -> Unit,
     onDeleteCounterparty: (Long, String) -> Unit,
+    onUpdateObligationDetails: (ObligationEntity) -> Unit,
     onDeleteObligation: (Long, String) -> Unit,
     onQuickPayInstallment: (InstallmentEntity) -> Unit,
+    onBatchPayInstallments: (Set<Long>) -> Unit,
     onDetailedInstallmentUpdate: (
         installment: InstallmentEntity,
         customTitle: String,
@@ -132,19 +154,32 @@ fun TreePortfolioScreen(
     onAddSubRecord: (ObligationEntity, LedgerSubRecordEntity) -> Unit,
     onOpenCounterpartyA4Report: (CounterpartyEntity) -> Unit,
     onOpenObligationA4Report: (ObligationEntity) -> Unit,
-    onShowToast: (String) -> Unit
+    onShowToast: (String) -> Unit,
+    tourScrollIndex: Int? = null
 ) {
     val context = LocalContext.current
     val unit = uiState.preferences.currencyUnit
     val masked = uiState.preferences.privacyMaskEnabled
     val drill = uiState.treeDrill
+    val listState = rememberLazyListState()
 
     var searchQuery by remember { mutableStateOf("") }
+    var sortOption by remember { mutableStateOf(InstallmentSortOption.BY_DUE_DATE) }
+    var filterMode by remember { mutableStateOf(InstallmentFilterMode.ALL) }
+    var batchSelectionIds by remember(drill.selectedObligationId) { mutableStateOf(setOf<Long>()) }
+
     var editingCounterparty by remember { mutableStateOf<CounterpartyEntity?>(null) }
     var showAddCounterpartyModalForCategory by remember { mutableStateOf<EntityCategory?>(null) }
+    var editingObligation by remember { mutableStateOf<ObligationEntity?>(null) }
     var editingInstallment by remember { mutableStateOf<InstallmentEntity?>(null) }
     var addingCustomInstallmentToObligation by remember { mutableStateOf<ObligationEntity?>(null) }
     var addingSubRecordToObligation by remember { mutableStateOf<ObligationEntity?>(null) }
+
+    LaunchedEffect(tourScrollIndex) {
+        if (tourScrollIndex != null && tourScrollIndex >= 0) {
+            listState.animateScrollToItem(tourScrollIndex)
+        }
+    }
 
     val selectedCounterparty = remember(drill.selectedCounterpartyId, uiState.counterparties) {
         uiState.counterparties.find { it.id == drill.selectedCounterpartyId }
@@ -153,7 +188,6 @@ fun TreePortfolioScreen(
         uiState.obligations.find { it.id == drill.selectedObligationId }
     }
 
-    //Ordered display categories so BNPL_PLATFORM (خرید اقساطی - اسنپ‌پی / دیجی‌پی) is right at top
     val orderedCategories = remember {
         listOf(
             EntityCategory.BNPL_PLATFORM,
@@ -164,19 +198,22 @@ fun TreePortfolioScreen(
     }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .testTag("tree_portfolio_screen"),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Top Command & Search Bar
+        // 1. Top Command, Search & Smart Sort/Filter Bar
         item {
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .tourSpotlightTarget("tree_command_bar")
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -191,9 +228,11 @@ fun TreePortfolioScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "تفکیک تمیز بر اساس دسته اصلی ← زیرمجموعه (اسنپ‌پی، دیجی‌پی، بانک) ← جدول قسط‌ها",
+                                text = "دسته اصلی ← زیرمجموعه (اسنپ‌پی، دیجی‌پی، بانک) ← جدول قسط‌ها",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -204,16 +243,23 @@ fun TreePortfolioScreen(
                                     drill.selectedCounterpartyId
                                 )
                             },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("tree_open_wizard_btn")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AddCircle,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("ثبت قسط جدید", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "ثبت قسط جدید",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
                         }
                     }
 
@@ -223,7 +269,11 @@ fun TreePortfolioScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = {
-                            Text("جستجوی سریع (مثلاً: اسنپ‌پی، دیجی‌پی، آیفون، وام ازدواج...)")
+                            Text(
+                                text = "جستجو (اسنپ‌پی، دیجی‌پی، لپ‌تاپ، وام ازدواج...)",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         },
                         leadingIcon = {
                             Icon(imageVector = Icons.Default.Search, contentDescription = null)
@@ -379,33 +429,183 @@ fun TreePortfolioScreen(
                         searchQuery = ""
                         onSelectObligation(ob, cp?.categoryEnum)
                     },
+                    onEditObligation = { editingObligation = ob },
                     onOpenA4 = { onOpenObligationA4Report(ob) }
                 )
             }
         } else {
             // Normal Hierarchical Tree Explorer
             when {
-                // LEVEL 4: Specific Obligation Detail & Granular Per-Installment Editable Table
+                // LEVEL 4: Specific Obligation Detail, Batch Pay & Granular Per-Installment Editable Table
                 selectedObligation != null -> {
                     val ob = selectedObligation
                     val cp = selectedCounterparty ?: uiState.counterparties.find { it.id == ob.counterpartyId }
-                    val obInstallments = uiState.installments
-                        .filter { it.obligationId == ob.id }
-                        .sortedBy { it.installmentNumber }
+                    val rawInstallments = uiState.installments.filter { it.obligationId == ob.id }
+                    val unpaidIds = rawInstallments.filter { it.statusEnum != InstallmentStatus.PAID }.map { it.id }.toSet()
+
+                    val filteredAndSortedInstallments = rawInstallments
+                        .filter { inst ->
+                            when (filterMode) {
+                                InstallmentFilterMode.ALL -> true
+                                InstallmentFilterMode.UNPAID_ONLY -> inst.statusEnum != InstallmentStatus.PAID
+                                InstallmentFilterMode.OVERDUE_ONLY -> inst.statusEnum == InstallmentStatus.OVERDUE
+                                InstallmentFilterMode.PAID_ONLY -> inst.statusEnum == InstallmentStatus.PAID
+                            }
+                        }
+                        .let { list ->
+                            when (sortOption) {
+                                InstallmentSortOption.BY_DUE_DATE -> list.sortedBy { it.dueDateJalali }
+                                InstallmentSortOption.HIGHEST_AMOUNT -> list.sortedByDescending { it.effectiveTotalToman }
+                                InstallmentSortOption.LOWEST_REMAINING -> list.sortedBy { it.remainingToman }
+                            }
+                        }
+
                     val obSubRecords = uiState.subRecords.filter { it.obligationId == ob.id }
 
                     item {
                         ObligationGranularHeaderCard(
                             obligation = ob,
                             counterparty = cp,
-                            installments = obInstallments,
+                            installments = rawInstallments,
                             currencyUnit = unit,
                             privacyMasked = masked,
+                            onEditObligation = { editingObligation = ob },
                             onAddCustomInstallment = { addingCustomInstallmentToObligation = ob },
                             onAddSubRecord = { addingSubRecordToObligation = ob },
                             onExportA4 = { onOpenObligationA4Report(ob) },
                             onDeleteObligation = { onDeleteObligation(ob.id, ob.title) }
                         )
+                    }
+
+                    // Batch Multi-Installment Settlement Banner (تسویه گروهی چند قسط با هم)
+                    if (unpaidIds.isNotEmpty()) {
+                        item {
+                            val selectedTotalToman = rawInstallments
+                                .filter { it.id in batchSelectionIds && it.statusEnum != InstallmentStatus.PAID }
+                                .sumOf { it.remainingToman }
+
+                            Card(
+                                shape = RoundedCornerShape(18.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (batchSelectionIds.isNotEmpty()) {
+                                        Color(0xFF064E3B).copy(alpha = 0.25f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateContentSize()
+                                    .border(
+                                        1.dp,
+                                        if (batchSelectionIds.isNotEmpty()) Color(0xFF10B981) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                        RoundedCornerShape(18.dp)
+                                    )
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.DoneAll,
+                                                contentDescription = null,
+                                                tint = Color(0xFF10B981),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Column {
+                                                Text(
+                                                    text = "تسویه گروهی چند قسط با هم (Batch Pay)",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text(
+                                                    text = "تیک کنار اقساط را بزنید یا همه را انتخاب و یکجا تسویه کنید",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        TextButton(
+                                            onClick = {
+                                                batchSelectionIds = if (batchSelectionIds.size == unpaidIds.size) {
+                                                    emptySet()
+                                                } else {
+                                                    unpaidIds
+                                                }
+                                            },
+                                            modifier = Modifier.testTag("batch_select_all_unpaid_btn")
+                                        ) {
+                                            Text(
+                                                text = if (batchSelectionIds.size == unpaidIds.size) "لغو انتخاب" else "انتخاب همه (${PersianCurrencyEngine.toPersianDigits(unpaidIds.size.toString())})",
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+
+                                    AnimatedVisibility(visible = batchSelectionIds.isNotEmpty()) {
+                                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                                            HorizontalDivider(color = Color(0xFF10B981).copy(alpha = 0.3f))
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "${PersianCurrencyEngine.toPersianDigits(batchSelectionIds.size.toString())} قسط انتخاب‌شده • مجموع: ${
+                                                            PersianCurrencyEngine.formatAmount(selectedTotalToman, unit, privacyMasked = masked)
+                                                        }",
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF10B981)
+                                                    )
+                                                    if (!masked && selectedTotalToman > 0L) {
+                                                        Text(
+                                                            text = PersianCurrencyEngine.amountToPersianWords(selectedTotalToman, unit),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.width(8.dp))
+
+                                                Button(
+                                                    onClick = {
+                                                        onBatchPayInstallments(batchSelectionIds)
+                                                        batchSelectionIds = emptySet()
+                                                    },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                    modifier = Modifier.testTag("confirm_batch_pay_btn")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF042F2E),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "تسویه یکجا",
+                                                        color = Color(0xFF042F2E),
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Running Ledger Sub-Records Section (if any exist)
@@ -465,34 +665,75 @@ fun TreePortfolioScreen(
                         }
                     }
 
+                    // Smart Sort & Filter Bar for Installments
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "جدول تفکیکی تک‌تک اقساط (${PersianCurrencyEngine.toPersianDigits(obInstallments.size.toString())} قسط)",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            TextButton(onClick = { addingCustomInstallmentToObligation = ob }) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "جدول تفکیکی تک‌تک اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())} قسط)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                TextButton(onClick = { addingCustomInstallmentToObligation = ob }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("افزودن قسط جدید", maxLines = 1)
+                                }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.Add,
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
                                     contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("افزودن قسط جدید")
+                                InstallmentFilterMode.entries.forEach { mode ->
+                                    FilterChip(
+                                        selected = filterMode == mode,
+                                        onClick = { filterMode = mode },
+                                        label = { Text(mode.labelFa, maxLines = 1) }
+                                    )
+                                }
+                                InstallmentSortOption.entries.forEach { sOpt ->
+                                    FilterChip(
+                                        selected = sortOption == sOpt,
+                                        onClick = { sortOption = sOpt },
+                                        label = { Text(sOpt.labelFa, maxLines = 1) }
+                                    )
+                                }
                             }
                         }
                     }
 
-                    items(obInstallments, key = { "inst_${it.id}" }) { inst ->
+                    items(filteredAndSortedInstallments, key = { "inst_${it.id}" }) { inst ->
+                        val isSelectedForBatch = inst.id in batchSelectionIds
                         GranularInstallmentItemCard(
                             installment = inst,
                             currencyUnit = unit,
                             privacyMasked = masked,
+                            isBatchChecked = isSelectedForBatch,
+                            onToggleBatchCheck = {
+                                batchSelectionIds = if (isSelectedForBatch) {
+                                    batchSelectionIds - inst.id
+                                } else {
+                                    batchSelectionIds + inst.id
+                                }
+                            },
                             onQuickPay = { onQuickPayInstallment(inst) },
                             onEditInstallment = { editingInstallment = inst }
                         )
@@ -505,6 +746,16 @@ fun TreePortfolioScreen(
                     val cpObligations = uiState.obligations.filter { it.counterpartyId == cp.id }
                     val cpObIds = cpObligations.map { it.id }.toSet()
                     val cpInstallments = uiState.installments.filter { it.obligationId in cpObIds }
+
+                    val sortedCpObligations = cpObligations.let { list ->
+                        when (sortOption) {
+                            InstallmentSortOption.BY_DUE_DATE -> list.sortedBy { it.firstDueDateJalali }
+                            InstallmentSortOption.HIGHEST_AMOUNT -> list.sortedByDescending { it.netPayableToman }
+                            InstallmentSortOption.LOWEST_REMAINING -> list.sortedBy { ob ->
+                                cpInstallments.filter { it.obligationId == ob.id }.sumOf { it.remainingToman }
+                            }
+                        }
+                    }
 
                     item {
                         SubProviderDetailHubHeaderCard(
@@ -525,25 +776,51 @@ fun TreePortfolioScreen(
                     }
 
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "لیست خریدها، وام‌ها و پرونده‌های «${cp.name}»",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${PersianCurrencyEngine.toPersianDigits(cpObligations.size.toString())} پرونده",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "لیست خریدها، وام‌ها و پرونده‌های «${cp.name}»",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${PersianCurrencyEngine.toPersianDigits(cpObligations.size.toString())} پرونده",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (cpObligations.size > 1) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState())
+                                ) {
+                                    Text(
+                                        text = "مرتب‌سازی:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    InstallmentSortOption.entries.forEach { opt ->
+                                        FilterChip(
+                                            selected = sortOption == opt,
+                                            onClick = { sortOption = opt },
+                                            label = { Text(opt.labelFa, maxLines = 1) }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    if (cpObligations.isEmpty()) {
+                    if (sortedCpObligations.isEmpty()) {
                         item {
                             Card(
                                 shape = RoundedCornerShape(18.dp),
@@ -564,16 +841,19 @@ fun TreePortfolioScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Spacer(modifier = Modifier.height(10.dp))
-                                    Button(onClick = { onOpenWizard(cp.categoryEnum, cp.id) }) {
+                                    Button(
+                                        onClick = { onOpenWizard(cp.categoryEnum, cp.id) },
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
                                         Icon(imageVector = Icons.Default.AddCircle, contentDescription = null)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("ثبت اولین خرید / قسط برای ${cp.name}")
+                                        Text("ثبت اولین خرید / قسط برای ${cp.name}", maxLines = 1)
                                     }
                                 }
                             }
                         }
                     } else {
-                        items(cpObligations, key = { "cp_ob_${it.id}" }) { ob ->
+                        items(sortedCpObligations, key = { "cp_ob_${it.id}" }) { ob ->
                             val obInst = cpInstallments.filter { it.obligationId == ob.id }
                             ObligationSummaryRowCard(
                                 obligation = ob,
@@ -582,6 +862,7 @@ fun TreePortfolioScreen(
                                 currencyUnit = unit,
                                 privacyMasked = masked,
                                 onOpenDetail = { onSelectObligation(ob, cp.categoryEnum) },
+                                onEditObligation = { editingObligation = ob },
                                 onOpenA4 = { onOpenObligationA4Report(ob) }
                             )
                         }
@@ -629,6 +910,8 @@ fun TreePortfolioScreen(
                                 }
                                 OutlinedButton(
                                     onClick = { showAddCounterpartyModalForCategory = cat },
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                     modifier = Modifier.testTag("add_subprovider_btn")
                                 ) {
                                     Icon(
@@ -637,7 +920,7 @@ fun TreePortfolioScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("زیرمجموعه جدید")
+                                    Text("زیرمجموعه جدید", maxLines = 1)
                                 }
                             }
                         }
@@ -676,7 +959,10 @@ fun TreePortfolioScreen(
                             onOpenCategoryFolder = { onSelectCategory(cat) },
                             onDirectClickSubProvider = { cp -> onSelectCounterparty(cp) },
                             onAddSubProvider = { showAddCounterpartyModalForCategory = cat },
-                            onAddObligationInCategory = { onOpenWizard(cat, catProviders.firstOrNull()?.id) }
+                            onAddObligationInCategory = { onOpenWizard(cat, catProviders.firstOrNull()?.id) },
+                            modifier = if (cat == EntityCategory.BNPL_PLATFORM) {
+                                Modifier.tourSpotlightTarget("tree_parent_category_bnpl")
+                            } else Modifier
                         )
                     }
                 }
@@ -697,6 +983,19 @@ fun TreePortfolioScreen(
                 onSaveCounterparty(entity)
                 showAddCounterpartyModalForCategory = null
                 editingCounterparty = null
+            }
+        )
+    }
+
+    // Quick Edit Obligation Details Modal (ویرایش سریع پرونده وام / خرید)
+    editingObligation?.let { ob ->
+        EditObligationDetailsModal(
+            obligation = ob,
+            counterparties = uiState.counterparties,
+            onDismiss = { editingObligation = null },
+            onSave = { updatedOb ->
+                onUpdateObligationDetails(updatedOb)
+                editingObligation = null
             }
         )
     }
@@ -790,6 +1089,8 @@ private fun BreadcrumbPill(
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
@@ -820,7 +1121,8 @@ private fun ParentCategoryRootFolderCard(
     onOpenCategoryFolder: () -> Unit,
     onDirectClickSubProvider: (CounterpartyEntity) -> Unit,
     onAddSubProvider: () -> Unit,
-    onAddObligationInCategory: () -> Unit
+    onAddObligationInCategory: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val accent = Color(category.defaultColorHex)
     val totalPayable = installments.sumOf { it.effectiveTotalToman }
@@ -834,7 +1136,7 @@ private fun ParentCategoryRootFolderCard(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(22.dp))
             .clickable(onClick = onOpenCategoryFolder)
@@ -874,7 +1176,9 @@ private fun ParentCategoryRootFolderCard(
                         Text(
                             text = categorySubtitleExamplesFa(category),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -884,7 +1188,8 @@ private fun ParentCategoryRootFolderCard(
                         text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = accent
+                        color = accent,
+                        maxLines = 1
                     )
                     Text(
                         text = "${PersianCurrencyEngine.toPersianDigits(obligationsCount.toString())} پرونده فعال",
@@ -896,7 +1201,6 @@ private fun ParentCategoryRootFolderCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sub-Providers Chips Row (e.g., اسنپ‌پی, دیجی‌پی)
             Text(
                 text = "زیرمجموعه‌های این دسته (لمس برای ورود مستقیم):",
                 style = MaterialTheme.typography.labelSmall,
@@ -917,7 +1221,8 @@ private fun ParentCategoryRootFolderCard(
                         label = {
                             Text(
                                 text = cp.name,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
                             )
                         },
                         leadingIcon = {
@@ -934,7 +1239,7 @@ private fun ParentCategoryRootFolderCard(
 
                 AssistChip(
                     onClick = onAddSubProvider,
-                    label = { Text("+ زیرمجموعه جدید") }
+                    label = { Text("+ زیرمجموعه جدید", maxLines = 1) }
                 )
             }
 
@@ -973,7 +1278,7 @@ private fun ParentCategoryRootFolderCard(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onAddObligationInCategory) {
-                        Text("+ ثبت اولین قسط در این دسته")
+                        Text("+ ثبت اولین قسط در این دسته", maxLines = 1)
                     }
                 }
             }
@@ -1053,7 +1358,8 @@ private fun SubProviderFolderCard(
                         text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = accent
+                        color = accent,
+                        maxLines = 1
                     )
                     Text(
                         text = "مانده این زیرمجموعه",
@@ -1079,6 +1385,7 @@ private fun SubProviderFolderCard(
                             Text(
                                 text = ob.title,
                                 style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -1108,26 +1415,37 @@ private fun SubProviderFolderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onAddPurchaseHere) {
+                    OutlinedButton(
+                        onClick = onAddPurchaseHere,
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("ثبت خرید/قسط جدید")
+                        Text("ثبت خرید/قسط جدید", maxLines = 1)
                     }
-                    IconButton(onClick = onOpenA4Report) {
+                    OutlinedButton(
+                        onClick = onOpenA4Report,
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
                             contentDescription = "گزارش A4 این زیرمجموعه",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("گزارش A4", maxLines = 1)
                     }
                 }
 
                 TextButton(onClick = onClickProvider) {
-                    Text("مشاهده اقساط ‹", fontWeight = FontWeight.Bold)
+                    Text("مشاهده اقساط ‹", fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
         }
@@ -1215,13 +1533,16 @@ private fun SubProviderDetailHubHeaderCard(
                         Text(
                             text = "مانده بدهی در ${counterparty.name}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = accent
+                            color = accent,
+                            maxLines = 1
                         )
                     }
                 }
@@ -1234,19 +1555,20 @@ private fun SubProviderDetailHubHeaderCard(
                         Text(
                             text = "پرداخت‌شده تا امروز",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
                         Text(
                             text = PersianCurrencyEngine.formatAmount(totalPaid, currencyUnit, privacyMasked = privacyMasked),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981)
+                            color = Color(0xFF10B981),
+                            maxLines = 1
                         )
                     }
                 }
             }
 
-            // Card / IBAN Copy Chips if configured
             if (counterparty.cardNumber.isNotBlank() || counterparty.shebaNumber.isNotBlank()) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Row(
@@ -1262,7 +1584,8 @@ private fun SubProviderDetailHubHeaderCard(
                                 Text(
                                     PersianCurrencyEngine.toPersianDigits(
                                         PersianCurrencyEngine.formatCardNumber(counterparty.cardNumber)
-                                    )
+                                    ),
+                                    maxLines = 1
                                 )
                             },
                             leadingIcon = {
@@ -1278,7 +1601,7 @@ private fun SubProviderDetailHubHeaderCard(
                         AssistChip(
                             onClick = { onCopyText("شماره شبا ${counterparty.name}", counterparty.shebaNumber) },
                             label = {
-                                Text(PersianCurrencyEngine.formatSheba(counterparty.shebaNumber))
+                                Text(PersianCurrencyEngine.formatSheba(counterparty.shebaNumber), maxLines = 1)
                             },
                             leadingIcon = {
                                 Icon(
@@ -1300,21 +1623,23 @@ private fun SubProviderDetailHubHeaderCard(
             ) {
                 Button(
                     onClick = onAddPurchaseForProvider,
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1.2f)
                         .testTag("provider_add_obligation_btn")
                 ) {
                     Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("ثبت خرید / قسط جدید", fontWeight = FontWeight.Bold)
+                    Text("ثبت خرید / قسط جدید", fontWeight = FontWeight.Bold, maxLines = 1)
                 }
                 OutlinedButton(
                     onClick = onExportA4,
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("صورتحساب A4")
+                    Text("صورتحساب A4", maxLines = 1)
                 }
             }
         }
@@ -1329,6 +1654,7 @@ private fun ObligationSummaryRowCard(
     currencyUnit: com.example.core.CurrencyUnit,
     privacyMasked: Boolean,
     onOpenDetail: () -> Unit,
+    onEditObligation: () -> Unit,
     onOpenA4: () -> Unit
 ) {
     val totalPayable = installments.sumOf { it.effectiveTotalToman }
@@ -1376,7 +1702,8 @@ private fun ObligationSummaryRowCard(
                         text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
                     )
                     Text(
                         text = "مانده تعهد",
@@ -1416,18 +1743,30 @@ private fun ObligationSummaryRowCard(
                         })",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFFF59E0B),
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 } else {
                     Text(
                         text = "تمامی اقساط این پرونده تسویه شده است",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF10B981),
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onEditObligation, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "ویرایش سریع پرونده",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
                     IconButton(onClick = onOpenA4, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
@@ -1455,6 +1794,7 @@ private fun ObligationGranularHeaderCard(
     installments: List<InstallmentEntity>,
     currencyUnit: com.example.core.CurrencyUnit,
     privacyMasked: Boolean,
+    onEditObligation: () -> Unit,
     onAddCustomInstallment: () -> Unit,
     onAddSubRecord: () -> Unit,
     onExportA4: () -> Unit,
@@ -1490,6 +1830,12 @@ private fun ObligationGranularHeaderCard(
                     )
                 }
                 Row {
+                    IconButton(onClick = onEditObligation) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "ویرایش مشخصات پرونده"
+                        )
+                    }
                     IconButton(onClick = onExportA4) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
@@ -1505,6 +1851,18 @@ private fun ObligationGranularHeaderCard(
                         )
                     }
                 }
+            }
+
+            if (obligation.notes.isNotBlank() || obligation.trackingOrCheckCode.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = listOfNotNull(
+                        obligation.trackingOrCheckCode.takeIf { it.isNotBlank() }?.let { "کد چک/پیگیری: $it" },
+                        obligation.notes.takeIf { it.isNotBlank() }
+                    ).joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -1527,7 +1885,8 @@ private fun ObligationGranularHeaderCard(
                             text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
                         )
                     }
                 }
@@ -1545,7 +1904,8 @@ private fun ObligationGranularHeaderCard(
                             text = PersianCurrencyEngine.formatAmount(totalPaid, currencyUnit, privacyMasked = privacyMasked),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981)
+                            color = Color(0xFF10B981),
+                            maxLines = 1
                         )
                     }
                 }
@@ -1572,6 +1932,8 @@ private fun ObligationGranularHeaderCard(
             ) {
                 OutlinedButton(
                     onClick = onAddCustomInstallment,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -1580,11 +1942,13 @@ private fun ObligationGranularHeaderCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("افزودن ردیف قسط")
+                    Text("افزودن ردیف قسط", maxLines = 1)
                 }
 
                 OutlinedButton(
                     onClick = onAddSubRecord,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
@@ -1593,7 +1957,7 @@ private fun ObligationGranularHeaderCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("ریزتراکنش دفتری")
+                    Text("ریزتراکنش دفتری", maxLines = 1)
                 }
             }
         }
@@ -1605,6 +1969,8 @@ private fun GranularInstallmentItemCard(
     installment: InstallmentEntity,
     currencyUnit: com.example.core.CurrencyUnit,
     privacyMasked: Boolean,
+    isBatchChecked: Boolean,
+    onToggleBatchCheck: () -> Unit,
     onQuickPay: () -> Unit,
     onEditInstallment: () -> Unit
 ) {
@@ -1613,11 +1979,21 @@ private fun GranularInstallmentItemCard(
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isBatchChecked) {
+                Color(0xFF10B981).copy(alpha = 0.1f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, statusColor.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .border(
+                width = if (isBatchChecked) 1.5.dp else 1.dp,
+                color = if (isBatchChecked) Color(0xFF10B981) else statusColor.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(16.dp)
+            )
             .clickable(onClick = onEditInstallment)
             .testTag("granular_installment_card_${installment.id}")
     ) {
@@ -1631,6 +2007,16 @@ private fun GranularInstallmentItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (!isPaid) {
+                        Checkbox(
+                            checked = isBatchChecked,
+                            onCheckedChange = { onToggleBatchCheck() },
+                            modifier = Modifier
+                                .size(34.dp)
+                                .testTag("batch_check_inst_${installment.id}")
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = statusColor.copy(alpha = 0.16f)
@@ -1648,12 +2034,16 @@ private fun GranularInstallmentItemCard(
                         Text(
                             text = installment.title,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "سررسید: ${PersianCurrencyEngine.toPersianDigits(installment.dueDateJalali)} (${JalaliCalendarEngine.formatJalaliVerbose(installment.dueDateJalali)})",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -1667,6 +2057,7 @@ private fun GranularInstallmentItemCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = statusColor,
+                        maxLines = 1,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -1679,7 +2070,7 @@ private fun GranularInstallmentItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "مبلغ کل قسط: ${
                             PersianCurrencyEngine.formatAmount(
@@ -1722,16 +2113,18 @@ private fun GranularInstallmentItemCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
                         onClick = onEditInstallment,
+                        shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("ویرایش مبلغ/تاریخ", style = MaterialTheme.typography.labelSmall)
+                        Text("ویرایش", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
 
                     if (!isPaid) {
                         Button(
                             onClick = onQuickPay,
+                            shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.testTag("tree_quick_pay_${installment.id}")
@@ -1747,9 +2140,156 @@ private fun GranularInstallmentItemCard(
                                 text = "تسویه",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF042F2E)
+                                color = Color(0xFF042F2E),
+                                maxLines = 1
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditObligationDetailsModal(
+    obligation: ObligationEntity,
+    counterparties: List<CounterpartyEntity>,
+    onDismiss: () -> Unit,
+    onSave: (ObligationEntity) -> Unit
+) {
+    var title by remember { mutableStateOf(obligation.title) }
+    var selectedCounterpartyId by remember { mutableLongStateOf(obligation.counterpartyId) }
+    var selectedCategory by remember { mutableStateOf(obligation.categoryEnum) }
+    var selectedPriority by remember { mutableStateOf(obligation.priorityEnum) }
+    var trackingOrCheckCode by remember { mutableStateOf(obligation.trackingOrCheckCode) }
+    var notes by remember { mutableStateOf(obligation.notes) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "ویرایش مشخصات پرونده وام / خرید",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("عنوان پرونده / خرید اقساطی") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text("طرف پرداخت / زیرمجموعه:", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    counterparties.forEach { cp ->
+                        FilterChip(
+                            selected = selectedCounterpartyId == cp.id,
+                            onClick = { selectedCounterpartyId = cp.id },
+                            label = { Text(cp.name, maxLines = 1) }
+                        )
+                    }
+                }
+
+                Text("نوع تعهد:", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    ObligationCategory.entries.forEach { cat ->
+                        FilterChip(
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat.shortLabelFa, maxLines = 1) }
+                        )
+                    }
+                }
+
+                Text("سطح اولویت اخلاقی / اعتباری:", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                ) {
+                    TrustPriority.entries.forEach { prio ->
+                        FilterChip(
+                            selected = selectedPriority == prio,
+                            onClick = { selectedPriority = prio },
+                            label = { Text(prio.labelFa, maxLines = 1) }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = trackingOrCheckCode,
+                    onValueChange = { trackingOrCheckCode = it },
+                    label = { Text("شناسه چک صیادی / شماره قرارداد (اختیاری)") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("یادداشت پرونده") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("انصراف", maxLines = 1)
+                    }
+                    Button(
+                        onClick = {
+                            if (title.isNotBlank()) {
+                                onSave(
+                                    obligation.copy(
+                                        title = title.trim(),
+                                        counterpartyId = selectedCounterpartyId,
+                                        category = selectedCategory.name,
+                                        trustPriority = selectedPriority.name,
+                                        trackingOrCheckCode = trackingOrCheckCode.trim(),
+                                        notes = notes.trim()
+                                    )
+                                )
+                            }
+                        },
+                        enabled = title.isNotBlank(),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1.3f)
+                    ) {
+                        Text("ذخیره تغییرات پرونده", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
@@ -1862,7 +2402,7 @@ private fun GranularInstallmentEditModal(
                         color = MaterialTheme.colorScheme.primary
                     )
                     TextButton(onClick = { paidAmount = effectivePayable }) {
-                        Text("پر کردن کل مبلغ (${PersianCurrencyEngine.formatAmount(effectivePayable, currencyUnit)})")
+                        Text("پر کردن کل مبلغ (${PersianCurrencyEngine.formatAmount(effectivePayable, currencyUnit)})", maxLines = 1)
                     }
                 }
 
@@ -1925,9 +2465,10 @@ private fun GranularInstallmentEditModal(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("انصراف")
+                        Text("انصراف", maxLines = 1)
                     }
                     Button(
                         onClick = {
@@ -1943,9 +2484,10 @@ private fun GranularInstallmentEditModal(
                                 note
                             )
                         },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.3f)
                     ) {
-                        Text("ذخیره تغییرات قسط", fontWeight = FontWeight.Bold)
+                        Text("ذخیره تغییرات قسط", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
@@ -2035,15 +2577,20 @@ private fun AddSingleCustomInstallmentModal(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("انصراف")
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("انصراف", maxLines = 1)
                     }
                     Button(
                         onClick = { onAdd(title, dueDate, amountToman, isPaid, note) },
                         enabled = amountToman > 0L,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("افزودن به جدول اقساط", fontWeight = FontWeight.Bold)
+                        Text("افزودن به جدول اقساط", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
@@ -2098,7 +2645,7 @@ private fun SubProviderFormDialog(
                         FilterChip(
                             selected = category == cat,
                             onClick = { category = cat },
-                            label = { Text(cat.badgeFa) }
+                            label = { Text(cat.badgeFa, maxLines = 1) }
                         )
                     }
                 }
@@ -2143,8 +2690,12 @@ private fun SubProviderFormDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("انصراف")
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("انصراف", maxLines = 1)
                     }
                     Button(
                         onClick = {
@@ -2165,9 +2716,10 @@ private fun SubProviderFormDialog(
                             }
                         },
                         enabled = name.isNotBlank(),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("ذخیره زیرمجموعه", fontWeight = FontWeight.Bold)
+                        Text("ذخیره زیرمجموعه", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
@@ -2215,7 +2767,7 @@ private fun AddSubRecordDialog(
                         FilterChip(
                             selected = recordType == t,
                             onClick = { recordType = t },
-                            label = { Text(t.labelFa) }
+                            label = { Text(t.labelFa, maxLines = 1) }
                         )
                     }
                 }
@@ -2255,8 +2807,12 @@ private fun AddSubRecordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("انصراف")
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("انصراف", maxLines = 1)
                     }
                     Button(
                         onClick = {
@@ -2274,9 +2830,10 @@ private fun AddSubRecordDialog(
                             }
                         },
                         enabled = title.isNotBlank() && amountToman > 0L,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("ثبت در پرونده", fontWeight = FontWeight.Bold)
+                        Text("ثبت در پرونده", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
