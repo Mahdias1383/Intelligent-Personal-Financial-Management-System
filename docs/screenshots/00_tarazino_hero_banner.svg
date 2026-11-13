@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" direction="rtl">
+  <defs>
+    <linearGradient id="bannerBg" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#042F2E"/>
+      <stop offset="45%" stop-color="#0B132B"/>
+      <stop offset="100%" stop-color="#090D16"/>
+    </linearGradient>
+    <linearGradient id="accentEmerald" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="360" rx="28" fill="url(#bannerBg)" stroke="#1E293B" stroke-width="3"/>
+
+  <!-- Decorative Geometric Glow Circles -->
+  <circle cx="180" cy="180" r="140" fill="#10B981" opacity="0.08"/>
+  <circle cx="1050" cy="80" r="110" fill="#06B6D4" opacity="0.08"/>
+
+  <!-- Right Side: Brand Identity & Value Proposition (RTL) -->
+  <rect x="960" y="42" width="190" height="34" rx="17" fill="#064E3B" stroke="#10B981" stroke-width="1.5"/>
+  <text x="1055" y="64" text-anchor="middle" fill="#A7F3D0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">نسخه رسمی v0.1 • ۱۰۰٪ آفلاین</text>
+
+  <text x="1150" y="132" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="44" font-weight="bold">ترازینو (Tarazino)</text>
+  <text x="1150" y="176" text-anchor="start" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="22" font-weight="bold">سامانه هوشمند مدیریت اقساط، بدهی، وام، چک صیادی و بودجه‌ریزی شخصی</text>
+  <text x="1150" y="214" text-anchor="start" fill="#CBD5E1" font-family="Vazirmatn, Tahoma, sans-serif" font-size="15">معماری بومی اندروید (Kotlin + Jetpack Compose + Room SQLite) با تقویم شمسی جلالی، مبدل زنده مبلغ به حروف فارسی،</text>
+  <text x="1150" y="240" text-anchor="start" fill="#CBD5E1" font-family="Vazirmatn, Tahoma, sans-serif" font-size="15">تور آموزشی تعاملی با هایلایت نوری المان‌ها، شبیه‌ساز تسویه زودهنگام و استودیو چاپ رسمی A4 PDF و اکسل راست‌به‌چپ</text>
+
+  <!-- Feature Badges Row -->
+  <rect x="970" y="274" width="180" height="44" rx="12" fill="#10B981"/>
+  <text x="1060" y="302" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">⬇ دانلود مستقیم APK v0.1</text>
+
+  <rect x="774" y="274" width="182" height="44" rx="12" fill="#132238" stroke="#38BDF8" stroke-width="1.2"/>
+  <text x="865" y="302" text-anchor="middle" fill="#BAE6FD" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">تقویم شمسی و حروف‌نگار</text>
+
+  <rect x="578" y="274" width="182" height="44" rx="12" fill="#132238" stroke="#A78BFA" stroke-width="1.2"/>
+  <text x="669" y="302" text-anchor="middle" fill="#DDD6FE" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">پوشه درختی اسنپ‌پی/بانک</text>
+
+  <rect x="382" y="274" width="182" height="44" rx="12" fill="#132238" stroke="#FBBF24" stroke-width="1.2"/>
+  <text x="473" y="302" text-anchor="middle" fill="#FDE68A" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">گزارش رسمی A4 و اکسل</text>
+
+  <!-- Left Side: Mini Visual Card Preview -->
+  <rect x="48" y="46" width="290" height="268" rx="22" fill="#111A2E" stroke="#10B981" stroke-width="2"/>
+  <text x="316" y="80" text-anchor="start" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">خلاصه سلامت مالی ماه جاری</text>
+  <text x="316" y="114" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="22" font-weight="bold">۱۸,۴۵۰,۰۰۰ تومان</text>
+  <text x="316" y="136" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">سقف مجاز قسط جدید: ۶,۵۵۰,۰۰۰ تومان</text>
+
+  <circle cx="193" cy="218" r="54" fill="none" stroke="#1E293B" stroke-width="16"/>
+  <circle cx="193" cy="218" r="54" fill="none" stroke="#10B981" stroke-width="16" stroke-dasharray="160 340"/>
+  <circle cx="193" cy="218" r="54" fill="none" stroke="#8B5CF6" stroke-width="16" stroke-dasharray="95 340" stroke-dashoffset="-164"/>
+  <circle cx="193" cy="218" r="54" fill="none" stroke="#F59E0B" stroke-width="16" stroke-dasharray="70 340" stroke-dashoffset="-262"/>
+  <text x="193" y="214" text-anchor="middle" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">امتیاز سلامت</text>
+  <text x="193" y="234" text-anchor="middle" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="15" font-weight="bold">۸۴ از ۱۰۰</text>
+</svg>
