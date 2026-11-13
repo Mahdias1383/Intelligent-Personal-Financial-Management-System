@@ -15,21 +15,8 @@ object SeedDataEngine {
         val today = JalaliCalendarEngine.parseJalali(todayStr)
         val currentMonthPrefix = "%04d/%02d".format(java.util.Locale.US, today.year, today.month)
 
-        // 1. Counterparties
-        val bankMehrId = dao.insertCounterparty(
-            CounterpartyEntity(
-                name = "بانک قرض‌الحسنه مهر ایران",
-                category = EntityCategory.BANK.name,
-                avatarColorHex = 0xFF10B981,
-                cardNumber = "6063731099884412",
-                shebaNumber = "IR450600000001009988776655",
-                phoneNumber = "021-85201000",
-                trustPriority = TrustPriority.HIGH.name,
-                description = "شعبه مرکزی ولیعصر — حساب تسهیلات قرض‌الحسنه ازدواج و جعاله",
-                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -4)
-            )
-        )
-
+        // 1. Hierarchical Counterparties / Sub-Categories
+        // Category: BNPL_PLATFORM (خرید اقساطی -> اسنپ‌پی، دیجی‌پی)
         val snappPayId = dao.insertCounterparty(
             CounterpartyEntity(
                 name = "اسنپ‌پی (SnappPay)",
@@ -44,20 +31,50 @@ object SeedDataEngine {
             )
         )
 
-        val rezaId = dao.insertCounterparty(
+        val digiPayId = dao.insertCounterparty(
             CounterpartyEntity(
-                name = "رضا محمدی (دوست و همکار)",
-                category = EntityCategory.PERSON.name,
-                avatarColorHex = 0xFFF59E0B,
-                cardNumber = "6221061233448899",
-                shebaNumber = "IR190540102580001234567890",
-                phoneNumber = "09123456789",
-                trustPriority = TrustPriority.CRITICAL.name,
-                description = "قرض دوستانه قول شرف و حساب دفتری مشترک خرید قطعات",
+                name = "دیجی‌پی (DigiPay)",
+                category = EntityCategory.BNPL_PLATFORM.name,
+                avatarColorHex = 0xFF2563EB,
+                cardNumber = "6221061987654321",
+                shebaNumber = "IR540540102580009876543210",
+                phoneNumber = "021-61930400",
+                trustPriority = TrustPriority.HIGH.name,
+                description = "اعتبار خرید اقساطی دیجی‌کالا و فروشگاه‌های زنجیره‌ای",
                 createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
             )
         )
 
+        // Category: BANK (بانک‌ها -> بانک مهر ایران، بلوبانک)
+        val bankMehrId = dao.insertCounterparty(
+            CounterpartyEntity(
+                name = "بانک قرض‌الحسنه مهر ایران",
+                category = EntityCategory.BANK.name,
+                avatarColorHex = 0xFF10B981,
+                cardNumber = "6063731099884412",
+                shebaNumber = "IR450600000001009988776655",
+                phoneNumber = "021-85201000",
+                trustPriority = TrustPriority.HIGH.name,
+                description = "شعبه مرکزی ولیعصر — تسهیلات قرض‌الحسنه ۴ درصد",
+                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -4)
+            )
+        )
+
+        val bluBankId = dao.insertCounterparty(
+            CounterpartyEntity(
+                name = "بلوبانک (بانک سامان)",
+                category = EntityCategory.BANK.name,
+                avatarColorHex = 0xFF06B6D4,
+                cardNumber = "6219861911223344",
+                shebaNumber = "IR120560611828001122334455",
+                phoneNumber = "021-87641",
+                trustPriority = TrustPriority.HIGH.name,
+                description = "وام فوری بلوبانک با بازپرداخت ماهانه خودکار",
+                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -2)
+            )
+        )
+
+        // Category: INSTITUTION (صندوق و موسسه -> صندوق امید، شرکت پارس)
         val sandoghOmidId = dao.insertCounterparty(
             CounterpartyEntity(
                 name = "صندوق قرض‌الحسنه امید خانواده",
@@ -69,6 +86,35 @@ object SeedDataEngine {
                 trustPriority = TrustPriority.HIGH.name,
                 description = "صندوق وام خانوادگی با قرعه‌کشی ماهانه",
                 createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -3)
+            )
+        )
+
+        val parsTechId = dao.insertCounterparty(
+            CounterpartyEntity(
+                name = "شرکت فناوری پارس (کارفرما)",
+                category = EntityCategory.INSTITUTION.name,
+                avatarColorHex = 0xFF0EA5E9,
+                cardNumber = "6274121190807060",
+                shebaNumber = "IR340550011280004455667788",
+                phoneNumber = "021-44228800",
+                trustPriority = TrustPriority.NORMAL.name,
+                description = "طلب قرارداد طراحی و بهینه‌سازی سامانه مالی",
+                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
+            )
+        )
+
+        // Category: PERSON (اشخاص حقیقی -> رضا محمدی، حاج‌آقا کریمی)
+        val rezaId = dao.insertCounterparty(
+            CounterpartyEntity(
+                name = "رضا محمدی (دوست و همکار)",
+                category = EntityCategory.PERSON.name,
+                avatarColorHex = 0xFFF59E0B,
+                cardNumber = "6221061233448899",
+                shebaNumber = "IR190540102580001234567890",
+                phoneNumber = "09123456789",
+                trustPriority = TrustPriority.CRITICAL.name,
+                description = "قرض دوستانه قول شرف و حساب دفتری مشترک خرید قطعات",
+                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
             )
         )
 
@@ -86,21 +132,101 @@ object SeedDataEngine {
             )
         )
 
-        val parsTechId = dao.insertCounterparty(
-            CounterpartyEntity(
-                name = "شرکت فناوری پارس (کارفرما)",
-                category = EntityCategory.INSTITUTION.name,
-                avatarColorHex = 0xFF06B6D4,
-                cardNumber = "6274121190807060",
-                shebaNumber = "IR340550011280004455667788",
-                phoneNumber = "021-44228800",
-                trustPriority = TrustPriority.NORMAL.name,
-                description = "طلب قرارداد طراحی و بهینه‌سازی سامانه مالی",
-                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
+        // 2. BNPL Obligations under SnappPay & DigiPay
+        val snappStart = JalaliCalendarEngine.addJalaliMonths(todayStr, -2)
+        val snappLaptopId = dao.insertObligation(
+            ObligationEntity(
+                counterpartyId = snappPayId,
+                title = "خرید اقساطی لپ‌تاپ ایسوس Vivobook",
+                category = ObligationCategory.BNPL_PURCHASE.name,
+                scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
+                principalAmountToman = 38_000_000L,
+                profitOrFeeToman = 0L,
+                downPaymentToman = 8_000_000L,
+                installmentCount = 4,
+                paymentInterval = PaymentInterval.MONTHLY.name,
+                firstDueDateJalali = snappStart,
+                trustPriority = TrustPriority.HIGH.name,
+                trackingOrCheckCode = "SNP-774120",
+                notes = "خرید ۴ قسطه بدون سود از تکنولایف با اسنپ‌پی",
+                createdAtJalali = snappStart
             )
         )
+        dao.insertInstallments(
+            InstallmentScheduleEngine.generateAutoInstallments(
+                obligationId = snappLaptopId,
+                titlePrefix = "قسط لپ‌تاپ (اسنپ‌پی)",
+                netPayableToman = 30_000_000L,
+                installmentCount = 4,
+                firstDueDateJalali = snappStart,
+                interval = PaymentInterval.MONTHLY,
+                todayJalali = todayStr
+            ).mapIndexed { idx, inst ->
+                when (idx) {
+                    0 -> inst.copy(
+                        paidAmountToman = inst.amountToman,
+                        status = InstallmentStatus.PAID.name,
+                        paidDateJalali = inst.dueDateJalali,
+                        trackingCode = "SNP-PAY-01"
+                    )
+                    1 -> inst.copy(
+                        paidAmountToman = 4_000_000L,
+                        status = InstallmentStatus.PARTIAL.name,
+                        paidDateJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -15),
+                        trackingCode = "SNP-PART-02",
+                        note = "۴ میلیون پرداخت شد، ۳.۵ میلیون مانده"
+                    )
+                    2 -> inst.copy(
+                        dueDateJalali = todayStr,
+                        status = InstallmentStatus.PENDING.name,
+                        note = "سررسید امروز در کیف پول اسنپ‌پی"
+                    )
+                    else -> inst
+                }
+            }
+        )
 
-        // 2. Obligation 1: Bank Mehr Marriage Loan (12 installments for demo clarity, 3 paid, 1 due soon)
+        val digiStart = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
+        val digiPhoneId = dao.insertObligation(
+            ObligationEntity(
+                counterpartyId = digiPayId,
+                title = "خرید گوشی سامسونگ Galaxy A55",
+                category = ObligationCategory.BNPL_PURCHASE.name,
+                scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
+                principalAmountToman = 24_000_000L,
+                profitOrFeeToman = 1_200_000L,
+                downPaymentToman = 4_200_000L,
+                installmentCount = 6,
+                paymentInterval = PaymentInterval.MONTHLY.name,
+                firstDueDateJalali = digiStart,
+                trustPriority = TrustPriority.HIGH.name,
+                trackingOrCheckCode = "DGP-90812",
+                notes = "خرید ۶ قسطه با اعتبار دیجی‌پی از دیجی‌کالا",
+                createdAtJalali = digiStart
+            )
+        )
+        dao.insertInstallments(
+            InstallmentScheduleEngine.generateAutoInstallments(
+                obligationId = digiPhoneId,
+                titlePrefix = "قسط گوشی سامسونگ (دیجی‌پی)",
+                netPayableToman = 21_000_000L,
+                installmentCount = 6,
+                firstDueDateJalali = digiStart,
+                interval = PaymentInterval.MONTHLY,
+                todayJalali = todayStr
+            ).mapIndexed { idx, inst ->
+                if (idx == 0) {
+                    inst.copy(
+                        paidAmountToman = inst.amountToman,
+                        status = InstallmentStatus.PAID.name,
+                        paidDateJalali = inst.dueDateJalali,
+                        trackingCode = "DGP-PAY-01"
+                    )
+                } else inst
+            }
+        )
+
+        // 3. Bank Loans under Bank Mehr & BluBank
         val mehrStart = JalaliCalendarEngine.addJalaliMonths("$currentMonthPrefix/05", -3)
         val mehrLoanId = dao.insertObligation(
             ObligationEntity(
@@ -120,83 +246,60 @@ object SeedDataEngine {
                 createdAtJalali = mehrStart
             )
         )
-        val mehrSchedule = InstallmentScheduleEngine.generateAutoInstallments(
-            obligationId = mehrLoanId,
-            titlePrefix = "قسط وام بانک مهر",
-            netPayableToman = 124_800_000L,
-            installmentCount = 12,
-            firstDueDateJalali = mehrStart,
-            interval = PaymentInterval.MONTHLY,
-            todayJalali = todayStr
-        ).mapIndexed { index, item ->
-            if (index < 3) {
-                item.copy(
-                    paidAmountToman = item.amountToman,
-                    status = InstallmentStatus.PAID.name,
-                    paidDateJalali = item.dueDateJalali,
-                    trackingCode = "TRK-990${index + 1}"
-                )
-            } else {
-                item
+        dao.insertInstallments(
+            InstallmentScheduleEngine.generateAutoInstallments(
+                obligationId = mehrLoanId,
+                titlePrefix = "قسط وام بانک مهر",
+                netPayableToman = 124_800_000L,
+                installmentCount = 12,
+                firstDueDateJalali = mehrStart,
+                interval = PaymentInterval.MONTHLY,
+                todayJalali = todayStr
+            ).mapIndexed { index, item ->
+                if (index < 3) {
+                    item.copy(
+                        paidAmountToman = item.amountToman,
+                        status = InstallmentStatus.PAID.name,
+                        paidDateJalali = item.dueDateJalali,
+                        trackingCode = "TRK-990${index + 1}"
+                    )
+                } else item
             }
-        }
-        dao.insertInstallments(mehrSchedule)
+        )
 
-        // 3. Obligation 2: SnappPay Laptop BNPL (4 installments: 1 paid, 1 partial, 1 due today, 1 next month)
-        val snappStart = JalaliCalendarEngine.addJalaliMonths(todayStr, -2)
-        val snappObligationId = dao.insertObligation(
+        val bluStart = JalaliCalendarEngine.addJalaliDays(todayStr, 8)
+        val bluLoanId = dao.insertObligation(
             ObligationEntity(
-                counterpartyId = snappPayId,
-                title = "خرید اقساطی لپ‌تاپ ایسوس Vivobook",
-                category = ObligationCategory.BNPL_PURCHASE.name,
+                counterpartyId = bluBankId,
+                title = "وام فوری بلوبانک (طرح اعتبار پلاس)",
+                category = ObligationCategory.INSTALLMENT_LOAN.name,
                 scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
-                principalAmountToman = 38_000_000L,
-                profitOrFeeToman = 0L,
-                downPaymentToman = 8_000_000L,
-                installmentCount = 4,
+                principalAmountToman = 40_000_000L,
+                profitOrFeeToman = 3_600_000L,
+                downPaymentToman = 0L,
+                installmentCount = 6,
                 paymentInterval = PaymentInterval.MONTHLY.name,
-                firstDueDateJalali = snappStart,
+                firstDueDateJalali = bluStart,
                 trustPriority = TrustPriority.HIGH.name,
-                trackingOrCheckCode = "SNP-774120",
-                notes = "خرید ۴ قسطه بدون سود از فروشگاه تکنولایف با اسنپ‌پی",
-                createdAtJalali = snappStart
+                trackingOrCheckCode = "BLU-44510",
+                notes = "برداشت خودکار از حساب بلوبانک در سررسید",
+                createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
             )
         )
-        val snappSchedule = InstallmentScheduleEngine.generateAutoInstallments(
-            obligationId = snappObligationId,
-            titlePrefix = "قسط لپ‌تاپ اسنپ‌پی",
-            netPayableToman = 30_000_000L,
-            installmentCount = 4,
-            firstDueDateJalali = snappStart,
-            interval = PaymentInterval.MONTHLY,
-            todayJalali = todayStr
-        ).mapIndexed { idx, inst ->
-            when (idx) {
-                0 -> inst.copy(
-                    paidAmountToman = inst.amountToman,
-                    status = InstallmentStatus.PAID.name,
-                    paidDateJalali = inst.dueDateJalali,
-                    trackingCode = "SNP-PAY-01"
-                )
-                1 -> inst.copy(
-                    paidAmountToman = 4_000_000L,
-                    status = InstallmentStatus.PARTIAL.name,
-                    paidDateJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -15),
-                    trackingCode = "SNP-PART-02",
-                    note = "۴ میلیون پرداخت شد، ۳.۵ میلیون مانده"
-                )
-                2 -> inst.copy(
-                    dueDateJalali = todayStr,
-                    status = InstallmentStatus.PENDING.name,
-                    note = "سررسید امروز در کیف پول اسنپ‌پی"
-                )
-                else -> inst
-            }
-        }
-        dao.insertInstallments(snappSchedule)
+        dao.insertInstallments(
+            InstallmentScheduleEngine.generateAutoInstallments(
+                obligationId = bluLoanId,
+                titlePrefix = "قسط وام بلوبانک",
+                netPayableToman = 43_600_000L,
+                installmentCount = 6,
+                firstDueDateJalali = bluStart,
+                interval = PaymentInterval.MONTHLY,
+                todayJalali = todayStr
+            )
+        )
 
-        // 4. Obligation 3: Reza Mohammadi Personal Debt & Dynamic Running Ledger (Mode B)
-        val rezaDue = JalaliCalendarEngine.addJalaliDays(todayStr, -3) // Overdue by 3 days!
+        // 4. Personal Debt & Running Ledger under Reza Mohammadi
+        val rezaDue = JalaliCalendarEngine.addJalaliDays(todayStr, -3)
         val rezaObligationId = dao.insertObligation(
             ObligationEntity(
                 counterpartyId = rezaId,
@@ -211,7 +314,7 @@ object SeedDataEngine {
                 firstDueDateJalali = rezaDue,
                 trustPriority = TrustPriority.CRITICAL.name,
                 trackingOrCheckCode = "PROMISE-REZA",
-                notes = "قول شرف برای تسویه تا پایان هفته + خرید مشترک هارد اکسترنال و مانیتور",
+                notes = "قول شرف برای تسویه تا پایان هفته + خرید مشترک قطعات",
                 createdAtJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -25)
             )
         )
@@ -223,17 +326,15 @@ object SeedDataEngine {
                     dateJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -25),
                     amountToman = 12_000_000L,
                     recordType = SubRecordType.CHARGE.name,
-                    receiptCode = "CRD-1102",
-                    note = "انتقال به کارت بانک سامان"
+                    receiptCode = "CRD-1102"
                 ),
                 LedgerSubRecordEntity(
                     obligationId = rezaObligationId,
-                    title = "خرید مشترک مانیتور ال‌جی و کابل",
+                    title = "خرید مشترک مانیتور ال‌جی",
                     dateJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -14),
                     amountToman = 6_500_000L,
                     recordType = SubRecordType.CHARGE.name,
-                    receiptCode = "INV-448",
-                    note = "فاکتور بازار کامپیوتر پایتخت"
+                    receiptCode = "INV-448"
                 ),
                 LedgerSubRecordEntity(
                     obligationId = rezaObligationId,
@@ -241,8 +342,7 @@ object SeedDataEngine {
                     dateJalali = JalaliCalendarEngine.addJalaliDays(todayStr, -7),
                     amountToman = 5_000_000L,
                     recordType = SubRecordType.PAYMENT.name,
-                    receiptCode = "PAY-8812",
-                    note = "واریز پایا"
+                    receiptCode = "PAY-8812"
                 )
             )
         )
@@ -272,7 +372,7 @@ object SeedDataEngine {
             )
         )
 
-        // 5. Obligation 4: Sayyadi Check for Rent (Upcoming in 3 days)
+        // 5. Sayyadi Check for Rent under Karimi Landlord
         val checkDue = JalaliCalendarEngine.addJalaliDays(todayStr, 3)
         val checkObligationId = dao.insertObligation(
             ObligationEntity(
@@ -288,7 +388,7 @@ object SeedDataEngine {
                 firstDueDateJalali = checkDue,
                 trustPriority = TrustPriority.CRITICAL.name,
                 trackingOrCheckCode = "SAYYAD-1098443211009876",
-                notes = "چک بنفش صیادی ثبت‌شده در سامانه صیاد — نیازمند تامین موجودی قبل از سررسید",
+                notes = "چک بنفش صیادی ثبت‌شده در سامانه صیاد",
                 createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
             )
         )
@@ -301,8 +401,7 @@ object SeedDataEngine {
                     dueDateJalali = checkDue,
                     amountToman = 12_000_000L,
                     paidAmountToman = 0L,
-                    status = InstallmentStatus.PENDING.name,
-                    note = "ثبت‌شده در سامانه صیاد بانک ملی"
+                    status = InstallmentStatus.PENDING.name
                 ),
                 InstallmentEntity(
                     obligationId = checkObligationId,
@@ -316,7 +415,7 @@ object SeedDataEngine {
             )
         )
 
-        // 6. Obligation 5: Sandogh Omid Family Loan (6 installments)
+        // 6. Sandogh Omid Loan
         val sandoghStart = JalaliCalendarEngine.addJalaliDays(todayStr, 6)
         val sandoghId = dao.insertObligation(
             ObligationEntity(
@@ -332,7 +431,7 @@ object SeedDataEngine {
                 firstDueDateJalali = sandoghStart,
                 trustPriority = TrustPriority.HIGH.name,
                 trackingOrCheckCode = "OMID-1405-09",
-                notes = "کارمزد ۲٪ صندوق خانوادگی — واریز به کارت مدیر صندوق",
+                notes = "کارمزد ۲٪ صندوق خانوادگی",
                 createdAtJalali = JalaliCalendarEngine.addJalaliMonths(todayStr, -1)
             )
         )
@@ -348,7 +447,7 @@ object SeedDataEngine {
             )
         )
 
-        // 7. Obligation 6: Personal Receivable from Pars Tech (طلب از کارفرما)
+        // 7. Receivable from Pars Tech
         val receivableDue = JalaliCalendarEngine.addJalaliDays(todayStr, 5)
         val receivableId = dao.insertObligation(
             ObligationEntity(
@@ -373,7 +472,7 @@ object SeedDataEngine {
                 InstallmentEntity(
                     obligationId = receivableId,
                     installmentNumber = 1,
-                    title = "دریافت قسط اول قرارداد پارس (تحویل فاز ۱)",
+                    title = "دریافت قسط اول قرارداد پارس",
                     dueDateJalali = receivableDue,
                     amountToman = 15_000_000L,
                     paidAmountToman = 0L,

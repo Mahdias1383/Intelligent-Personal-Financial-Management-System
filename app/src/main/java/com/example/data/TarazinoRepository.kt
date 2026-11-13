@@ -107,11 +107,10 @@ class TarazinoRepository(
     }
 
     suspend fun ensureSeedDataLoadedIfFirstLaunch() {
-        if (!_preferencesState.value.isInitialSeedDone) {
-            val existing = dao.getAllCounterpartiesOnce()
-            if (existing.isEmpty()) {
-                SeedDataEngine.populateRealisticIranianSeedData(dao)
-            }
+        val seedV2Done = prefs.getBoolean("is_initial_seed_v2_done", false)
+        if (!seedV2Done) {
+            SeedDataEngine.populateRealisticIranianSeedData(dao)
+            prefs.edit().putBoolean("is_initial_seed_v2_done", true).apply()
             updatePreferences { it.copy(isInitialSeedDone = true) }
         }
     }
@@ -154,7 +153,12 @@ class TarazinoRepository(
         initialSubRecords: List<LedgerSubRecordEntity> = emptyList()
     ): Long {
         val obligationId = dao.insertObligation(obligation)
-        val linkedInstallments = installments.map { it.copy(obligationId = obligationId) }
+        val linkedInstallments = installments.mapIndexed { idx, item ->
+            item.copy(
+                obligationId = obligationId,
+                installmentNumber = idx + 1
+            )
+        }
         dao.insertInstallments(linkedInstallments)
         if (initialSubRecords.isNotEmpty()) {
             dao.insertSubRecords(initialSubRecords.map { it.copy(obligationId = obligationId) })
@@ -174,6 +178,10 @@ class TarazinoRepository(
 
     suspend fun addManualInstallment(installment: InstallmentEntity) {
         dao.insertInstallment(installment)
+    }
+
+    suspend fun deleteInstallmentById(installmentId: Long) {
+        dao.deleteInstallmentById(installmentId)
     }
 
     suspend fun addSubRecordAndSyncLedger(

@@ -8,6 +8,7 @@ import com.example.core.CurrencyUnit
 import com.example.core.JalaliCalendarEngine
 import com.example.core.SecurityVaultEngine
 import com.example.data.CounterpartyEntity
+import com.example.data.EntityCategory
 import com.example.data.FontScalePreset
 import com.example.data.InstallmentEntity
 import com.example.data.InstallmentStatus
@@ -38,11 +39,22 @@ import kotlinx.coroutines.launch
 
 enum class TarazinoNavTab(val index: Int, val titleFa: String) {
     DASHBOARD(0, "داشبورد"),
-    ENTITIES(1, "طرف‌حساب‌ها"),
-    OBLIGATIONS(2, "اقساط و بدهی"),
-    INTELLIGENCE(3, "هوش مالی"),
-    REPORTS_SETTINGS(4, "گزارش و امنیت")
+    PORTFOLIO_TREE(1, "پوشه اقساط"),
+    INTELLIGENCE(2, "هوش مالی"),
+    REPORTS_SETTINGS(3, "گزارش و تنظیمات")
 }
+
+data class TreeDrillState(
+    val selectedCategory: EntityCategory? = null,
+    val selectedCounterpartyId: Long? = null,
+    val selectedObligationId: Long? = null
+)
+
+data class WizardLaunchPreset(
+    val isOpen: Boolean = false,
+    val preselectedCategory: EntityCategory? = null,
+    val preselectedCounterpartyId: Long? = null
+)
 
 data class InteractiveTourStep(
     val stepIndex: Int,
@@ -56,6 +68,8 @@ data class InteractiveTourStep(
 data class TarazinoUiState(
     val isLoading: Boolean = false,
     val activeTab: TarazinoNavTab = TarazinoNavTab.DASHBOARD,
+    val treeDrill: TreeDrillState = TreeDrillState(),
+    val wizardPreset: WizardLaunchPreset = WizardLaunchPreset(),
     val preferences: UserPreferencesState = UserPreferencesState(),
     val counterparties: List<CounterpartyEntity> = emptyList(),
     val obligations: List<ObligationEntity> = emptyList(),
@@ -108,6 +122,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val repository = TarazinoRepository(application, database.tarazinoDao())
 
     private val _activeTab = MutableStateFlow(TarazinoNavTab.DASHBOARD)
+    private val _treeDrill = MutableStateFlow(TreeDrillState())
+    private val _wizardPreset = MutableStateFlow(WizardLaunchPreset())
     private val _extraPayoffBudgetToman = MutableStateFlow(3_000_000L)
     private val todayInit = JalaliCalendarEngine.parseJalali(JalaliCalendarEngine.todayJalali())
     private val _heatmapYearMonth = MutableStateFlow(todayInit.year to todayInit.month)
@@ -123,73 +139,61 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         InteractiveTourStep(
             stepIndex = 0,
             targetTab = TarazinoNavTab.DASHBOARD,
-            badgeTitleFa = "گام ۱ از ۶ — فرماندهی مالی و رادار سررسیدها",
-            headlineFa = "به ترازینو خوش آمدید! مدیریت ۱۰۰٪ آفلاین و هوشمند اقساط",
-            descriptionFa = "در داشبورد اصلی، خلاصه کل بدهی‌ها، طلب‌ها، نوار سلامت نقدینگی و هشدارهای تفکیک‌شده (معوقه، سررسید امروز و نزدیک به سررسید) را مشاهده می‌کنید.",
+            badgeTitleFa = "گام ۱ از ۵ — داشبورد خلوت و نمودار حلقه‌ای دسته‌ها",
+            headlineFa = "به ترازینو خوش آمدید! تجربه مالی ساده، خلوت و هوشمند",
+            descriptionFa = "در داشبورد بازطراحی‌شده، وضعیت کلی ماه جاری، نمودار حلقه‌ای سهم هر دسته و ۳ سررسید فوری را در یک نگاه شفاف می‌بینید.",
             highlightFeaturesFa = listOf(
-                "ثبت پرداخت تک‌کلیکی و یادآوری فردا (Snooze) مستقیم از روی کارت هشدار",
-                "دکمه چشم در نوار بالا برای مخفی‌سازی فوری مبالغ در محیط‌های عمومی",
-                "تغییر آنی واحد پول بین تومان و ریال و سوئیچ بین تم تیره و روشن"
+                "نمودار حلقه‌ای تعاملی؛ با لمس هر دسته مستقیم وارد پوشه آن می‌شوید",
+                "ثبت پرداخت تک‌کلیکی ۳ سررسید فوری بدون شلوغی صفحه",
+                "دکمه چشم برای مخفی‌سازی فوری مبالغ و سوئیچ آنی تومان/ریال در نوار بالا"
             )
         ),
         InteractiveTourStep(
             stepIndex = 1,
-            targetTab = TarazinoNavTab.ENTITIES,
-            badgeTitleFa = "گام ۲ از ۶ — پرونده جامع طرف‌حساب‌ها",
-            headlineFa = "پروفایل اختصاصی برای هر بانک، پلتفرم اقساطی و شخص",
-            descriptionFa = "در تب «طرف‌حساب‌ها» می‌توانید بانک‌ها (مهر، ملت، ملی...)، پلتفرم‌های خرید اقساطی (اسنپ‌پی، دیجی‌پی...)، صندوق‌های خانگی و دوستان را ثبت کنید.",
+            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
+            badgeTitleFa = "گام ۲ از ۵ — ساختار درختی دسته‌ها و زیرمجموعه‌ها",
+            headlineFa = "دسته‌بندی درختی بر اساس طرف پرداخت (اسنپ‌پی، دیجی‌پی، بانک‌ها...)",
+            descriptionFa = "در تب «پوشه اقساط»، ابتدا دسته‌های مادر (مثل خرید اقساطی یا بانک‌ها) و سپس زیرمجموعه‌های آن (مثل اسنپ‌پی و دیجی‌پی) را مشاهده می‌کنید.",
             highlightFeaturesFa = listOf(
-                "ذخیره شماره کارت ۱۶ رقمی با کپی آنی و شماره شبا (IR) برای واریز سریع",
-                "تعیین درجه حساسیت «قول شرف / حیاتی» برای اولویت‌بندی هوشمند در هشدارها",
-                "مشاهده پرونده جامع هر طرف‌حساب و دریافت خروجی صورتحساب A4 PDF و اکسل"
+                "مسیر درختی شفاف: دسته اصلی ← زیرمجموعه (اسنپ‌پی / دیجی‌پی) ← لیست خریدها و اقساط",
+                "کپی آنی شماره کارت ۱۶ رقمی و شبا + خروجی صورتحساب A4 برای هر زیرمجموعه",
+                "امکان افزودن زیرمجموعه جدید در هر دسته (مانند تارا، ازکی‌وام، بانک ملت)"
             )
         ),
         InteractiveTourStep(
             stepIndex = 2,
-            targetTab = TarazinoNavTab.OBLIGATIONS,
-            badgeTitleFa = "گام ۳ از ۶ — جدول اقساط خودکار و حساب دفتری پویا",
-            headlineFa = "محاسبه دقیق اقساط بدون حتی ۱ تومان خطای گرد کردن",
-            descriptionFa = "در تب «اقساط و بدهی» می‌توانید وام‌ها، خریدهای اقساطی، چک‌های صیادی و حساب‌های دفتری موردی را در دو حالت خودکار یا دفتری مدیریت کنید.",
+            targetTab = TarazinoNavTab.PORTFOLIO_TREE,
+            badgeTitleFa = "گام ۳ از ۵ — ویزارد ۳ مرحله‌ای و جدول تفکیکی اقساط",
+            headlineFa = "ورود و ویرایش تک‌تک قسط‌ها به صورت کاملاً تفکیک‌شده",
+            descriptionFa = "با زدن دکمه «+ ثبت قسط / خرید جدید»، ویزارد ۳ مرحله‌ای باز می‌شود که در گام سوم می‌توانید مبلغ و تاریخ شمسی تک‌تک قسط‌ها را به دلخواه تغییر دهید.",
             highlightFeaturesFa = listOf(
-                "مبدل زنده عدد به حروف فارسی و چیپ‌های افزایش سریع در زیر تمام فیلدهای مبلغ",
-                "انتخابگر تقویم شمسی هوشمند با تنظیم خودکار ماه‌های ۳۰ و ۲۹ روزه",
-                "امکان ثبت پرداخت جزئی (Partial)، جریمه دیرکرد، تخفیف خوش‌حسابی و کد پیگیری"
+                "ویرایش مستقیم مبلغ، تاریخ سررسید شمسی و وضعیت هر قسط به صورت مجزا",
+                "افزودن یا حذف ردیف قسط و توزیع مساوی خودکار بدون خطای گرد کردن",
+                "مبدل زنده عدد به حروف فارسی و چیپ‌های افزایش سریع مبلغ"
             )
         ),
         InteractiveTourStep(
             stepIndex = 3,
             targetTab = TarazinoNavTab.INTELLIGENCE,
-            badgeTitleFa = "گام ۴ از ۶ — هوش مالی، تقویم حرارتی و شبیه‌ساز تسویه",
-            headlineFa = "چند ماه زودتر به آزادی کامل مالی می‌رسید؟",
-            descriptionFa = "موتور تصمیم‌یار آفلاین ترازینو نسبت اقساط به درآمد (DTI)، دهه‌های اوج فشار مالی ماه و مقایسه استراتژی گلوله برفی در برابر بهمن را محاسبه می‌کند.",
+            badgeTitleFa = "گام ۴ از ۵ — هوش مالی، تقویم حرارتی و شبیه‌ساز تسویه",
+            headlineFa = "نقشه حرارتی ماه شمسی و شبیه‌ساز گلوله برفی در برابر بهمن",
+            descriptionFa = "در تب «هوش مالی» دهه‌های اوج فشار مالی ماه، تقویم حرارتی ۳۰/۳۱ روزه و مقایسه استراتژی‌های تسویه زودهنگام را بررسی کنید.",
             highlightFeaturesFa = listOf(
-                "نقشه حرارتی ۳۰/۳۱ روزه تقویم شمسی ماه جاری با نمایش تعهدات هر روز",
-                "شبیه‌ساز تعاملی تسویه زودهنگام با اسلایدر بودجه مازاد ماهانه",
-                "نمودار بار اقساط ۱۲ ماه آینده و تشخیص دهه بحرانی ماه (اول، دوم یا سوم)"
+                "نقشه حرارتی تقویم شمسی با نمایش تعهدات هر روز با یک لمس",
+                "شبیه‌ساز تعاملی تسویه زودهنگام با محاسبه تاریخ دقیق آزادی از بدهی",
+                "نمودار میله‌ای بار اقساط ۱۲ ماه آینده"
             )
         ),
         InteractiveTourStep(
             stepIndex = 4,
             targetTab = TarazinoNavTab.REPORTS_SETTINGS,
-            badgeTitleFa = "گام ۵ از ۶ — استودیو چاپ PDF استاندارد A4 و اکسل",
-            headlineFa = "گزارش‌های رسمی رنگی سایز A4 و اکسل راست‌به‌چپ",
-            descriptionFa = "هر زمان اراده کنید می‌توانید صورتحساب کل تعهدات یا یک طرف‌حساب خاص را در قالب برگه استاندارد A4 رنگی (با کادر مهر و امضا) یا فایل اکسل دریافت کنید.",
+            badgeTitleFa = "گام ۵ از ۵ — چاپ رسمی A4 PDF، اکسل و خزانه امنیتی",
+            headlineFa = "گزارش رنگی استاندارد A4، قفل پین/بیومتریک و کنترل داده‌ها",
+            descriptionFa = "در تب پایانی می‌توانید گزارش رسمی A4 PDF و اکسل بگیرید، تم روشن/تیره و قفل اثر انگشت را تنظیم کنید یا داده‌های نمونه را پاکسازی نمایید.",
             highlightFeaturesFa = listOf(
-                "تولید مستقیم فایل PDF استاندارد A4 رنگی با فونت وزیرمتن و جدول زبرا",
-                "خروجی اکسل راست‌به‌چپ (.xls) و فایل جهانی (.csv مجهز به UTF-8 BOM)",
-                "پیش‌نمایش زنده برگه A4 قبل از اشتراک‌گذاری یا چاپ"
-            )
-        ),
-        InteractiveTourStep(
-            stepIndex = 5,
-            targetTab = TarazinoNavTab.REPORTS_SETTINGS,
-            badgeTitleFa = "گام ۶ از ۶ — خزانه امنیتی پین/بیومتریک و شروع به کار",
-            headlineFa = "امنیت کامل آفلاین، پشتیبان‌گیری JSON و کنترل داده‌های نمونه",
-            descriptionFa = "در همین تب می‌توانید قفل پین ۴ یا ۶ رقمی و اثر انگشت را فعال کنید، فایل پشتیبان JSON بگیرید یا داده‌های نمونه آزمایشی را با یک کلیک پاکسازی کنید.",
-            highlightFeaturesFa = listOf(
-                "صفحه‌کلید شیشه‌ای فارسی با رمزنگاری SHA-256 و سنسور بیومتریک",
-                "دکمه «پاکسازی داده‌های نمونه (شروع از صفر)» برای ثبت اطلاعات واقعی خودتان",
-                "مرکز حافظه ایجنت و اجرای خودکار ۱۰ سوئیت تست صحت‌سنجی (QA)"
+                "پیش‌نمایش و چاپ مستقیم برگه استاندارد A4 رنگی و اکسل راست‌به‌چپ (.xls / .csv)",
+                "قفل پین ۴ یا ۶ رقمی با صفحه‌کلید شیشه‌ای فارسی و سنسور بیومتریک",
+                "دکمه «پاکسازی داده‌های نمونه (شروع از صفر)» و پشتیبان‌گیری JSON"
             )
         )
     )
@@ -204,6 +208,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
     private data class UiOverlayBundle(
         val activeTab: TarazinoNavTab,
+        val treeDrill: TreeDrillState,
+        val wizardPreset: WizardLaunchPreset,
         val extraBudget: Long,
         val heatmapYm: Pair<Int, Int>,
         val isLocked: Boolean,
@@ -226,24 +232,24 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     }
 
     private val uiOverlayFlow = combine(
-        combine(_activeTab, _extraPayoffBudgetToman, _heatmapYearMonth) { t, b, ym -> Triple(t, b, ym) },
-        combine(_isVaultLocked, _isTourActive, _tourStepIndex) { l, tour, step -> Triple(l, tour, step) },
-        combine(_activeA4Report, _qaResults, _toastMessage, _celebrationMessage) { rep, qa, tst, cel ->
-            listOf(rep, qa, tst, cel)
-        }
-    ) { g1, g2, g3 ->
-        @Suppress("UNCHECKED_CAST")
+        combine(_activeTab, _treeDrill, _wizardPreset) { t, d, w -> Triple(t, d, w) },
+        combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
+        combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
+        combine(_qaResults, _toastMessage, _celebrationMessage) { qa, tst, cel -> Triple(qa, tst, cel) }
+    ) { g1, g2, g3, g4 ->
         UiOverlayBundle(
             activeTab = g1.first,
-            extraBudget = g1.second,
-            heatmapYm = g1.third,
-            isLocked = g2.first,
-            isTourActive = g2.second,
-            tourStep = g2.third,
-            activeReport = g3[0] as A4ReportPayload?,
-            qaResults = g3[1] as List<QaSuiteResult>,
-            toast = g3[2] as String?,
-            celebration = g3[3] as String?
+            treeDrill = g1.second,
+            wizardPreset = g1.third,
+            extraBudget = g2.first,
+            heatmapYm = g2.second,
+            isLocked = g2.third,
+            isTourActive = g3.first,
+            tourStep = g3.second,
+            activeReport = g3.third,
+            qaResults = g4.first,
+            toast = g4.second,
+            celebration = g4.third
         )
     }
 
@@ -286,6 +292,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         TarazinoUiState(
             isLoading = false,
             activeTab = over.activeTab,
+            treeDrill = over.treeDrill,
+            wizardPreset = over.wizardPreset,
             preferences = core.preferences,
             counterparties = core.counterparties,
             obligations = core.obligations,
@@ -326,11 +334,120 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // Navigation & Interactive Tour Controls
+    // Navigation & Hierarchical Tree Drill Controls
     fun selectTab(tab: TarazinoNavTab) {
         _activeTab.value = tab
     }
 
+    fun openCategoryFolderInTree(category: EntityCategory?) {
+        _treeDrill.value = TreeDrillState(
+            selectedCategory = category,
+            selectedCounterpartyId = null,
+            selectedObligationId = null
+        )
+        _activeTab.value = TarazinoNavTab.PORTFOLIO_TREE
+    }
+
+    fun selectTreeCounterparty(counterparty: CounterpartyEntity) {
+        _treeDrill.value = TreeDrillState(
+            selectedCategory = counterparty.categoryEnum,
+            selectedCounterpartyId = counterparty.id,
+            selectedObligationId = null
+        )
+        _activeTab.value = TarazinoNavTab.PORTFOLIO_TREE
+    }
+
+    fun selectTreeObligation(obligation: ObligationEntity, counterpartyCategory: EntityCategory?) {
+        _treeDrill.value = TreeDrillState(
+            selectedCategory = counterpartyCategory ?: _treeDrill.value.selectedCategory,
+            selectedCounterpartyId = obligation.counterpartyId,
+            selectedObligationId = obligation.id
+        )
+        _activeTab.value = TarazinoNavTab.PORTFOLIO_TREE
+    }
+
+    fun stepBackInTree(): Boolean {
+        val cur = _treeDrill.value
+        return when {
+            cur.selectedObligationId != null -> {
+                _treeDrill.value = cur.copy(selectedObligationId = null)
+                true
+            }
+            cur.selectedCounterpartyId != null -> {
+                _treeDrill.value = cur.copy(selectedCounterpartyId = null)
+                true
+            }
+            cur.selectedCategory != null -> {
+                _treeDrill.value = TreeDrillState()
+                true
+            }
+            else -> false
+        }
+    }
+
+    fun resetTreeToRoot() {
+        _treeDrill.value = TreeDrillState()
+    }
+
+    // 3-Step Wizard Controls
+    fun openStepByStepWizard(
+        preselectedCategory: EntityCategory? = null,
+        preselectedCounterpartyId: Long? = null
+    ) {
+        _wizardPreset.value = WizardLaunchPreset(
+            isOpen = true,
+            preselectedCategory = preselectedCategory ?: _treeDrill.value.selectedCategory,
+            preselectedCounterpartyId = preselectedCounterpartyId ?: _treeDrill.value.selectedCounterpartyId
+        )
+    }
+
+    fun closeStepByStepWizard() {
+        _wizardPreset.value = WizardLaunchPreset(isOpen = false)
+    }
+
+    fun saveWizardObligationAndCustomInstallments(
+        obligation: ObligationEntity,
+        customInstallments: List<InstallmentEntity>,
+        newCounterpartyToCreate: CounterpartyEntity? = null
+    ) {
+        viewModelScope.launch {
+            val today = JalaliCalendarEngine.todayJalali()
+            val finalCounterpartyId = if (newCounterpartyToCreate != null) {
+                repository.saveCounterparty(newCounterpartyToCreate.copy(createdAtJalali = today))
+            } else {
+                obligation.counterpartyId
+            }
+
+            val totalFromRows = customInstallments.sumOf { it.amountToman }
+            val finalPrincipal = if (totalFromRows > 0L) {
+                (totalFromRows - obligation.profitOrFeeToman + obligation.downPaymentToman).coerceAtLeast(totalFromRows)
+            } else {
+                obligation.principalAmountToman
+            }
+
+            val newObId = repository.createObligationWithSchedule(
+                obligation = obligation.copy(
+                    counterpartyId = finalCounterpartyId,
+                    principalAmountToman = finalPrincipal,
+                    installmentCount = customInstallments.size.coerceAtLeast(1),
+                    firstDueDateJalali = customInstallments.firstOrNull()?.dueDateJalali ?: obligation.firstDueDateJalali,
+                    createdAtJalali = today
+                ),
+                installments = customInstallments
+            )
+
+            _wizardPreset.value = WizardLaunchPreset(isOpen = false)
+            _activeTab.value = TarazinoNavTab.PORTFOLIO_TREE
+            _treeDrill.value = TreeDrillState(
+                selectedCategory = newCounterpartyToCreate?.categoryEnum ?: _treeDrill.value.selectedCategory,
+                selectedCounterpartyId = finalCounterpartyId,
+                selectedObligationId = newObId
+            )
+            showToast("«${obligation.title}» با ${customInstallments.size} قسط تفکیک‌شده ثبت شد.")
+        }
+    }
+
+    // Interactive Tour Controls
     fun startGuidedTour() {
         _tourStepIndex.value = 0
         _activeTab.value = guidedTourSteps[0].targetTab
@@ -372,7 +489,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         _celebrationMessage.value = null
     }
 
-    // Quick Pay, Partial Pay & Snooze
+    // Quick Pay, Partial Pay, Granular Installment Edit & Snooze
     fun quickPayInstallment(installment: InstallmentEntity, trackingCode: String = "") {
         viewModelScope.launch {
             val today = JalaliCalendarEngine.todayJalali()
@@ -384,12 +501,15 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 todayJalali = today
             )
             repository.updateInstallment(updated)
-            _celebrationMessage.value = "تبریک! «${installment.title}» با موفقیت تسویه و در پرونده ثبت شد."
+            _celebrationMessage.value = "تبریک! «${installment.title}» با موفقیت تسویه شد."
         }
     }
 
     fun applyDetailedInstallmentPayment(
         installment: InstallmentEntity,
+        customTitle: String = installment.title,
+        customBaseAmountToman: Long = installment.amountToman,
+        customDueDateJalali: String = installment.dueDateJalali,
         paidAmountToman: Long,
         lateFeeToman: Long,
         discountToman: Long,
@@ -398,8 +518,13 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         note: String
     ) {
         viewModelScope.launch {
+            val baseAdjusted = installment.copy(
+                title = customTitle.ifBlank { installment.title },
+                amountToman = customBaseAmountToman.coerceAtLeast(0L),
+                dueDateJalali = customDueDateJalali.ifBlank { installment.dueDateJalali }
+            )
             val updated = InstallmentScheduleEngine.applyPaymentUpdate(
-                installment = installment,
+                installment = baseAdjusted,
                 paidAmountToman = paidAmountToman,
                 lateFeeToman = lateFeeToman,
                 discountToman = discountToman,
@@ -409,10 +534,50 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             )
             repository.updateInstallment(updated)
             if (updated.statusEnum == InstallmentStatus.PAID) {
-                _celebrationMessage.value = "«${installment.title}» به طور کامل تسویه شد!"
+                _celebrationMessage.value = "«${updated.title}» به طور کامل تسویه شد!"
             } else {
-                showToast("وضعیت قسط «${installment.title}» به‌روزرسانی شد.")
+                showToast("جزئیات «${updated.title}» به‌روزرسانی شد.")
             }
+        }
+    }
+
+    fun addSingleCustomInstallmentToObligation(
+        obligationId: Long,
+        nextNumber: Int,
+        title: String,
+        dueDateJalali: String,
+        amountToman: Long,
+        isAlreadyPaid: Boolean,
+        note: String
+    ) {
+        viewModelScope.launch {
+            val today = JalaliCalendarEngine.todayJalali()
+            val status = when {
+                isAlreadyPaid -> InstallmentStatus.PAID
+                JalaliCalendarEngine.diffJalaliDays(today, dueDateJalali) < 0 -> InstallmentStatus.OVERDUE
+                else -> InstallmentStatus.PENDING
+            }
+            repository.addManualInstallment(
+                InstallmentEntity(
+                    obligationId = obligationId,
+                    installmentNumber = nextNumber,
+                    title = title,
+                    dueDateJalali = dueDateJalali,
+                    amountToman = amountToman,
+                    paidAmountToman = if (isAlreadyPaid) amountToman else 0L,
+                    status = status.name,
+                    paidDateJalali = if (isAlreadyPaid) today else "",
+                    note = note
+                )
+            )
+            showToast("قسط جدید «$title» به جدول اضافه شد.")
+        }
+    }
+
+    fun deleteSingleInstallment(installmentId: Long, title: String) {
+        viewModelScope.launch {
+            repository.deleteInstallmentById(installmentId)
+            showToast("ردیف «$title» حذف شد.")
         }
     }
 
@@ -420,98 +585,47 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val tomorrow = JalaliCalendarEngine.addJalaliDays(JalaliCalendarEngine.todayJalali(), 1)
             repository.updateInstallment(installment.copy(snoozedUntilJalali = tomorrow))
-            showToast("یادآوری «${installment.title}» به فردا ($tomorrow) منتقل شد.")
+            showToast("یادآوری «${installment.title}» به فردا منتقل شد.")
         }
     }
 
-    // Counterparty Actions
+    // Counterparty (Sub-Category Provider) Actions
     fun saveCounterparty(entity: CounterpartyEntity) {
         viewModelScope.launch {
             val createdDate = entity.createdAtJalali.ifBlank { JalaliCalendarEngine.todayJalali() }
-            repository.saveCounterparty(entity.copy(createdAtJalali = createdDate))
-            showToast("پروفایل طرف‌حساب «${entity.name}» ذخیره شد.")
+            val savedId = repository.saveCounterparty(entity.copy(createdAtJalali = createdDate))
+            _treeDrill.value = _treeDrill.value.copy(
+                selectedCategory = entity.categoryEnum,
+                selectedCounterpartyId = savedId
+            )
+            showToast("زیرمجموعه / طرف‌حساب «${entity.name}» ذخیره شد.")
         }
     }
 
     fun deleteCounterparty(counterpartyId: Long, name: String) {
         viewModelScope.launch {
             repository.deleteCounterpartyAndLinkedData(counterpartyId)
-            showToast("طرف‌حساب «$name» و تعهدات مرتبط حذف شد.")
-        }
-    }
-
-    // Obligation & Running Ledger Actions
-    fun createObligationAutoSchedule(obligation: ObligationEntity) {
-        viewModelScope.launch {
-            val today = JalaliCalendarEngine.todayJalali()
-            val generated = InstallmentScheduleEngine.generateAutoInstallments(
-                obligationId = 0L,
-                titlePrefix = obligation.title,
-                netPayableToman = obligation.netPayableToman,
-                installmentCount = obligation.installmentCount,
-                firstDueDateJalali = obligation.firstDueDateJalali,
-                interval = obligation.intervalEnum,
-                todayJalali = today
-            )
-            repository.createObligationWithSchedule(
-                obligation = obligation.copy(
-                    scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
-                    createdAtJalali = today
-                ),
-                installments = generated
-            )
-            showToast("تعهد «${obligation.title}» با ${generated.size} ردیف قسط دقیق ثبت شد.")
-        }
-    }
-
-    fun createObligationRunningLedger(
-        obligation: ObligationEntity,
-        firstItemTitle: String,
-        firstItemAmountToman: Long,
-        firstItemDateJalali: String,
-        receiptCode: String
-    ) {
-        viewModelScope.launch {
-            val today = JalaliCalendarEngine.todayJalali()
-            val initialInstallment = InstallmentEntity(
-                obligationId = 0L,
-                installmentNumber = 1,
-                title = firstItemTitle.ifBlank { obligation.title },
-                dueDateJalali = obligation.firstDueDateJalali,
-                amountToman = firstItemAmountToman.coerceAtLeast(obligation.principalAmountToman),
-                status = InstallmentStatus.PENDING.name,
-                trackingCode = receiptCode
-            )
-            val initialSub = LedgerSubRecordEntity(
-                obligationId = 0L,
-                title = firstItemTitle.ifBlank { "ثبت اولیه حساب دفتری" },
-                dateJalali = firstItemDateJalali.ifBlank { today },
-                amountToman = firstItemAmountToman.coerceAtLeast(obligation.principalAmountToman),
-                receiptCode = receiptCode
-            )
-            repository.createObligationWithSchedule(
-                obligation = obligation.copy(
-                    scheduleMode = ScheduleMode.RUNNING_LEDGER.name,
-                    createdAtJalali = today
-                ),
-                installments = listOf(initialInstallment),
-                initialSubRecords = listOf(initialSub)
-            )
-            showToast("حساب دفتری «${obligation.title}» ایجاد شد.")
+            if (_treeDrill.value.selectedCounterpartyId == counterpartyId) {
+                _treeDrill.value = _treeDrill.value.copy(selectedCounterpartyId = null, selectedObligationId = null)
+            }
+            showToast("زیرمجموعه «$name» و تعهدات مرتبط حذف شد.")
         }
     }
 
     fun addSubRecordToObligation(obligation: ObligationEntity, subRecord: LedgerSubRecordEntity) {
         viewModelScope.launch {
             repository.addSubRecordAndSyncLedger(obligation, subRecord)
-            showToast("ریزتراکنش جدید در پرونده «${obligation.title}» ثبت و تراز بازمحاسبه شد.")
+            showToast("ریزتراکنش جدید در پرونده «${obligation.title}» ثبت شد.")
         }
     }
 
     fun deleteObligation(obligationId: Long, title: String) {
         viewModelScope.launch {
             repository.deleteObligation(obligationId)
-            showToast("تعهد «$title» حذف شد.")
+            if (_treeDrill.value.selectedObligationId == obligationId) {
+                _treeDrill.value = _treeDrill.value.copy(selectedObligationId = null)
+            }
+            showToast("پرونده «$title» حذف شد.")
         }
     }
 
@@ -555,14 +669,14 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     fun exportA4Pdf(context: Context, payload: A4ReportPayload) {
         viewModelScope.launch {
             val file = ReportExportEngine.saveAndSharePdfFile(context, payload)
-            showToast("فایل PDF استاندارد A4 (${file.name}) تولید و آماده اشتراک‌گذاری/چاپ شد.")
+            showToast("فایل PDF استاندارد A4 (${file.name}) آماده اشتراک‌گذاری و چاپ شد.")
         }
     }
 
     fun exportRtlExcel(context: Context, payload: A4ReportPayload) {
         viewModelScope.launch {
             val file = ReportExportEngine.saveAndShareRtlExcelFile(context, payload)
-            showToast("فایل اکسل راست‌به‌چپ (${file.name}) با موفقیت تولید شد.")
+            showToast("فایل اکسل راست‌به‌چپ (${file.name}) تولید شد.")
         }
     }
 
@@ -674,6 +788,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     fun clearAllDataToZero() {
         viewModelScope.launch {
             repository.clearAllDataToZero()
+            _treeDrill.value = TreeDrillState()
             showToast("تمامی داده‌های نمونه پاکسازی شد. اکنون می‌توانید اطلاعات واقعی خود را ثبت کنید.")
         }
     }
@@ -681,7 +796,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     fun restoreDemoSeedData() {
         viewModelScope.launch {
             repository.reloadDemoSeedData()
-            showToast("داده‌های نمونه واقعی اکوسیستم مالی ایران بازگردانی شد.")
+            _treeDrill.value = TreeDrillState()
+            showToast("داده‌های نمونه ساختار درختی (اسنپ‌پی، دیجی‌پی، بانک مهر و...) بازگردانی شد.")
         }
     }
 
@@ -699,7 +815,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             if (ok) {
                 showToast("فایل پشتیبان JSON با موفقیت بازیابی شد!")
             } else {
-                showToast("خطا در ساختار فایل JSON واردشده. لطفاً صحت فایل پشتیبان را بررسی کنید.")
+                showToast("خطا در ساختار فایل JSON واردشده.")
             }
         }
     }

@@ -22,11 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -63,11 +62,11 @@ import com.example.ui.TarazinoViewModel
 import com.example.ui.components.A4ReportPreviewModal
 import com.example.ui.components.InteractiveOnboardingTourOverlay
 import com.example.ui.components.SecurityLockOverlay
+import com.example.ui.components.StepByStepObligationWizardModal
 import com.example.ui.screens.DashboardScreen
-import com.example.ui.screens.EntitiesScreen
 import com.example.ui.screens.IntelligenceScreen
-import com.example.ui.screens.ObligationsScreen
 import com.example.ui.screens.ReportsAndSettingsScreen
+import com.example.ui.screens.TreePortfolioScreen
 import com.example.ui.theme.TarazinoTheme
 
 class MainActivity : ComponentActivity() {
@@ -99,10 +98,17 @@ fun TarazinoAppRoot(
 ) {
     val context = LocalContext.current
 
-    // Handle back press on non-dashboard tabs
+    // Handle hierarchical tree step-back and non-dashboard tab back navigation
     if (uiState.activeTab != TarazinoNavTab.DASHBOARD) {
         BackHandler {
-            viewModel.selectTab(TarazinoNavTab.DASHBOARD)
+            if (uiState.activeTab == TarazinoNavTab.PORTFOLIO_TREE) {
+                val steppedBack = viewModel.stepBackInTree()
+                if (!steppedBack) {
+                    viewModel.selectTab(TarazinoNavTab.DASHBOARD)
+                }
+            } else {
+                viewModel.selectTab(TarazinoNavTab.DASHBOARD)
+            }
         }
     }
 
@@ -124,7 +130,7 @@ fun TarazinoAppRoot(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "مدیریت آفلاین اقساط، بدهی و هوش مالی",
+                                    text = "مدیریت هوشمند اقساط، بدهی و وام",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -208,10 +214,9 @@ fun TarazinoAppRoot(
                 ) {
                     val navItems = listOf(
                         Triple(TarazinoNavTab.DASHBOARD, "داشبورد", Icons.Default.Dashboard),
-                        Triple(TarazinoNavTab.ENTITIES, "طرف‌حساب", Icons.Default.Groups),
-                        Triple(TarazinoNavTab.OBLIGATIONS, "اقساط و وام", Icons.Default.AccountBalanceWallet),
+                        Triple(TarazinoNavTab.PORTFOLIO_TREE, "پوشه اقساط", Icons.Default.AccountTree),
                         Triple(TarazinoNavTab.INTELLIGENCE, "هوش مالی", Icons.Default.Insights),
-                        Triple(TarazinoNavTab.REPORTS_SETTINGS, "گزارش و امنیت", Icons.Default.PictureAsPdf)
+                        Triple(TarazinoNavTab.REPORTS_SETTINGS, "گزارش و تنظیمات", Icons.Default.PictureAsPdf)
                     )
                     navItems.forEach { (tab, label, icon) ->
                         NavigationBarItem(
@@ -309,44 +314,70 @@ fun TarazinoAppRoot(
                             uiState = uiState,
                             onQuickPay = { viewModel.quickPayInstallment(it) },
                             onSnoozeTomorrow = { viewModel.snoozeInstallmentTomorrow(it) },
-                            onOpenObligationsTab = { viewModel.selectTab(TarazinoNavTab.OBLIGATIONS) },
+                            onOpenNewObligationWizard = { viewModel.openStepByStepWizard() },
+                            onOpenCategoryInTree = { cat -> viewModel.openCategoryFolderInTree(cat) },
+                            onOpenCounterpartyInTree = { cp -> viewModel.selectTreeCounterparty(cp) },
+                            onOpenObligationInTree = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
                             onOpenIntelligenceTab = { viewModel.selectTab(TarazinoNavTab.INTELLIGENCE) },
                             onOpenFullA4Report = { viewModel.openA4ReportPreview() }
                         )
 
-                        TarazinoNavTab.ENTITIES -> EntitiesScreen(
+                        TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
                             uiState = uiState,
+                            onSelectCategory = { cat -> viewModel.openCategoryFolderInTree(cat) },
+                            onSelectCounterparty = { cp -> viewModel.selectTreeCounterparty(cp) },
+                            onSelectObligation = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
+                            onStepBackInTree = { viewModel.stepBackInTree() },
+                            onResetTreeToRoot = { viewModel.resetTreeToRoot() },
+                            onOpenWizard = { cat, cpId -> viewModel.openStepByStepWizard(cat, cpId) },
                             onSaveCounterparty = { viewModel.saveCounterparty(it) },
                             onDeleteCounterparty = { id, name -> viewModel.deleteCounterparty(id, name) },
+                            onDeleteObligation = { id, title -> viewModel.deleteObligation(id, title) },
+                            onQuickPayInstallment = { viewModel.quickPayInstallment(it) },
+                            onDetailedInstallmentUpdate = { inst, title, baseAmt, dueDate, paid, fee, disc, paidDate, code, note ->
+                                viewModel.applyDetailedInstallmentPayment(
+                                    installment = inst,
+                                    customTitle = title,
+                                    customBaseAmountToman = baseAmt,
+                                    customDueDateJalali = dueDate,
+                                    paidAmountToman = paid,
+                                    lateFeeToman = fee,
+                                    discountToman = disc,
+                                    paidDateJalali = paidDate,
+                                    trackingCode = code,
+                                    note = note
+                                )
+                            },
+                            onAddSingleCustomInstallment = { obId, nextNum, title, dueDate, amt, isPaid, note ->
+                                viewModel.addSingleCustomInstallmentToObligation(
+                                    obligationId = obId,
+                                    nextNumber = nextNum,
+                                    title = title,
+                                    dueDateJalali = dueDate,
+                                    amountToman = amt,
+                                    isAlreadyPaid = isPaid,
+                                    note = note
+                                )
+                            },
+                            onDeleteSingleInstallment = { id, title ->
+                                viewModel.deleteSingleInstallment(id, title)
+                            },
+                            onAddSubRecord = { ob, sub -> viewModel.addSubRecordToObligation(ob, sub) },
                             onOpenCounterpartyA4Report = { cp ->
                                 viewModel.openA4ReportPreview(
-                                    reportTitleFa = "صورتحساب اختصاصی طرف‌حساب: ${cp.name}",
+                                    reportTitleFa = "صورتحساب اختصاصی زیرمجموعه: ${cp.name}",
                                     subtitleFa = "${cp.categoryEnum.labelFa} • ${cp.priorityEnum.labelFa}",
                                     filterCounterpartyId = cp.id
                                 )
                             },
-                            onShowToast = { viewModel.showToast(it) }
-                        )
-
-                        TarazinoNavTab.OBLIGATIONS -> ObligationsScreen(
-                            uiState = uiState,
-                            onCreateAutoScheduleObligation = { viewModel.createObligationAutoSchedule(it) },
-                            onCreateRunningLedgerObligation = { ob, title, amt, date, code ->
-                                viewModel.createObligationRunningLedger(ob, title, amt, date, code)
-                            },
-                            onAddSubRecord = { ob, sub -> viewModel.addSubRecordToObligation(ob, sub) },
-                            onDeleteObligation = { id, title -> viewModel.deleteObligation(id, title) },
-                            onQuickPayInstallment = { viewModel.quickPayInstallment(it) },
-                            onDetailedInstallmentUpdate = { inst, paid, fee, disc, date, code, note ->
-                                viewModel.applyDetailedInstallmentPayment(inst, paid, fee, disc, date, code, note)
-                            },
-                            onExportObligationA4Report = { ob ->
+                            onOpenObligationA4Report = { ob ->
                                 viewModel.openA4ReportPreview(
                                     reportTitleFa = "جدول رسمی اقساط: ${ob.title}",
                                     subtitleFa = "${ob.categoryEnum.labelFa} • ${ob.scheduleModeEnum.labelFa}",
                                     filterObligationId = ob.id
                                 )
-                            }
+                            },
+                            onShowToast = { viewModel.showToast(it) }
                         )
 
                         TarazinoNavTab.INTELLIGENCE -> IntelligenceScreen(
@@ -420,6 +451,20 @@ fun TarazinoAppRoot(
                     }
                 }
             }
+        }
+
+        // 3-Step Full-Screen Obligation & Editable Per-Installment Wizard Modal
+        if (uiState.wizardPreset.isOpen) {
+            StepByStepObligationWizardModal(
+                counterparties = uiState.counterparties,
+                preselectedCategory = uiState.wizardPreset.preselectedCategory,
+                preselectedCounterpartyId = uiState.wizardPreset.preselectedCounterpartyId,
+                currencyUnit = uiState.preferences.currencyUnit,
+                onDismiss = { viewModel.closeStepByStepWizard() },
+                onCompleteWizard = { ob, customInst, newCp ->
+                    viewModel.saveWizardObligationAndCustomInstallments(ob, customInst, newCp)
+                }
+            )
         }
 
         // Standard A4 Colorful Report Preview Modal
