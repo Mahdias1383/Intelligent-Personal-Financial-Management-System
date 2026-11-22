@@ -96,17 +96,20 @@ import com.example.data.TrustPriority
 import com.example.domain.AlertUrgencyBucket
 import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
+import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MetallicSmartChipEmblem
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
+import com.example.ui.components.TarazinoLivePulseDot
 import com.example.ui.components.TarazinoMetalVaultCard
 import com.example.ui.components.TarazinoMiniBrandCard
 import com.example.ui.components.TarazinoQuickActionTile
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSlideToSettleBar
+import com.example.ui.components.TarazinoStaggeredReveal
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.formatCompactPersianToman
 import com.example.ui.components.tarazinoAmbientBackdrop
@@ -224,8 +227,8 @@ fun DashboardScreen(
         modifier = Modifier
             .fillMaxSize()
             .testTag("dashboard_screen"),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         // =========================================================================
         // 1. INTERACTIVE 3D-TILTABLE & 3D-FLIPPABLE PLATINUM VAULT CARD
@@ -248,26 +251,26 @@ fun DashboardScreen(
                 else -> "مجموع طلب‌های دریافت‌نشده از دیگران"
             }
 
-            // Dynamic CRED / Revolut Ultra Aura Morphing per Mode
+            // Dynamic Airy Aura Morphing per Mode
             val cardAccentPrimary = when (heroModeIndex) {
-                0 -> Color(0xFF00E5A0) // Velvet Electric Mint
-                1 -> Color(0xFFE8C67D) // Brushed Champagne Gold
-                else -> Color(0xFF22D3EE) // Arctic Sapphire
+                0 -> Color(0xFF10E5A5) // Fresh Electric Mint
+                1 -> Color(0xFFF0CE82) // Soft Champagne Gold
+                else -> Color(0xFF38BDF8) // Luminous Sky Sapphire
             }
             val cardAccentSecondary = when (heroModeIndex) {
                 0 -> Color(0xFF38BDF8)
-                1 -> Color(0xFFFF6B8B)
+                1 -> Color(0xFFFF7A96)
                 else -> Color(0xFF818CF8)
             }
             val cardBaseStart = when (heroModeIndex) {
-                0 -> Color(0xFF051C19)
-                1 -> Color(0xFF1A140A)
-                else -> Color(0xFF061628)
+                0 -> Color(0xFF0E2925)
+                1 -> Color(0xFF251E14)
+                else -> Color(0xFF0F243E)
             }
             val cardBaseEnd = when (heroModeIndex) {
-                0 -> Color(0xFF05080D)
-                1 -> Color(0xFF0A0910)
-                else -> Color(0xFF050A16)
+                0 -> Color(0xFF131B29)
+                1 -> Color(0xFF151A27)
+                else -> Color(0xFF121A2B)
             }
 
             val freedomDateShort = uiState.payoffSimulation?.projectedBaselineDateJalali?.let {
@@ -276,13 +279,14 @@ fun DashboardScreen(
             val healthScore = uiState.dtiHealthReport?.obligationCoverageScore ?: 100
             val paidInstCount = uiState.installments.count { it.statusEnum == InstallmentStatus.PAID }
 
-            TarazinoMetalVaultCard(
-                accentPrimary = cardAccentPrimary,
-                accentSecondary = cardAccentSecondary,
-                baseStart = cardBaseStart,
-                baseEnd = cardBaseEnd,
-                isFlipped = isVaultCardFlipped,
-                modifier = Modifier.tourSpotlightTarget("dashboard_monthly_summary"),
+            TarazinoStaggeredReveal(index = 0) {
+                TarazinoMetalVaultCard(
+                    accentPrimary = cardAccentPrimary,
+                    accentSecondary = cardAccentSecondary,
+                    baseStart = cardBaseStart,
+                    baseEnd = cardBaseEnd,
+                    isFlipped = isVaultCardFlipped,
+                    modifier = Modifier.tourSpotlightTarget("dashboard_monthly_summary"),
                 backContent = {
                     // BACK OF THE 3D BLACK VAULT CARD
                     Column(
@@ -527,45 +531,45 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Focal Balance Row with Vertical Rolling Digit Animation + 60fps Liquid Wave Orb
+                    // Focal Balance Row with True Per-Digit Rolling Odometer Animation + 60fps Liquid Wave Orb
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AnimatedContent(
-                            targetState = Triple(displayedSubtitle, displayedAmount, cardAccentPrimary),
-                            transitionSpec = {
-                                (slideInVertically(tween(240)) { it / 4 } + fadeIn(tween(240))) togetherWith
-                                    (slideOutVertically(tween(150)) { -it / 4 } + fadeOut(tween(150)))
-                            },
-                            label = "HeroBalanceCrossfade",
-                            modifier = Modifier.weight(1f)
-                        ) { (subtitleText, amt, accent) ->
-                            Column {
+                        Column(modifier = Modifier.weight(1f)) {
+                            AnimatedContent(
+                                targetState = displayedSubtitle,
+                                transitionSpec = {
+                                    fadeIn(tween(220)) togetherWith fadeOut(tween(130))
+                                },
+                                label = "HeroSubtitleFade"
+                            ) { sub ->
                                 Text(
-                                    text = subtitleText,
+                                    text = sub,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFF9EB3C4)
+                                    color = Color(0xFFA8BACD),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(modifier = Modifier.height(3.dp))
-                                FormattedMoneyText(
-                                    amountToman = amt,
-                                    unit = unit,
-                                    privacyMasked = masked,
-                                    style = MaterialTheme.typography.displayLarge,
-                                    numberColor = Color.White,
-                                    unitColor = accent.copy(alpha = 0.95f)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            AnimatedOdometerMoneyText(
+                                amountToman = displayedAmount,
+                                unit = unit,
+                                privacyMasked = masked,
+                                style = MaterialTheme.typography.displayLarge,
+                                numberColor = Color.White,
+                                unitColor = cardAccentPrimary.copy(alpha = 0.95f)
+                            )
+                            AnimatedVisibility(visible = !masked && displayedAmount > 0L) {
+                                Text(
+                                    text = PersianCurrencyEngine.amountToPersianWords(displayedAmount, unit),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                if (!masked && amt > 0L) {
-                                    Text(
-                                        text = PersianCurrencyEngine.amountToPersianWords(amt, unit),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.68f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                             }
                         }
 
@@ -633,6 +637,7 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
         }
 
         // =========================================================================
@@ -640,6 +645,7 @@ fun DashboardScreen(
         // =========================================================================
         item {
             val mostUrgent = uiState.smartAlertQueue.firstOrNull()
+            TarazinoStaggeredReveal(index = 1) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -686,6 +692,7 @@ fun DashboardScreen(
                         .testTag("dashboard_open_a4_report_btn")
                 )
             }
+            }
         }
 
         // =========================================================================
@@ -693,6 +700,7 @@ fun DashboardScreen(
         // =========================================================================
         if (uiState.counterparties.isNotEmpty()) {
             item {
+                TarazinoStaggeredReveal(index = 2) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -755,6 +763,7 @@ fun DashboardScreen(
                         }
                     }
                 }
+                }
             }
         }
 
@@ -762,13 +771,15 @@ fun DashboardScreen(
         // 2.5. INTERACTIVE TAP-TO-INSPECT 7-DAY JALALI CASHFLOW PULSE STRIP
         // =========================================================================
         item {
-            WeeklyJalaliCashflowStrip(
-                alerts = uiState.smartAlertQueue,
-                currencyUnit = unit,
-                privacyMasked = masked,
-                onQuickPay = onQuickPay,
-                onOpenCalendarTab = onOpenIntelligenceTab
-            )
+            TarazinoStaggeredReveal(index = 3) {
+                WeeklyJalaliCashflowStrip(
+                    alerts = uiState.smartAlertQueue,
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    onQuickPay = onQuickPay,
+                    onOpenCalendarTab = onOpenIntelligenceTab
+                )
+            }
         }
 
         // =========================================================================
@@ -976,28 +987,39 @@ fun DashboardScreen(
                 subtitle = "برای تسویه، دکمه سبز را به چپ بکشید یا لمس کنید",
                 icon = Icons.Default.NotificationsActive,
                 accentColor = MaterialTheme.colorScheme.secondary,
-                trailing = if (uiState.smartAlertQueue.size > 3) {
-                    {
-                        Surface(
-                            shape = RoundedCornerShape(11.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(11.dp))
-                                .tarazinoPressScale(scaleDown = 0.94f) { showAllAlertsModal = true }
-                                .testTag("dashboard_view_all_alerts_btn")
-                        ) {
-                            Text(
-                                text = "همه (${PersianCurrencyEngine.toPersianDigits(uiState.smartAlertQueue.size.toString())}) ‹",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                trailing = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (urgentCount > 0) {
+                            TarazinoLivePulseDot(
+                                color = ext.danger,
+                                size = 7.dp
                             )
                         }
+                        if (uiState.smartAlertQueue.size > 3) {
+                            Surface(
+                                shape = RoundedCornerShape(11.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .tarazinoPressScale(scaleDown = 0.94f) { showAllAlertsModal = true }
+                                    .testTag("dashboard_view_all_alerts_btn")
+                            ) {
+                                Text(
+                                    text = "همه (${PersianCurrencyEngine.toPersianDigits(uiState.smartAlertQueue.size.toString())}) ‹",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
                     }
-                } else null
+                }
             )
         }
 

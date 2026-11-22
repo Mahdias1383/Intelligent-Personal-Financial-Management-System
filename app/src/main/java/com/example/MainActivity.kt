@@ -9,12 +9,17 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -74,6 +79,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -382,29 +388,29 @@ fun TarazinoAppRoot(
                     )
                 },
                 bottomBar = {
-                    // Iconic Floating Glassmorphic Pill Dock + Integrated Glowing Center Emerald FAB
+                    // Sleek Weightless Floating Glass Pill Dock + Delicate Center Emerald FAB
                     Box(
                         contentAlignment = Alignment.BottomCenter,
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                             .testTag("floating_quick_action_bar")
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(28.dp),
+                            shape = RoundedCornerShape(26.dp),
                             color = extColors.glassSurface,
-                            tonalElevation = 6.dp,
-                            shadowElevation = 14.dp,
+                            tonalElevation = 0.dp,
+                            shadowElevation = if (extColors.isDark) 8.dp else 6.dp,
                             border = BorderStroke(
-                                1.dp,
+                                0.75.dp,
                                 Brush.verticalGradient(
                                     listOf(extColors.cardBorderTop, extColors.cardBorderBottom)
                                 )
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(64.dp)
+                                .height(60.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -427,8 +433,8 @@ fun TarazinoAppRoot(
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                // Center Spacer Reserved for Elevated Glowing Emerald FAB
-                                Spacer(modifier = Modifier.width(64.dp))
+                                // Center Spacer Reserved for Elevated Emerald FAB
+                                Spacer(modifier = Modifier.width(60.dp))
 
                                 // Last 2 Tabs (Intelligence, Reports & Settings)
                                 DockTabItem(
@@ -446,13 +452,13 @@ fun TarazinoAppRoot(
                             }
                         }
 
-                        // Elevated Center Glowing Emerald Jewel FAB with Rotating Luminous Halo Ring
+                        // Elevated Center Emerald Jewel FAB with Whisper-Thin Rotating Orbital Arc
                         val haloTransition = rememberInfiniteTransition(label = "FabHaloSpin")
                         val haloAngle by haloTransition.animateFloat(
                             initialValue = 0f,
                             targetValue = 360f,
                             animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 7000, easing = androidx.compose.animation.core.LinearEasing),
+                                animation = tween(durationMillis = 8000, easing = androidx.compose.animation.core.LinearEasing),
                                 repeatMode = RepeatMode.Restart
                             ),
                             label = "FabHaloAngle"
@@ -460,32 +466,32 @@ fun TarazinoAppRoot(
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .offset(y = (-15).dp)
-                                .size(66.dp)
+                                .offset(y = (-13).dp)
+                                .size(60.dp)
                         ) {
                             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                                 rotate(degrees = haloAngle) {
                                     drawCircle(
                                         brush = Brush.sweepGradient(
                                             listOf(
-                                                Color(0xFF00E5A0),
-                                                Color(0xFFE8C67D).copy(alpha = 0.75f),
+                                                Color(0xFF10E5A5).copy(alpha = 0.85f),
+                                                Color(0xFF38BDF8).copy(alpha = 0.45f),
                                                 Color.Transparent,
-                                                Color(0xFF38BDF8).copy(alpha = 0.75f),
-                                                Color(0xFF00E5A0)
+                                                Color.Transparent,
+                                                Color(0xFF10E5A5).copy(alpha = 0.85f)
                                             )
                                         ),
-                                        radius = size.minDimension / 2f - 1.5.dp.toPx(),
-                                        style = Stroke(width = 2.dp.toPx())
+                                        radius = size.minDimension / 2f - 1.dp.toPx(),
+                                        style = Stroke(width = 1.4.dp.toPx())
                                     )
                                 }
                             }
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(56.dp)
+                                    .size(52.dp)
                                     .shadow(
-                                        elevation = 16.dp,
+                                        elevation = 10.dp,
                                         shape = CircleShape,
                                         ambientColor = MaterialTheme.colorScheme.primary,
                                         spotColor = MaterialTheme.colorScheme.primary
@@ -494,17 +500,17 @@ fun TarazinoAppRoot(
                                     .background(
                                         Brush.linearGradient(
                                             listOf(
-                                                Color(0xFF34F5B8),
-                                                Color(0xFF00E5A0),
-                                                Color(0xFF049669)
+                                                Color(0xFF2FF0B5),
+                                                Color(0xFF10E5A5),
+                                                Color(0xFF059669)
                                             )
                                         )
                                     )
                                     .border(
-                                        width = 1.6.dp,
+                                        width = 1.1.dp,
                                         brush = Brush.verticalGradient(
                                             listOf(
-                                                Color.White.copy(alpha = 0.78f),
+                                                Color.White.copy(alpha = 0.65f),
                                                 Color(0xFF047857)
                                             )
                                         ),
@@ -521,8 +527,8 @@ fun TarazinoAppRoot(
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "ثبت قسط، خرید اقساطی یا وام جدید",
-                                    tint = Color(0xFF022019),
-                                    modifier = Modifier.size(28.dp)
+                                    tint = Color(0xFF03211A),
+                                    modifier = Modifier.size(26.dp)
                                 )
                             }
                         }
@@ -626,13 +632,29 @@ fun TarazinoAppRoot(
                         }
                     }
 
-                    // Active Tab Screen Content with Smooth Transitions
+                    // Active Tab Screen Content with Silky RTL Shared-Axis Spring Transitions
                     Box(modifier = Modifier.weight(1f)) {
                         AnimatedContent(
                             targetState = uiState.activeTab,
                             transitionSpec = {
-                                fadeIn(animationSpec = tween(220)) togetherWith
-                                    fadeOut(animationSpec = tween(160))
+                                val movingForward = targetState.ordinal >= initialState.ordinal
+                                // In RTL, moving forward (index 0 -> 1) glides naturally from left into view
+                                val enterOffset = if (movingForward) -1 else 1
+                                (slideInHorizontally(
+                                    animationSpec = spring(
+                                        dampingRatio = 0.86f,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                ) { width -> enterOffset * (width / 10) } +
+                                    scaleIn(
+                                        initialScale = 0.985f,
+                                        animationSpec = tween(240, easing = FastOutSlowInEasing)
+                                    ) +
+                                    fadeIn(animationSpec = tween(220))) togetherWith
+                                    (slideOutHorizontally(
+                                        animationSpec = tween(160, easing = FastOutSlowInEasing)
+                                    ) { width -> -enterOffset * (width / 14) } +
+                                        fadeOut(animationSpec = tween(140)))
                             },
                             label = "TarazinoMainTabTransition"
                         ) { targetTab ->
@@ -856,34 +878,64 @@ private fun DockTabItem(
         label = "DockTabColor_${dest.tab.name}"
     )
     val pillBg by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.11f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "DockTabBg_${dest.tab.name}"
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.12f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "DockIconScale_${dest.tab.name}"
+    )
+    val iconLiftDp by animateDpAsState(
+        targetValue = if (selected) (-1.5).dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "DockIconLift_${dest.tab.name}"
+    )
+    val indicatorWidth by animateDpAsState(
+        targetValue = if (selected) 18.dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = 0.72f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "DockPillW_${dest.tab.name}"
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
-            .height(54.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .height(50.dp)
+            .clip(RoundedCornerShape(18.dp))
             .background(pillBg)
             .tarazinoPressScale(scaleDown = 0.92f, onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .padding(horizontal = 4.dp, vertical = 3.dp)
             .testTag("bottom_nav_${dest.tab.name.lowercase()}")
     ) {
         Icon(
             imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
             contentDescription = dest.labelFa,
             tint = contentColor,
-            modifier = Modifier.size(21.dp)
+            modifier = Modifier
+                .size(20.dp)
+                .offset(y = iconLiftDp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = dest.labelFa,
             style = MaterialTheme.typography.labelSmall,
             fontSize = 10.sp,
-            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -891,7 +943,7 @@ private fun DockTabItem(
         Spacer(modifier = Modifier.height(2.dp))
         Box(
             modifier = Modifier
-                .width(if (selected) 14.dp else 0.dp)
+                .width(indicatorWidth)
                 .height(2.5.dp)
                 .clip(CircleShape)
                 .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)

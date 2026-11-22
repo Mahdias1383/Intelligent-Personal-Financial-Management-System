@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -11,6 +12,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -86,13 +92,90 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 import com.example.ui.theme.LocalTarazinoColors
+import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+
+/**
+ * Lightweight choreographed spring cascade entrance for modern airy screens.
+ * Glides content gently upward with subtle scale & alpha fade in <280ms.
+ */
+@Composable
+fun TarazinoStaggeredReveal(
+    index: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay((index.coerceIn(0, 8) * 38L))
+        visible = true
+    }
+    val progress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.84f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "StaggerReveal_$index"
+    )
+    Box(
+        modifier = modifier.graphicsLayer {
+            alpha = progress.coerceIn(0f, 1f)
+            translationY = (1f - progress) * 26f
+            val s = 0.975f + (progress * 0.025f)
+            scaleX = s
+            scaleY = s
+        }
+    ) {
+        content()
+    }
+}
+
+/**
+ * Delicate breathing live pulse dot for radar alerts & active financial indicators.
+ */
+@Composable
+fun TarazinoLivePulseDot(
+    color: Color,
+    size: Dp = 8.dp,
+    modifier: Modifier = Modifier
+) {
+    val infinite = rememberInfiniteTransition(label = "LivePulse")
+    val pulse by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "LivePulseVal"
+    )
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier.size(size * 2.2f)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val baseR = (size.toPx() / 2f)
+            drawCircle(
+                color = color.copy(alpha = (1f - pulse) * 0.45f),
+                radius = baseR * (1f + pulse * 1.15f)
+            )
+            drawCircle(
+                color = color,
+                radius = baseR
+            )
+        }
+    }
+}
 
 /**
  * Tactile spring-scale press feedback modifier with subtle native Android haptic pulse.
@@ -259,15 +342,15 @@ fun TarazinoMetalVaultCard(
     Surface(
         shape = shape,
         color = Color.Transparent,
-        shadowElevation = 20.dp,
+        shadowElevation = 10.dp,
         border = BorderStroke(
-            width = 1.35.dp,
+            width = 0.95.dp,
             brush = Brush.linearGradient(
                 listOf(
-                    animAccent1.copy(alpha = 0.85f),
-                    Color.White.copy(alpha = 0.34f),
-                    animAccent2.copy(alpha = 0.42f),
-                    Color.White.copy(alpha = 0.12f)
+                    animAccent1.copy(alpha = 0.58f),
+                    Color.White.copy(alpha = 0.22f),
+                    animAccent2.copy(alpha = 0.28f),
+                    Color.White.copy(alpha = 0.08f)
                 )
             )
         ),
@@ -327,75 +410,62 @@ fun TarazinoMetalVaultCard(
                     )
                 )
 
-                // 2. Dynamic morphing corner radial aura orbs
+                // 2. Soft airy corner radial aurora orbs
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(animAccent1.copy(alpha = 0.36f), Color.Transparent),
-                        center = Offset(size.width * 0.90f, size.height * 0.10f),
-                        radius = size.width * 0.66f
+                        colors = listOf(animAccent1.copy(alpha = 0.28f), Color.Transparent),
+                        center = Offset(size.width * 0.88f, size.height * 0.12f),
+                        radius = size.width * 0.64f
                     ),
-                    radius = size.width * 0.66f,
-                    center = Offset(size.width * 0.90f, size.height * 0.10f)
+                    radius = size.width * 0.64f,
+                    center = Offset(size.width * 0.88f, size.height * 0.12f)
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(animAccent2.copy(alpha = 0.26f), Color.Transparent),
-                        center = Offset(size.width * 0.10f, size.height * 0.92f),
-                        radius = size.width * 0.58f
+                        colors = listOf(animAccent2.copy(alpha = 0.18f), Color.Transparent),
+                        center = Offset(size.width * 0.12f, size.height * 0.90f),
+                        radius = size.width * 0.54f
                     ),
-                    radius = size.width * 0.58f,
-                    center = Offset(size.width * 0.10f, size.height * 0.92f)
+                    radius = size.width * 0.54f,
+                    center = Offset(size.width * 0.12f, size.height * 0.90f)
                 )
 
-                // 3. Delicate procedural banknote guilloché concentric wave lines
-                val waveColor = Color.White.copy(alpha = 0.052f)
-                for (i in 0..6) {
-                    val r = size.width * (0.28f + i * 0.10f)
-                    drawCircle(
-                        color = waveColor,
-                        radius = r,
-                        center = Offset(size.width * 0.14f, size.height * 0.16f),
-                        style = Stroke(width = 0.85.dp.toPx())
-                    )
-                }
+                // 3. Minimalist subtle geometric arc accent (clean & weightless)
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.045f),
+                    radius = size.width * 0.48f,
+                    center = Offset(size.width * 0.10f, size.height * 0.12f),
+                    style = Stroke(width = 0.8.dp.toPx())
+                )
 
-                // 4. Fine horizontal brushed metal hairline texture
-                val grainColor = Color.White.copy(alpha = 0.018f)
-                val step = 6.dp.toPx()
-                var yPos = step
-                while (yPos < size.height) {
-                    drawLine(grainColor, Offset(0f, yPos), Offset(size.width, yPos), strokeWidth = 0.6f)
-                    yPos += step
-                }
-
-                // 5. Real-time holographic spotlight tracking finger tilt!
+                // 4. Real-time holographic spotlight tracking finger tilt
                 val glareCenter = Offset(size.width * animLightX, size.height * animLightY)
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isTouching) 0.22f else 0.09f),
-                            animAccent1.copy(alpha = if (isTouching) 0.14f else 0.04f),
+                            Color.White.copy(alpha = if (isTouching) 0.19f else 0.06f),
+                            animAccent1.copy(alpha = if (isTouching) 0.12f else 0.03f),
                             Color.Transparent
                         ),
                         center = glareCenter,
-                        radius = size.width * 0.52f
+                        radius = size.width * 0.48f
                     ),
-                    radius = size.width * 0.52f,
+                    radius = size.width * 0.48f,
                     center = glareCenter
                 )
 
-                // 6. Living diagonal metallic specular sweep
+                // 5. Whisper-soft diagonal specular sheen
                 val sweepCenterX = size.width * sheenPhase
                 drawRect(
                     brush = Brush.linearGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = 0.075f),
-                            animAccent1.copy(alpha = 0.085f),
+                            Color.White.copy(alpha = 0.055f),
+                            animAccent1.copy(alpha = 0.06f),
                             Color.Transparent
                         ),
-                        start = Offset(sweepCenterX - size.width * 0.28f, 0f),
-                        end = Offset(sweepCenterX + size.width * 0.28f, size.height)
+                        start = Offset(sweepCenterX - size.width * 0.25f, 0f),
+                        end = Offset(sweepCenterX + size.width * 0.25f, size.height)
                     )
                 )
             }
@@ -735,21 +805,21 @@ fun TarazinoMiniBrandCard(
     Surface(
         shape = shape,
         color = Color.Transparent,
-        shadowElevation = 10.dp,
+        shadowElevation = 3.dp,
         border = BorderStroke(
-            width = 1.1.dp,
+            width = 0.85.dp,
             brush = Brush.linearGradient(
                 listOf(
-                    accentColor.copy(alpha = 0.72f),
-                    Color.White.copy(alpha = 0.20f),
-                    accentColor.copy(alpha = 0.18f)
+                    accentColor.copy(alpha = 0.48f),
+                    Color.White.copy(alpha = 0.14f),
+                    accentColor.copy(alpha = 0.14f)
                 )
             )
         ),
         modifier = modifier
-            .width(178.dp)
-            .height(118.dp)
-            .tarazinoPressScale(scaleDown = 0.94f, onClick = onClick)
+            .width(166.dp)
+            .height(106.dp)
+            .tarazinoPressScale(scaleDown = 0.95f, onClick = onClick)
             .clip(shape)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -757,8 +827,8 @@ fun TarazinoMiniBrandCard(
                 drawRect(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF0C1219),
-                            Color(0xFF06090D)
+                            Color(0xFF172133),
+                            Color(0xFF101724)
                         ),
                         start = Offset.Zero,
                         end = Offset(size.width, size.height)
@@ -766,19 +836,12 @@ fun TarazinoMiniBrandCard(
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(accentColor.copy(alpha = 0.34f), Color.Transparent),
+                        colors = listOf(accentColor.copy(alpha = 0.26f), Color.Transparent),
                         center = Offset(size.width * 0.88f, size.height * 0.14f),
-                        radius = size.width * 0.72f
+                        radius = size.width * 0.68f
                     ),
-                    radius = size.width * 0.72f,
+                    radius = size.width * 0.68f,
                     center = Offset(size.width * 0.88f, size.height * 0.14f)
-                )
-                // Fine metallic arc accent
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.055f),
-                    radius = size.width * 0.55f,
-                    center = Offset(size.width * 0.08f, size.height * 0.95f),
-                    style = Stroke(width = 1.dp.toPx())
                 )
             }
 
@@ -1036,8 +1099,8 @@ fun TarazinoGlassCard(
     val borderBrush = if (accentBorderColor != null) {
         Brush.verticalGradient(
             listOf(
-                accentBorderColor.copy(alpha = 0.58f),
-                accentBorderColor.copy(alpha = 0.14f)
+                accentBorderColor.copy(alpha = 0.42f),
+                accentBorderColor.copy(alpha = 0.10f)
             )
         )
     } else {
@@ -1047,20 +1110,102 @@ fun TarazinoGlassCard(
     Surface(
         shape = shape,
         color = containerColor,
-        tonalElevation = if (ext.isDark) 1.dp else 1.dp,
-        shadowElevation = if (ext.isDark) 6.dp else 2.dp,
-        border = BorderStroke(1.dp, borderBrush),
+        tonalElevation = 0.dp,
+        shadowElevation = if (ext.isDark) 0.dp else 1.5.dp,
+        border = BorderStroke(0.75.dp, borderBrush),
         modifier = modifier
             .fillMaxWidth()
             .then(
                 if (onClick != null) {
                     Modifier
                         .clip(shape)
-                        .tarazinoPressScale(scaleDown = 0.98f, onClick = onClick)
+                        .tarazinoPressScale(scaleDown = 0.985f, onClick = onClick)
                 } else Modifier
             )
     ) {
         Column(content = content)
+    }
+}
+
+/**
+ * Apple Stocks / Revolut Style Rolling-Digit Odometer Money Display:
+ * Animates each Persian digit slot vertically with spring deceleration whenever the balance,
+ * currency unit (تومان / ریال), or privacy mask changes!
+ */
+@Composable
+fun AnimatedOdometerMoneyText(
+    amountToman: Long,
+    unit: CurrencyUnit,
+    privacyMasked: Boolean,
+    style: TextStyle = MaterialTheme.typography.displayLarge,
+    numberColor: Color = MaterialTheme.colorScheme.onSurface,
+    unitColor: Color = numberColor.copy(alpha = 0.80f),
+    modifier: Modifier = Modifier
+) {
+    val formattedDigits = remember(amountToman, unit, privacyMasked) {
+        if (privacyMasked) {
+            "•••,•••"
+        } else {
+            val displayVal = amountToman * unit.multiplierFromToman
+            PersianCurrencyEngine.formatNumberWithCommas(displayVal, usePersianDigits = true)
+        }
+    }
+    var previousAmount by remember { mutableStateOf(amountToman) }
+    val rollingUp = amountToman >= previousAmount
+    LaunchedEffect(amountToman) {
+        previousAmount = amountToman
+    }
+
+    val unitFontSize = (style.fontSize.value * 0.50f).coerceAtLeast(11f).sp
+
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = modifier
+    ) {
+        // Keep numeric character order strictly LTR so thousands separators never flip in RTL
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                formattedDigits.forEachIndexed { idx, ch ->
+                    val slotKey = formattedDigits.length - idx
+                    AnimatedContent(
+                        targetState = ch,
+                        transitionSpec = {
+                            val dir = if (rollingUp) 1 else -1
+                            (slideInVertically(
+                                animationSpec = spring(
+                                    dampingRatio = 0.78f,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            ) { h -> dir * (h * 0.65f).roundToInt() } + fadeIn(tween(180))) togetherWith
+                                (slideOutVertically(
+                                    animationSpec = tween(150, easing = FastOutSlowInEasing)
+                                ) { h -> -dir * (h * 0.55f).roundToInt() } + fadeOut(tween(130)))
+                        },
+                        label = "OdometerDigit_$slotKey"
+                    ) { charState ->
+                        Text(
+                            text = charState.toString(),
+                            style = style,
+                            fontWeight = FontWeight.Black,
+                            color = numberColor,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = unit.labelFa,
+            style = style.copy(
+                fontSize = unitFontSize,
+                fontWeight = FontWeight.Medium,
+                lineHeight = style.lineHeight
+            ),
+            color = unitColor,
+            maxLines = 1,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
     }
 }
 
