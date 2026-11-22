@@ -1,9 +1,19 @@
 package com.example.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,16 +46,12 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -63,9 +69,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -82,6 +91,7 @@ import com.example.data.PaymentInterval
 import com.example.data.ScheduleMode
 import com.example.data.TrustPriority
 import com.example.domain.InstallmentScheduleEngine
+import com.example.ui.theme.LocalTarazinoColors
 
 data class EditableInstallmentDraft(
     val number: Int,
@@ -205,19 +215,38 @@ fun StepByStepObligationWizardModal(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val ext = LocalTarazinoColors.current
+        val animStepProgress by animateFloatAsState(
+            targetValue = currentStep / 3f,
+            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
+            label = "WizardStepProgress"
+        )
+
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(10.dp)
                 .testTag("step_by_step_obligation_wizard"),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.background
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.background,
+            border = BorderStroke(
+                1.dp,
+                Brush.verticalGradient(listOf(ext.cardBorderTop, ext.cardBorderBottom))
+            ),
+            shadowElevation = 18.dp
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Top Wizard Progress Header
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .tarazinoAmbientBackdrop(
+                        backgroundColor = MaterialTheme.colorScheme.background,
+                        auroraPrimary = ext.auroraPrimary,
+                        auroraSecondary = ext.auroraSecondary
+                    )
+            ) {
+                // Top Titanium Wizard Progress Header
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 4.dp,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = if (ext.isDark) 0.90f else 0.96f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -226,79 +255,139 @@ fun StepByStepObligationWizardModal(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(
-                                    text = "ثبت هوشمند قسط، خرید اقساطی یا وام",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                TarazinoIconBadge(
+                                    icon = Icons.Default.CreditScore,
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    size = 42.dp,
+                                    iconSize = 21.dp,
+                                    cornerRadius = 14.dp
                                 )
-                                Text(
-                                    text = when (currentStep) {
-                                        1 -> "گام ۱ از ۳: انتخاب دسته اصلی و زیرمجموعه پرداخت (مثلاً اسنپ‌پی)"
-                                        2 -> "گام ۲ از ۳: تعیین مبلغ کل، تعداد اقساط و اولین سررسید"
-                                        else -> "گام ۳ از ۳: بررسی و ویرایش تفکیکی تک‌تک قسط‌ها"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            IconButton(onClick = onDismiss) {
-                                Icon(imageVector = Icons.Default.Close, contentDescription = "بستن ویزارد")
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 3-Step Visual Stepper Indicator
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf(
-                                1 to "۱. دسته و طرف پرداخت",
-                                2 to "۲. مبلغ و الگو",
-                                3 to "۳. جدول تک‌تک اقساط"
-                            ).forEach { (stepNum, stepTitle) ->
-                                val isActive = currentStep == stepNum
-                                val isCompleted = currentStep > stepNum
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(
-                                            when {
-                                                isActive -> MaterialTheme.colorScheme.primary
-                                                isCompleted -> MaterialTheme.colorScheme.primaryContainer
-                                                else -> MaterialTheme.colorScheme.surfaceVariant
-                                            }
-                                        )
-                                        .padding(vertical = 8.dp, horizontal = 4.dp)
-                                ) {
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
                                     Text(
-                                        text = stepTitle,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (isActive || isCompleted) FontWeight.Bold else FontWeight.Normal,
-                                        color = when {
-                                            isActive -> MaterialTheme.colorScheme.onPrimary
-                                            isCompleted -> MaterialTheme.colorScheme.onPrimaryContainer
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        text = "ثبت هوشمند قسط، خرید یا وام",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                    Text(
+                                        text = when (currentStep) {
+                                            1 -> "گام ۱ از ۳: انتخاب دسته اصلی و طرف پرداخت"
+                                            2 -> "گام ۲ از ۳: تعیین مبلغ کل، تعداد و سررسید"
+                                            else -> "گام ۳ از ۳: ویرایش تفکیکی تک‌تک اقساط"
                                         },
-                                        maxLines = 1
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                IconButton(onClick = onDismiss) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "بستن ویزارد",
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // 3-Step Visual Stepper Indicator
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(0.9.dp, ext.cardBorderTop),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf(
+                                    1 to "۱. دسته و طرف",
+                                    2 to "۲. مبلغ و الگو",
+                                    3 to "۳. جدول اقساط"
+                                ).forEach { (stepNum, stepTitle) ->
+                                    val isActive = currentStep == stepNum
+                                    val isCompleted = currentStep > stepNum
+                                    val pillBg by animateColorAsState(
+                                        targetValue = when {
+                                            isActive -> MaterialTheme.colorScheme.primary
+                                            isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                            else -> Color.Transparent
+                                        },
+                                        label = "StepPillBg_$stepNum"
+                                    )
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(pillBg)
+                                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = stepTitle,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (isActive || isCompleted) FontWeight.Bold else FontWeight.Medium,
+                                            color = when {
+                                                isActive -> MaterialTheme.colorScheme.onPrimary
+                                                isCompleted -> MaterialTheme.colorScheme.primary
+                                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LinearProgressIndicator(
+                            progress = { animStepProgress },
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                        )
                     }
                 }
 
-                // Wizard Step Body
-                Box(
+                // Animated Wizard Step Body (Smooth Directional Slide + Fade)
+                AnimatedContent(
+                    targetState = currentStep,
+                    transitionSpec = {
+                        val forward = targetState > initialState
+                        if (forward) {
+                            (slideInHorizontally(tween(260)) { -it / 4 } + fadeIn(tween(240)))
+                                .togetherWith(slideOutHorizontally(tween(200)) { it / 5 } + fadeOut(tween(180)))
+                        } else {
+                            (slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(240)))
+                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 5 } + fadeOut(tween(180)))
+                        }
+                    },
+                    label = "WizardStepContent",
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                ) {
-                    when (currentStep) {
+                ) { step ->
+                    when (step) {
                         1 -> WizardStep1CategoryAndProvider(
                             selectedCategory = selectedParentCategory,
                             onSelectCategory = { cat ->
@@ -359,7 +448,7 @@ fun StepByStepObligationWizardModal(
                             currencyUnit = currencyUnit
                         )
 
-                        3 -> WizardStep3GranularInstallmentTable(
+                        else -> WizardStep3GranularInstallmentTable(
                             draftRows = draftRows,
                             targetNetPayableToman = netPayableToman,
                             currencyUnit = currencyUnit,
@@ -400,31 +489,36 @@ fun StepByStepObligationWizardModal(
                     }
                 }
 
-                // Bottom Wizard Navigation Bar
+                // Bottom Sticky Glass Action Footer
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = if (ext.isDark) 0.94f else 0.98f),
+                    border = BorderStroke(0.8.dp, ext.cardBorderTop),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (currentStep > 1) {
                             OutlinedButton(
                                 onClick = { currentStep-- },
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.testTag("wizard_prev_step_btn")
                             ) {
-                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("مرحله قبل")
+                                Text("مرحله قبل", fontWeight = FontWeight.SemiBold)
                             }
                         } else {
                             TextButton(onClick = onDismiss) {
-                                Text("انصراف")
+                                Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -504,21 +598,29 @@ fun StepByStepObligationWizardModal(
                                     }
                                 }
                             },
+                            shape = RoundedCornerShape(15.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 11.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentStep == 3) Color(0xFF10B981) else MaterialTheme.colorScheme.primary
+                                containerColor = if (currentStep == 3) ext.positive else MaterialTheme.colorScheme.primary
                             ),
                             modifier = Modifier.testTag("wizard_next_or_save_btn")
                         ) {
                             Text(
                                 text = when (currentStep) {
                                     1 -> "ادامه به تنظیم مبلغ"
-                                    2 -> "مشاهده و ویرایش تک‌تک اقساط"
+                                    2 -> "مشاهده جدول اقساط"
                                     else -> "ثبت نهایی (${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط)"
                                 },
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                tint = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
@@ -526,7 +628,7 @@ fun StepByStepObligationWizardModal(
         }
     }
 
-    // Modal for editing a single installment row in Step 3
+    // Specular Glass Modal for editing a single installment row in Step 3
     editingRowIndex?.let { rowIdx ->
         val row = draftRows.getOrNull(rowIdx)
         if (row != null) {
@@ -535,21 +637,28 @@ fun StepByStepObligationWizardModal(
             var editedDate by remember(row) { mutableStateOf(row.dueDateJalali) }
             var editedNote by remember(row) { mutableStateOf(row.note) }
 
-            AlertDialog(
-                onDismissRequest = { editingRowIndex = null },
-                title = {
-                    Text(
-                        text = "ویرایش اختصاصی قسط شماره ${PersianCurrencyEngine.toPersianDigits(row.number.toString())}",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Dialog(onDismissRequest = { editingRowIndex = null }) {
+                TarazinoGlassCard(
+                    cornerRadius = 26.dp,
+                    accentBorderColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TarazinoSectionHeader(
+                            title = "ویرایش قسط شماره ${PersianCurrencyEngine.toPersianDigits(row.number.toString())}",
+                            subtitle = "تنظیم دقیق مبلغ، تاریخ سررسید و توضیحات این ردیف",
+                            icon = Icons.Default.Edit,
+                            accentColor = MaterialTheme.colorScheme.primary
+                        )
+
                         OutlinedTextField(
                             value = editedTitle,
                             onValueChange = { editedTitle = it },
                             label = { Text("عنوان این قسط") },
                             singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -571,31 +680,42 @@ fun StepByStepObligationWizardModal(
                             onValueChange = { editedNote = it },
                             label = { Text("توضیح یا شماره چک/رهگیری این قسط") },
                             singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            draftRows[rowIdx] = row.copy(
-                                title = editedTitle.trim(),
-                                amountToman = editedAmount,
-                                dueDateJalali = editedDate,
-                                note = editedNote.trim()
-                            )
-                            editingRowIndex = null
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { editingRowIndex = null },
+                                shape = RoundedCornerShape(13.dp),
+                                modifier = Modifier.weight(0.8f)
+                            ) {
+                                Text("انصراف")
+                            }
+                            Button(
+                                onClick = {
+                                    draftRows[rowIdx] = row.copy(
+                                        title = editedTitle.trim(),
+                                        amountToman = editedAmount,
+                                        dueDateJalali = editedDate,
+                                        note = editedNote.trim()
+                                    )
+                                    editingRowIndex = null
+                                },
+                                shape = RoundedCornerShape(13.dp),
+                                modifier = Modifier.weight(1.3f)
+                            ) {
+                                Text("تایید تغییرات", fontWeight = FontWeight.Bold)
+                            }
                         }
-                    ) {
-                        Text("تایید تغییرات این قسط")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { editingRowIndex = null }) {
-                        Text("انصراف")
                     }
                 }
-            )
+            }
         }
     }
 
@@ -636,6 +756,7 @@ private fun WizardStep1CategoryAndProvider(
     priority: TrustPriority,
     onPriorityChange: (TrustPriority) -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val quickSubProviderPresets = when (selectedCategory) {
         EntityCategory.BNPL_PLATFORM -> listOf("اسنپ‌پی (SnappPay)", "دیجی‌پی (DigiPay)", "تارا (Tara)", "ازکی‌وام (AzkiVam)", "لندو (Lendo)")
         EntityCategory.BANK -> listOf("بانک مهر ایران", "بانک ملت", "بلوبانک", "بانک ملی", "بانک رسالت", "بانک مسکن")
@@ -648,14 +769,14 @@ private fun WizardStep1CategoryAndProvider(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Select Parent Category
+        // 1. Select Parent Category (2x2 Tactile Bento Cards)
         item {
             Text(
-                text = "۱. انتخاب دسته اصلی:",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                text = "۱. انتخاب دسته اصلی",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -706,20 +827,16 @@ private fun WizardStep1CategoryAndProvider(
             }
         }
 
-        // 2. Select or Create Sub-Category Provider (e.g. SnappPay, DigiPay)
+        // 2. Select or Create Sub-Category Provider with Branded Monogram Pills
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TarazinoGlassCard(cornerRadius = 22.dp) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "۲. انتخاب زیرمجموعه / طرف پرداخت در دسته «${selectedCategory.badgeFa}»:",
+                        text = "۲. زیرمجموعه / طرف پرداخت در «${selectedCategory.badgeFa}»",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -728,45 +845,116 @@ private fun WizardStep1CategoryAndProvider(
                             .horizontalScroll(rememberScrollState())
                     ) {
                         matchingProviders.forEach { cp ->
-                            FilterChip(
-                                selected = !isCreatingNewProvider && selectedProviderId == cp.id,
-                                onClick = { onSelectExistingProvider(cp.id) },
-                                label = { Text(cp.name, fontWeight = FontWeight.SemiBold) }
-                            )
+                            val isSelected = !isCreatingNewProvider && selectedProviderId == cp.id
+                            val cpAccent = Color(cp.avatarColorHex)
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isSelected) cpAccent.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(
+                                    width = if (isSelected) 1.5.dp else 0.8.dp,
+                                    color = if (isSelected) cpAccent else ext.cardBorderTop
+                                ),
+                                modifier = Modifier.tarazinoPressScale(
+                                    scaleDown = 0.94f,
+                                    onClick = { onSelectExistingProvider(cp.id) }
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                                ) {
+                                    CounterpartyMonogramAvatar(
+                                        name = cp.name,
+                                        color = cpAccent,
+                                        size = 24.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(7.dp))
+                                    Text(
+                                        text = cp.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                        color = if (isSelected) cpAccent else MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
                         }
-                        FilterChip(
-                            selected = isCreatingNewProvider,
-                            onClick = onToggleCreateNewProvider,
-                            leadingIcon = { Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            label = { Text("زیرمجموعه جدید") }
-                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isCreatingNewProvider) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(
+                                width = if (isCreatingNewProvider) 1.5.dp else 0.8.dp,
+                                color = if (isCreatingNewProvider) MaterialTheme.colorScheme.primary else ext.cardBorderTop
+                            ),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.94f,
+                                onClick = onToggleCreateNewProvider
+                            )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "زیرمجموعه جدید",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
 
                     AnimatedVisibility(visible = isCreatingNewProvider) {
-                        Column(modifier = Modifier.padding(top = 10.dp)) {
+                        Column(modifier = Modifier.padding(top = 12.dp)) {
                             Text(
-                                text = "پیشنهادهای سریع زیرمجموعه:",
+                                text = "پیشنهادهای سریع:",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.horizontalScroll(rememberScrollState())
                             ) {
                                 quickSubProviderPresets.forEach { preset ->
-                                    AssistChip(
-                                        onClick = { onNewProviderNameChange(preset) },
-                                        label = { Text(preset) }
-                                    )
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                                        modifier = Modifier.tarazinoPressScale(
+                                            scaleDown = 0.95f,
+                                            onClick = { onNewProviderNameChange(preset) }
+                                        )
+                                    ) {
+                                        Text(
+                                            text = preset,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        )
+                                    }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             OutlinedTextField(
                                 value = newProviderName,
                                 onValueChange = onNewProviderNameChange,
                                 label = { Text("نام زیرمجموعه (مثلاً اسنپ‌پی، دیجی‌پی، بانک ملت...)") },
                                 singleLine = true,
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -779,6 +967,7 @@ private fun WizardStep1CategoryAndProvider(
                                 },
                                 label = { Text("شماره کارت ۱۶ رقمی مقصد (اختیاری)") },
                                 singleLine = true,
+                                shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -787,66 +976,59 @@ private fun WizardStep1CategoryAndProvider(
             }
         }
 
-        // 3. Obligation Title & Priority
+        // 3. Obligation Title, Type & Priority (Sliding Segmented Controls)
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TarazinoGlassCard(cornerRadius = 22.dp) {
                 Column(
                     modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "۳. عنوان خرید یا تعهد مالی:",
+                        text = "۳. عنوان خرید یا تعهد مالی",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                     OutlinedTextField(
                         value = obligationTitle,
                         onValueChange = onObligationTitleChange,
                         label = { Text("عنوان (مثلاً خرید گوشی، لپ‌تاپ، وام ازدواج، چک اجاره...)") },
                         singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("wizard_obligation_title_input")
                     )
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        FilterChip(
-                            selected = !isReceivable && !isCheckOrRent,
-                            onClick = { onTypeFlagChange(false, false) },
-                            label = { Text("بدهی / اقساط پرداختنی") }
-                        )
-                        FilterChip(
-                            selected = isCheckOrRent,
-                            onClick = { onTypeFlagChange(false, true) },
-                            label = { Text("چک صیادی / اجاره‌بها") }
-                        )
-                        FilterChip(
-                            selected = isReceivable,
-                            onClick = { onTypeFlagChange(true, false) },
-                            label = { Text("طلب دریافتنی از دیگران") }
-                        )
+                    val selectedTypeIdx = when {
+                        isReceivable -> 2
+                        isCheckOrRent -> 1
+                        else -> 0
                     }
+                    TarazinoSegmentedControl(
+                        options = listOf("بدهی / قسط", "چک / اجاره", "طلب از دیگران"),
+                        selectedIndex = selectedTypeIdx,
+                        onSelectIndex = { idx ->
+                            when (idx) {
+                                0 -> onTypeFlagChange(false, false)
+                                1 -> onTypeFlagChange(false, true)
+                                else -> onTypeFlagChange(true, false)
+                            }
+                        },
+                        compact = true
+                    )
 
-                    Text("درجه حساسیت خوش‌حسابی:", style = MaterialTheme.typography.labelMedium)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        TrustPriority.entries.forEach { prio ->
-                            FilterChip(
-                                selected = priority == prio,
-                                onClick = { onPriorityChange(prio) },
-                                label = { Text(prio.labelFa) }
-                            )
-                        }
-                    }
+                    Text(
+                        text = "درجه حساسیت خوش‌حسابی:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TarazinoSegmentedControl(
+                        options = TrustPriority.entries.map { it.labelFa },
+                        selectedIndex = TrustPriority.entries.indexOf(priority).coerceAtLeast(0),
+                        onSelectIndex = { idx -> onPriorityChange(TrustPriority.entries[idx]) },
+                        compact = true
+                    )
                 }
             }
         }
@@ -857,46 +1039,50 @@ private fun WizardStep1CategoryAndProvider(
 private fun ParentCategoryChoiceCard(
     title: String,
     subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     color: Color,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val ext = LocalTarazinoColors.current
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) color else ext.cardBorderTop,
+        label = "WizardCatBorder"
+    )
+
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) color.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surface,
-        modifier = modifier
-            .border(
-                width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) color else MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable(onClick = onClick)
+        shape = RoundedCornerShape(18.dp),
+        color = if (isSelected) color.copy(alpha = if (ext.isDark) 0.20f else 0.12f)
+        else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(if (isSelected) 1.8.dp else 0.9.dp, borderColor),
+        modifier = modifier.tarazinoPressScale(scaleDown = 0.95f, onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(color.copy(alpha = 0.2f))
-                ) {
-                    Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                }
+                TarazinoIconBadge(
+                    icon = icon,
+                    accentColor = color,
+                    size = 34.dp,
+                    iconSize = 18.dp,
+                    cornerRadius = 11.dp
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(7.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -921,6 +1107,7 @@ private fun WizardStep2AmountAndTemplate(
     netPayableToman: Long,
     currencyUnit: CurrencyUnit
 ) {
+    val ext = LocalTarazinoColors.current
     val perInstallmentPreview = if (installmentCount > 0) netPayableToman / installmentCount else netPayableToman
 
     LazyColumn(
@@ -929,11 +1116,7 @@ private fun WizardStep2AmountAndTemplate(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TarazinoGlassCard(cornerRadius = 22.dp) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     MoneyInputField(
                         labelFa = "مبلغ کل خرید، وام یا تعهد",
@@ -950,7 +1133,8 @@ private fun WizardStep2AmountAndTemplate(
                                 "بستن بخش پیش‌پرداخت و سود/کارمزد"
                             } else {
                                 "+ افزودن پیش‌پرداخت یا کارمزد/سود (اختیاری)"
-                            }
+                            },
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
@@ -977,52 +1161,58 @@ private fun WizardStep2AmountAndTemplate(
         }
 
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            TarazinoGlassCard(cornerRadius = 22.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "تعداد اقساط (در مرحله بعد تک‌تک اقساط قابل ویرایش هستند):",
+                        text = "تعداد اقساط (در مرحله بعد تک‌تک قابل ویرایش هستند)",
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
                         modifier = Modifier.horizontalScroll(rememberScrollState())
                     ) {
                         listOf(1, 2, 3, 4, 6, 8, 10, 12, 18, 24, 36).forEach { count ->
-                            FilterChip(
-                                selected = installmentCount == count,
-                                onClick = { onInstallmentCountChange(count) },
-                                label = {
-                                    Text(
-                                        text = "${PersianCurrencyEngine.toPersianDigits(count.toString())} قسط",
-                                        fontWeight = if (installmentCount == count) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
-                            )
+                            val selected = installmentCount == count
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                border = BorderStroke(
+                                    0.9.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary else ext.cardBorderTop
+                                ),
+                                modifier = Modifier.tarazinoPressScale(
+                                    scaleDown = 0.93f,
+                                    onClick = { onInstallmentCountChange(count) }
+                                )
+                            ) {
+                                Text(
+                                    text = "${PersianCurrencyEngine.toPersianDigits(count.toString())} قسط",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
                         }
                     }
 
-                    Text("فاصله زمانی پیش‌فرض بین اقساط:", style = MaterialTheme.typography.labelLarge)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState())
-                    ) {
-                        PaymentInterval.entries.forEach { iv ->
-                            FilterChip(
-                                selected = interval == iv,
-                                onClick = { onIntervalChange(iv) },
-                                label = { Text(iv.labelFa) }
-                            )
-                        }
-                    }
+                    Text(
+                        text = "فاصله زمانی پیش‌فرض بین اقساط:",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TarazinoSegmentedControl(
+                        options = PaymentInterval.entries.map { it.labelFa },
+                        selectedIndex = PaymentInterval.entries.indexOf(interval).coerceAtLeast(0),
+                        onSelectIndex = { idx -> onIntervalChange(PaymentInterval.entries[idx]) },
+                        compact = true
+                    )
 
                     JalaliDateSelectorField(
                         labelFa = "تاریخ اولین سررسید شمسی (قسط اول)",
@@ -1030,23 +1220,40 @@ private fun WizardStep2AmountAndTemplate(
                         onDateSelected = onFirstDueDateChange
                     )
 
+                    // Live Specular Per-Installment Preview Banner
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        shape = RoundedCornerShape(16.dp),
+                        color = ext.positive.copy(alpha = if (ext.isDark) 0.14f else 0.09f),
+                        border = BorderStroke(1.dp, ext.positive.copy(alpha = 0.35f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "مبلغ پایه هر قسط: ${PersianCurrencyEngine.formatAmount(perInstallmentPreview, currencyUnit)}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = "در مرحله بعد می‌توانید مبلغ یا تاریخ هر قسط را به صورت تکی نیز تغییر دهید.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                            )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(13.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "مبلغ پایه هر قسط",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                FormattedMoneyText(
+                                    amountToman = perInstallmentPreview,
+                                    unit = currencyUnit,
+                                    privacyMasked = false,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    numberColor = ext.positive
+                                )
+                                Text(
+                                    text = "در گام بعد می‌توانید مبلغ یا تاریخ هر قسط را تکی ویرایش کنید.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -1067,6 +1274,7 @@ private fun WizardStep3GranularInstallmentTable(
     onToggleRowPaidStatus: (Int) -> Unit,
     onDeleteRow: (Int) -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val currentSumToman = draftRows.sumOf { it.amountToman }
     val diffToman = currentSumToman - targetNetPayableToman
 
@@ -1079,10 +1287,9 @@ private fun WizardStep3GranularInstallmentTable(
     ) {
         // Summary & Quick Table Controls Card
         item {
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+            TarazinoGlassCard(
+                cornerRadius = 22.dp,
+                accentBorderColor = if (diffToman == 0L) ext.positive else ext.warning
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -1090,45 +1297,31 @@ private fun WizardStep3GranularInstallmentTable(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "مجموع ${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط جدول:",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Text(
-                                text = PersianCurrencyEngine.formatAmount(currentSumToman, currencyUnit),
+                            FormattedMoneyText(
+                                amountToman = currentSumToman,
+                                unit = currencyUnit,
+                                privacyMasked = false,
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                numberColor = MaterialTheme.colorScheme.primary
                             )
                         }
 
                         if (diffToman != 0L) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF59E0B).copy(alpha = 0.16f)
-                            ) {
-                                Text(
-                                    text = "اختلاف با مبلغ پایه: ${PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFF59E0B),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
+                            TarazinoStatusPill(
+                                text = "اختلاف: ${PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit)}",
+                                accentColor = ext.warning
+                            )
                         } else {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.16f)
-                            ) {
-                                Text(
-                                    text = "تراز دقیق (بدون اختلاف)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF10B981),
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
+                            TarazinoStatusPill(
+                                text = "تراز دقیق ✓",
+                                accentColor = ext.positive
+                            )
                         }
                     }
 
@@ -1140,19 +1333,21 @@ private fun WizardStep3GranularInstallmentTable(
                     ) {
                         OutlinedButton(
                             onClick = onAddCustomRow,
+                            shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("افزودن ردیف قسط")
+                            Text("افزودن ردیف", maxLines = 1)
                         }
                         OutlinedButton(
                             onClick = onRedistributeEqually,
+                            shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(imageVector = Icons.Default.Balance, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("توزیع مساوی مبالغ")
+                            Text("توزیع مساوی", maxLines = 1)
                         }
                     }
                 }
@@ -1161,19 +1356,11 @@ private fun WizardStep3GranularInstallmentTable(
 
         // Individual Editable Installment Rows
         itemsIndexed(draftRows) { idx, row ->
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = if (row.isPaidAlready) Color(0xFF10B981).copy(alpha = 0.5f)
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(16.dp)
-                    )
+            TarazinoGlassCard(
+                cornerRadius = 18.dp,
+                accentBorderColor = if (row.isPaidAlready) ext.positive.copy(alpha = 0.6f) else null
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(13.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1186,15 +1373,18 @@ private fun WizardStep3GranularInstallmentTable(
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(30.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (row.isPaidAlready) ext.positive.copy(alpha = 0.18f)
+                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                    )
                             ) {
                                 Text(
                                     text = PersianCurrencyEngine.toPersianDigits(row.number.toString()),
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    fontWeight = FontWeight.Black,
+                                    color = if (row.isPaidAlready) ext.positive else MaterialTheme.colorScheme.primary
                                 )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
@@ -1202,12 +1392,16 @@ private fun WizardStep3GranularInstallmentTable(
                                 Text(
                                     text = row.title,
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = PersianCurrencyEngine.amountToPersianWords(row.amountToman, currencyUnit),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -1217,26 +1411,32 @@ private fun WizardStep3GranularInstallmentTable(
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "حذف این قسط",
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint = ext.danger,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(
+                        color = ext.cardBorderTop,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
 
-                    // Interactive Chips for Editing Due Date, Amount, and Paid Status
+                    // Interactive Haptic Pills for Editing Due Date, Amount, and Paid Status
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Date Selector Pill
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.clickable { onOpenDatePickerForRow(idx) }
+                            shape = RoundedCornerShape(11.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                            border = BorderStroke(0.8.dp, ext.cardBorderTop),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.94f,
+                                onClick = { onOpenDatePickerForRow(idx) }
+                            )
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1257,11 +1457,14 @@ private fun WizardStep3GranularInstallmentTable(
                             }
                         }
 
-                        // Amount Editor Pill
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
-                            modifier = Modifier.clickable { onOpenEditRowModal(idx) }
+                            shape = RoundedCornerShape(11.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.94f,
+                                onClick = { onOpenEditRowModal(idx) }
+                            )
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1270,25 +1473,31 @@ private fun WizardStep3GranularInstallmentTable(
                                 Text(
                                     text = PersianCurrencyEngine.formatAmount(row.amountToman, currencyUnit),
                                     style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "ویرایش مبلغ و جزئیات قسط",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(14.dp)
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(13.dp)
                                 )
                             }
                         }
 
-                        // Already Paid Toggle Pill
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (row.isPaidAlready) Color(0xFF10B981).copy(alpha = 0.2f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.clickable { onToggleRowPaidStatus(idx) }
+                            shape = RoundedCornerShape(11.dp),
+                            color = if (row.isPaidAlready) ext.positive.copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(
+                                0.8.dp,
+                                if (row.isPaidAlready) ext.positive.copy(alpha = 0.45f) else ext.cardBorderTop
+                            ),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.94f,
+                                onClick = { onToggleRowPaidStatus(idx) }
+                            )
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1297,15 +1506,15 @@ private fun WizardStep3GranularInstallmentTable(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = if (row.isPaidAlready) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (row.isPaidAlready) ext.positive else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = if (row.isPaidAlready) "پرداخت‌شده" else "در انتظار",
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (row.isPaidAlready) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (row.isPaidAlready) ext.positive else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

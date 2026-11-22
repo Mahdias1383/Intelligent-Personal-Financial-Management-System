@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,19 +15,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +48,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.core.JalaliCalendarEngine
 import com.example.core.JalaliDate
 import com.example.core.PersianCurrencyEngine
+import com.example.ui.theme.LocalTarazinoColors
 
 @Composable
 fun JalaliDatePickerModal(
@@ -53,6 +56,7 @@ fun JalaliDatePickerModal(
     onDismiss: () -> Unit,
     onConfirmDate: (String) -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val parsedInit = remember(initialDateJalali) {
         JalaliCalendarEngine.parseJalali(initialDateJalali)
     }
@@ -76,10 +80,15 @@ fun JalaliDatePickerModal(
     val currentPreviewStr = JalaliDate(selectedYear, selectedMonth, selectedDay).formatCanonical()
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            shadowElevation = 14.dp,
+            border = BorderStroke(
+                1.dp,
+                Brush.verticalGradient(listOf(ext.cardBorderTop, ext.cardBorderBottom))
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("jalali_date_picker_dialog")
@@ -89,27 +98,50 @@ fun JalaliDatePickerModal(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // Header Banner
+                // Specular Gradient Header Banner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                                )
+                            )
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            RoundedCornerShape(18.dp)
+                        )
                         .padding(14.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "انتخاب تاریخ تقویم شمسی (جلالی)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        TarazinoIconBadge(
+                            icon = Icons.Default.CalendarMonth,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            size = 42.dp,
+                            iconSize = 21.dp
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = JalaliCalendarEngine.formatJalaliVerbose(currentPreviewStr),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        Column {
+                            Text(
+                                text = "انتخاب تاریخ تقویم شمسی (جلالی)",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = JalaliCalendarEngine.formatJalaliVerbose(currentPreviewStr),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
 
@@ -122,15 +154,16 @@ fun JalaliDatePickerModal(
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState())
                 ) {
-                    AssistChip(
+                    DateShortcutPill(
+                        label = "امروز (${today.formatPersian()})",
                         onClick = {
                             selectedYear = today.year
                             selectedMonth = today.month
                             selectedDay = today.day
-                        },
-                        label = { Text("امروز (${today.formatPersian()})") }
+                        }
                     )
-                    AssistChip(
+                    DateShortcutPill(
+                        label = "اول ماه بعد",
                         onClick = {
                             val nextFirst = JalaliCalendarEngine.parseJalali(
                                 JalaliCalendarEngine.firstOfNextJalaliMonth(today.formatCanonical())
@@ -138,10 +171,10 @@ fun JalaliDatePickerModal(
                             selectedYear = nextFirst.year
                             selectedMonth = nextFirst.month
                             selectedDay = nextFirst.day
-                        },
-                        label = { Text("اول ماه بعد") }
+                        }
                     )
-                    AssistChip(
+                    DateShortcutPill(
+                        label = "۱ ماه دیگر",
                         onClick = {
                             val plus1M = JalaliCalendarEngine.parseJalali(
                                 JalaliCalendarEngine.addJalaliMonths(today.formatCanonical(), 1)
@@ -149,88 +182,93 @@ fun JalaliDatePickerModal(
                             selectedYear = plus1M.year
                             selectedMonth = plus1M.month
                             selectedDay = plus1M.day
-                        },
-                        label = { Text("۱ ماه دیگر") }
+                        }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Year Selector Row (۱۳۹۵ تا ۱۴۲۰)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Combined Year & Month Switcher Container
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(
-                        onClick = { if (selectedYear > 1395) selectedYear-- }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = "سال قبل"
-                        )
-                    }
-                    Text(
-                        text = "سال ${PersianCurrencyEngine.toPersianDigits(selectedYear.toString())}" +
-                            if (JalaliCalendarEngine.isJalaliLeapYear(selectedYear)) " (کبیسه)" else "",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(
-                        onClick = { if (selectedYear < 1420) selectedYear++ }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = "سال بعد"
-                        )
-                    }
-                }
-
-                // Month Selector Row (فروردین تا اسفند)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (selectedMonth > 1) {
-                                selectedMonth--
-                            } else if (selectedYear > 1395) {
-                                selectedYear--
-                                selectedMonth = 12
+                    Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                        // Year Selector Row (۱۳۹۵ تا ۱۴۲۰)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { if (selectedYear > 1395) selectedYear-- }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "سال قبل"
+                                )
+                            }
+                            Text(
+                                text = "سال ${PersianCurrencyEngine.toPersianDigits(selectedYear.toString())}" +
+                                    if (JalaliCalendarEngine.isJalaliLeapYear(selectedYear)) " (کبیسه)" else "",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(onClick = { if (selectedYear < 1420) selectedYear++ }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "سال بعد"
+                                )
                             }
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = "ماه قبل"
-                        )
-                    }
-                    Text(
-                        text = JalaliCalendarEngine.getMonthName(selectedMonth),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = {
-                            if (selectedMonth < 12) {
-                                selectedMonth++
-                            } else if (selectedYear < 1420) {
-                                selectedYear++
-                                selectedMonth = 1
+
+                        // Month Selector Row (فروردین تا اسفند)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (selectedMonth > 1) {
+                                        selectedMonth--
+                                    } else if (selectedYear > 1395) {
+                                        selectedYear--
+                                        selectedMonth = 12
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = "ماه قبل"
+                                )
+                            }
+                            Text(
+                                text = JalaliCalendarEngine.getMonthName(selectedMonth),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            IconButton(
+                                onClick = {
+                                    if (selectedMonth < 12) {
+                                        selectedMonth++
+                                    } else if (selectedYear < 1420) {
+                                        selectedYear++
+                                        selectedMonth = 1
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    contentDescription = "ماه بعد"
+                                )
                             }
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                            contentDescription = "ماه بعد"
-                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // 7-Column Weekday Headers (ش، ی، د، س، چ، پ، ج)
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -320,19 +358,48 @@ fun JalaliDatePickerModal(
                 // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("انصراف")
+                        Text("انصراف", fontWeight = FontWeight.Medium)
                     }
+                    Spacer(modifier = Modifier.width(6.dp))
                     Button(
                         onClick = { onConfirmDate(currentPreviewStr) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("confirm_jalali_date_btn")
                     ) {
-                        Text("تایید تاریخ (${PersianCurrencyEngine.toPersianDigits(currentPreviewStr)})")
+                        Text(
+                            text = "تایید (${PersianCurrencyEngine.toPersianDigits(currentPreviewStr)})",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DateShortcutPill(
+    label: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+        )
     }
 }

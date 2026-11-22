@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
@@ -96,10 +97,28 @@ import com.example.data.ObligationCategory
 import com.example.data.ObligationEntity
 import com.example.data.SubRecordType
 import com.example.data.TrustPriority
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.ui.graphics.Brush
+import com.example.core.CurrencyUnit
 import com.example.ui.TarazinoUiState
+import com.example.ui.components.CounterpartyMonogramAvatar
+import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.JalaliDateSelectorField
+import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MoneyInputField
+import com.example.ui.components.TarazinoGlassCard
+import com.example.ui.components.TarazinoIconBadge
+import com.example.ui.components.TarazinoMiniBrandCard
+import com.example.ui.components.TarazinoSectionHeader
+import com.example.ui.components.TarazinoSegmentedControl
+import com.example.ui.components.TarazinoStatusPill
+import com.example.ui.components.formatCompactPersianToman
+import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
+import com.example.ui.theme.LocalTarazinoColors
 
 enum class InstallmentSortOption(val labelFa: String) {
     BY_DUE_DATE("نزدیک‌ترین سررسید"),
@@ -202,122 +221,151 @@ fun TreePortfolioScreen(
         modifier = Modifier
             .fillMaxSize()
             .testTag("tree_portfolio_screen"),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Top Command, Search & Smart Sort/Filter Bar
+        // 1. Sleek Floating Glass Search Bar & Contextual Quick Add + Dynamic Breadcrumb
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            val ext = LocalTarazinoColors.current
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .tourSpotlightTarget("tree_command_bar")
+                    .tourSpotlightTarget("tree_command_bar"),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = if (ext.isDark) {
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            if (searchQuery.isNotBlank()) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                            } else {
+                                ext.cardBorderTop
+                            }
+                        ),
+                        shadowElevation = if (ext.isDark) 0.dp else 2.dp,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "پوشه درختی اقساط و طرف‌حساب‌ها",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "دسته اصلی ← زیرمجموعه (اسنپ‌پی، دیجی‌پی، بانک) ← جدول قسط‌ها",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                onOpenWizard(
-                                    drill.selectedCategory ?: selectedCounterparty?.categoryEnum,
-                                    drill.selectedCounterpartyId
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = {
+                                Text(
+                                    text = "جستجو در اقساط، اسنپ‌پی، بانک‌ها...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.testTag("tree_open_wizard_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AddCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(17.dp)
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotBlank()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "پاک کردن جستجو",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("tree_search_input")
+                        )
+                    }
+
+                    // Sleek 52dp Glowing Quick-Add Squircle
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .tarazinoPressScale(
+                                scaleDown = 0.92f,
+                                onClick = {
+                                    onOpenWizard(
+                                        drill.selectedCategory ?: selectedCounterparty?.categoryEnum,
+                                        drill.selectedCounterpartyId
+                                    )
+                                }
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "ثبت قسط جدید",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                            .testTag("tree_open_wizard_btn")
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "ثبت قسط جدید",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = {
-                            Text(
-                                text = "جستجو (اسنپ‌پی، دیجی‌پی، لپ‌تاپ، وام ازدواج...)",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = null)
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Close, contentDescription = "پاک کردن جستجو")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("tree_search_input")
-                    )
-
-                    // Interactive Breadcrumb Bar
-                    if (drill.selectedCategory != null || drill.selectedCounterpartyId != null || drill.selectedObligationId != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                // Compact Interactive Breadcrumb Bar (visible only when drilled into a folder)
+                AnimatedVisibility(
+                    visible = drill.selectedCategory != null || drill.selectedCounterpartyId != null || drill.selectedObligationId != null
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(15.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        border = BorderStroke(0.9.dp, ext.cardBorderTop),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                                 .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
                         ) {
-                            IconButton(
-                                onClick = onStepBackInTree,
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                                 modifier = Modifier
-                                    .size(30.dp)
+                                    .size(32.dp)
+                                    .tarazinoPressScale(onClick = onStepBackInTree)
                                     .testTag("tree_step_back_btn")
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "بازگشت به سطح قبل",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "بازگشت به سطح قبل",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
                             }
+
+                            Spacer(modifier = Modifier.width(2.dp))
 
                             BreadcrumbPill(
                                 text = "همه دسته‌ها",
@@ -330,7 +378,7 @@ fun TreePortfolioScreen(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                                 BreadcrumbPill(
                                     text = cat.badgeFa,
@@ -344,7 +392,7 @@ fun TreePortfolioScreen(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                                 BreadcrumbPill(
                                     text = cp.name,
@@ -358,7 +406,7 @@ fun TreePortfolioScreen(
                                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                                 BreadcrumbPill(
                                     text = ob.title,
@@ -480,50 +528,47 @@ fun TreePortfolioScreen(
                     // Batch Multi-Installment Settlement Banner (تسویه گروهی چند قسط با هم)
                     if (unpaidIds.isNotEmpty()) {
                         item {
+                            val ext = LocalTarazinoColors.current
                             val selectedTotalToman = rawInstallments
                                 .filter { it.id in batchSelectionIds && it.statusEnum != InstallmentStatus.PAID }
                                 .sumOf { it.remainingToman }
 
-                            Card(
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (batchSelectionIds.isNotEmpty()) {
-                                        Color(0xFF064E3B).copy(alpha = 0.25f)
-                                    } else {
-                                        MaterialTheme.colorScheme.surface
-                                    }
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateContentSize()
-                                    .border(
-                                        1.dp,
-                                        if (batchSelectionIds.isNotEmpty()) Color(0xFF10B981) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                                        RoundedCornerShape(18.dp)
-                                    )
+                            TarazinoGlassCard(
+                                cornerRadius = 20.dp,
+                                accentBorderColor = if (batchSelectionIds.isNotEmpty()) ext.positive else null,
+                                containerColor = if (batchSelectionIds.isNotEmpty()) {
+                                    ext.positive.copy(alpha = if (ext.isDark) 0.14f else 0.08f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                modifier = Modifier.animateContentSize()
                             ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
+                                Column(modifier = Modifier.padding(14.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.DoneAll,
-                                                contentDescription = null,
-                                                tint = Color(0xFF10B981),
-                                                modifier = Modifier.size(20.dp)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            TarazinoIconBadge(
+                                                icon = Icons.Default.DoneAll,
+                                                accentColor = ext.positive,
+                                                size = 36.dp,
+                                                iconSize = 18.dp,
+                                                cornerRadius = 11.dp
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Column {
                                                 Text(
-                                                    text = "تسویه گروهی چند قسط با هم (Batch Pay)",
+                                                    text = "تسویه گروهی چند قسط با هم",
                                                     style = MaterialTheme.typography.labelLarge,
                                                     fontWeight = FontWeight.Bold
                                                 )
                                                 Text(
-                                                    text = "تیک کنار اقساط را بزنید یا همه را انتخاب و یکجا تسویه کنید",
+                                                    text = "اقساط دلخواه را انتخاب و یکجا تسویه کنید",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -549,9 +594,9 @@ fun TreePortfolioScreen(
                                     }
 
                                     AnimatedVisibility(visible = batchSelectionIds.isNotEmpty()) {
-                                        Column(modifier = Modifier.padding(top = 8.dp)) {
-                                            HorizontalDivider(color = Color(0xFF10B981).copy(alpha = 0.3f))
-                                            Spacer(modifier = Modifier.height(8.dp))
+                                        Column(modifier = Modifier.padding(top = 10.dp)) {
+                                            HorizontalDivider(color = ext.positive.copy(alpha = 0.25f))
+                                            Spacer(modifier = Modifier.height(10.dp))
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -559,20 +604,17 @@ fun TreePortfolioScreen(
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
-                                                        text = "${PersianCurrencyEngine.toPersianDigits(batchSelectionIds.size.toString())} قسط انتخاب‌شده • مجموع: ${
-                                                            PersianCurrencyEngine.formatAmount(selectedTotalToman, unit, privacyMasked = masked)
-                                                        }",
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF10B981)
+                                                        text = "${PersianCurrencyEngine.toPersianDigits(batchSelectionIds.size.toString())} قسط انتخاب‌شده",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
-                                                    if (!masked && selectedTotalToman > 0L) {
-                                                        Text(
-                                                            text = PersianCurrencyEngine.amountToPersianWords(selectedTotalToman, unit),
-                                                            style = MaterialTheme.typography.labelSmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
+                                                    FormattedMoneyText(
+                                                        amountToman = selectedTotalToman,
+                                                        unit = unit,
+                                                        privacyMasked = masked,
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        numberColor = ext.positive
+                                                    )
                                                 }
 
                                                 Spacer(modifier = Modifier.width(8.dp))
@@ -583,7 +625,7 @@ fun TreePortfolioScreen(
                                                         batchSelectionIds = emptySet()
                                                     },
                                                     shape = RoundedCornerShape(12.dp),
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = ext.positive),
                                                     modifier = Modifier.testTag("confirm_batch_pay_btn")
                                                 ) {
                                                     Icon(
@@ -665,58 +707,103 @@ fun TreePortfolioScreen(
                         }
                     }
 
-                    // Smart Sort & Filter Bar for Installments
+                    // Clean Separated Segmented Filter + Sort Cycle Bar for Installments
                     item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        val ext = LocalTarazinoColors.current
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "جدول تفکیکی تک‌تک اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())} قسط)",
+                                    text = "جدول اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())} قسط)",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.ExtraBold
                                 )
-                                TextButton(onClick = { addingCustomInstallmentToObligation = ob }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("افزودن قسط جدید", maxLines = 1)
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Tactile Sort Cycle Pill
+                                    Surface(
+                                        shape = RoundedCornerShape(11.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                        border = BorderStroke(0.8.dp, ext.cardBorderTop),
+                                        modifier = Modifier.tarazinoPressScale(
+                                            onClick = {
+                                                val entries = InstallmentSortOption.entries
+                                                val nextIdx = (entries.indexOf(sortOption) + 1) % entries.size
+                                                sortOption = entries[nextIdx]
+                                            }
+                                        )
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                                contentDescription = "تغییر مرتب‌سازی",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = sortOption.labelFa,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+
+                                    // Compact Add Single Installment Pill
+                                    Surface(
+                                        shape = RoundedCornerShape(11.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                                        modifier = Modifier.tarazinoPressScale(
+                                            onClick = { addingCustomInstallmentToObligation = ob }
+                                        )
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "افزودن قسط جدید",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "قسط",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                InstallmentFilterMode.entries.forEach { mode ->
-                                    FilterChip(
-                                        selected = filterMode == mode,
-                                        onClick = { filterMode = mode },
-                                        label = { Text(mode.labelFa, maxLines = 1) }
-                                    )
-                                }
-                                InstallmentSortOption.entries.forEach { sOpt ->
-                                    FilterChip(
-                                        selected = sortOption == sOpt,
-                                        onClick = { sortOption = sOpt },
-                                        label = { Text(sOpt.labelFa, maxLines = 1) }
-                                    )
-                                }
-                            }
+                            val filterShortLabels = listOf("همه", "باز", "معوقه", "تسویه")
+                            TarazinoSegmentedControl(
+                                options = filterShortLabels,
+                                selectedIndex = InstallmentFilterMode.entries.indexOf(filterMode).coerceAtLeast(0),
+                                onSelectIndex = { idx ->
+                                    filterMode = InstallmentFilterMode.entries[idx]
+                                },
+                                compact = true
+                            )
                         }
                     }
 
@@ -795,27 +882,13 @@ fun TreePortfolioScreen(
                             }
 
                             if (cpObligations.size > 1) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState())
-                                ) {
-                                    Text(
-                                        text = "مرتب‌سازی:",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    InstallmentSortOption.entries.forEach { opt ->
-                                        FilterChip(
-                                            selected = sortOption == opt,
-                                            onClick = { sortOption = opt },
-                                            label = { Text(opt.labelFa, maxLines = 1) }
-                                        )
-                                    }
-                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TarazinoSegmentedControl(
+                                    options = listOf("نزدیک‌ترین سررسید", "بیشترین مبلغ", "کمترین مانده"),
+                                    selectedIndex = InstallmentSortOption.entries.indexOf(sortOption).coerceAtLeast(0),
+                                    onSelectIndex = { idx -> sortOption = InstallmentSortOption.entries[idx] },
+                                    compact = true
+                                )
                             }
                         }
                     }
@@ -875,18 +948,11 @@ fun TreePortfolioScreen(
                     val subProviders = uiState.counterparties.filter { it.categoryEnum == cat }
 
                     item {
-                        Card(
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color(cat.defaultColorHex).copy(alpha = 0.12f)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(
-                                    1.dp,
-                                    Color(cat.defaultColorHex).copy(alpha = 0.4f),
-                                    RoundedCornerShape(20.dp)
-                                )
+                        val catAccent = Color(cat.defaultColorHex)
+                        TarazinoGlassCard(
+                            cornerRadius = 22.dp,
+                            accentBorderColor = catAccent,
+                            containerColor = catAccent.copy(alpha = 0.09f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -895,32 +961,47 @@ fun TreePortfolioScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = cat.labelFa,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(cat.defaultColorHex)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    TarazinoIconBadge(
+                                        icon = categoryIcon(cat),
+                                        accentColor = catAccent,
+                                        size = 44.dp,
+                                        iconSize = 22.dp
                                     )
-                                    Text(
-                                        text = "${PersianCurrencyEngine.toPersianDigits(subProviders.size.toString())} زیرمجموعه / طرف پرداخت در این دسته",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = cat.labelFa,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = catAccent
+                                        )
+                                        Text(
+                                            text = "${PersianCurrencyEngine.toPersianDigits(subProviders.size.toString())} زیرمجموعه / طرف پرداخت",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
+                                Spacer(modifier = Modifier.width(8.dp))
                                 OutlinedButton(
                                     onClick = { showAddCounterpartyModalForCategory = cat },
                                     shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, catAccent.copy(alpha = 0.5f)),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                                     modifier = Modifier.testTag("add_subprovider_btn")
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
+                                        tint = catAccent,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("زیرمجموعه جدید", maxLines = 1)
+                                    Text("زیرمجموعه جدید", color = catAccent, fontWeight = FontWeight.Bold, maxLines = 1)
                                 }
                             }
                         }
@@ -940,30 +1021,236 @@ fun TreePortfolioScreen(
                     }
                 }
 
-                // LEVEL 1 (ROOT): 4 Clean Parent Category Folders with Direct Sub-Provider Chips (اسنپ‌پی، دیجی‌پی، بانک‌ها...)
+                // LEVEL 1 (ROOT): Executive 3-KPI Vault Strip + 2x2 Visual Bento Category Grid + Quick-Jump Deck
                 else -> {
-                    items(orderedCategories, key = { "root_cat_${it.name}" }) { cat ->
-                        val catProviders = uiState.counterparties.filter { it.categoryEnum == cat }
-                        val catProviderIds = catProviders.map { it.id }.toSet()
-                        val catObligations = uiState.obligations.filter { it.counterpartyId in catProviderIds }
-                        val catObIds = catObligations.map { it.id }.toSet()
-                        val catInstallments = uiState.installments.filter { it.obligationId in catObIds }
+                    // Executive 3-KPI Portfolio Vault Strip
+                    item {
+                        val totalObligationsCount = uiState.obligations.size
+                        val unpaidInstCount = uiState.installments.count { it.statusEnum != InstallmentStatus.PAID }
+                        val totalPayableAll = uiState.installments.sumOf { it.effectiveTotalToman }
+                        val totalPaidAll = uiState.installments.sumOf { it.paidAmountToman }
+                        val settledPctAll = if (totalPayableAll > 0L) {
+                            ((totalPaidAll.toFloat() / totalPayableAll.toFloat()) * 100f).toInt().coerceIn(0, 100)
+                        } else 100
+                        val settledRatioAll = if (totalPayableAll > 0L) {
+                            (totalPaidAll.toFloat() / totalPayableAll.toFloat()).coerceIn(0f, 1f)
+                        } else 1f
+                        val ext = LocalTarazinoColors.current
 
-                        ParentCategoryRootFolderCard(
-                            category = cat,
-                            subProviders = catProviders,
-                            obligationsCount = catObligations.size,
-                            installments = catInstallments,
-                            currencyUnit = unit,
-                            privacyMasked = masked,
-                            onOpenCategoryFolder = { onSelectCategory(cat) },
-                            onDirectClickSubProvider = { cp -> onSelectCounterparty(cp) },
-                            onAddSubProvider = { showAddCounterpartyModalForCategory = cat },
-                            onAddObligationInCategory = { onOpenWizard(cat, catProviders.firstOrNull()?.id) },
-                            modifier = if (cat == EntityCategory.BNPL_PLATFORM) {
-                                Modifier.tourSpotlightTarget("tree_parent_category_bnpl")
-                            } else Modifier
+                        TarazinoGlassCard(
+                            cornerRadius = 22.dp,
+                            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                LiquidWaveHealthOrb(
+                                    progress = settledRatioAll,
+                                    accentColor = ext.positive,
+                                    centerPrimaryText = "${PersianCurrencyEngine.toPersianDigits(settledPctAll.toString())}٪",
+                                    centerSubText = "تسویه",
+                                    size = 56.dp
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = PersianCurrencyEngine.toPersianDigits(totalObligationsCount.toString()),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "پرونده فعال",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(28.dp)
+                                        .background(ext.cardBorderTop)
+                                )
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = PersianCurrencyEngine.toPersianDigits(unpaidInstCount.toString()),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = ext.warning
+                                    )
+                                    Text(
+                                        text = "قسط در انتظار",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(28.dp)
+                                        .background(ext.cardBorderTop)
+                                )
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = PersianCurrencyEngine.toPersianDigits(uiState.counterparties.size.toString()),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                    Text(
+                                        text = "طرف پرداخت",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        TarazinoSectionHeader(
+                            title = "دسته‌بندی طرف‌های پرداخت",
+                            subtitle = "دسته اصلی ← زیرمجموعه (اسنپ‌پی، بانک‌ها...) ← اقساط",
+                            icon = Icons.Default.Folder,
+                            accentColor = MaterialTheme.colorScheme.primary
                         )
+                    }
+
+                    // 2x2 Bento Grid of the 4 Parent Categories
+                    val categoryRows = orderedCategories.chunked(2)
+                    items(categoryRows.size, key = { "bento_row_$it" }) { rowIdx ->
+                        val pair = categoryRows[rowIdx]
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            pair.forEach { cat ->
+                                val catProviders = uiState.counterparties.filter { it.categoryEnum == cat }
+                                val catProviderIds = catProviders.map { it.id }.toSet()
+                                val catObligations = uiState.obligations.filter { it.counterpartyId in catProviderIds }
+                                val catObIds = catObligations.map { it.id }.toSet()
+                                val catInstallments = uiState.installments.filter { it.obligationId in catObIds }
+
+                                CategoryBentoTile(
+                                    category = cat,
+                                    subProvidersCount = catProviders.size,
+                                    obligationsCount = catObligations.size,
+                                    installments = catInstallments,
+                                    currencyUnit = unit,
+                                    privacyMasked = masked,
+                                    onOpenCategoryFolder = { onSelectCategory(cat) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .then(
+                                            if (cat == EntityCategory.BNPL_PLATFORM) {
+                                                Modifier.tourSpotlightTarget("tree_parent_category_bnpl")
+                                            } else Modifier
+                                        )
+                                )
+                            }
+                        }
+                    }
+
+                    // Direct Branded Counterparty Quick-Jump Deck (اسنپ‌پی، دیجی‌پی، بانک مهر...)
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            TarazinoSectionHeader(
+                                title = "دسترسی سریع به طرف‌های پرداخت",
+                                subtitle = "ورود مستقیم به پرونده هر پلتفرم، بانک یا شخص",
+                                icon = Icons.Default.AccountBalance,
+                                accentColor = MaterialTheme.colorScheme.secondary,
+                                trailing = {
+                                    Surface(
+                                        shape = RoundedCornerShape(11.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.13f),
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)),
+                                        modifier = Modifier.tarazinoPressScale(
+                                            onClick = { showAddCounterpartyModalForCategory = EntityCategory.BNPL_PLATFORM }
+                                        )
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "افزودن زیرمجموعه جدید",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(
+                                                text = "طرف جدید",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                            ) {
+                                uiState.counterparties.forEach { cp ->
+                                    val cpObs = uiState.obligations.filter { it.counterpartyId == cp.id }
+                                    val cpObIds = cpObs.map { it.id }.toSet()
+                                    val cpInsts = uiState.installments.filter { it.obligationId in cpObIds }
+                                    val cpRem = cpInsts.sumOf { it.remainingToman }
+                                    val cpTotal = cpInsts.sumOf { it.effectiveTotalToman }
+                                    val cpPaid = cpInsts.sumOf { it.paidAmountToman }
+                                    val cpProgress = if (cpTotal > 0L) (cpPaid.toFloat() / cpTotal.toFloat()).coerceIn(0f, 1f) else 1f
+                                    val cpPendingCount = cpInsts.count { it.statusEnum != InstallmentStatus.PAID }
+                                    val digitsOnly = cp.cardNumber.filter { it.isDigit() }
+                                    val last4 = if (digitsOnly.length >= 4) digitsOnly.takeLast(4) else null
+
+                                    TarazinoMiniBrandCard(
+                                        name = cp.name,
+                                        categoryBadgeFa = cp.categoryEnum.badgeFa,
+                                        remainingToman = cpRem,
+                                        progressRatio = cpProgress,
+                                        pendingCount = cpPendingCount,
+                                        lastFourDigits = last4,
+                                        accentColor = Color(cp.avatarColorHex),
+                                        currencyUnit = unit,
+                                        privacyMasked = masked,
+                                        onClick = { onSelectCounterparty(cp) },
+                                        modifier = Modifier.testTag("subprovider_chip_${cp.id}")
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1103,25 +1390,22 @@ private fun categoryIcon(category: EntityCategory): ImageVector = when (category
     EntityCategory.PERSON -> Icons.Default.Groups
 }
 
-private fun categorySubtitleExamplesFa(category: EntityCategory): String = when (category) {
-    EntityCategory.BNPL_PLATFORM -> "زیرمجموعه‌ها: اسنپ‌پی (SnappPay)، دیجی‌پی (DigiPay)، تارا، ازکی‌وام..."
-    EntityCategory.BANK -> "زیرمجموعه‌ها: بانک مهر ایران، بلوبانک، بانک ملی، رسالت، ملت..."
-    EntityCategory.INSTITUTION -> "زیرمجموعه‌ها: صندوق‌های قرض‌الحسنه خانوادگی، وام شرکتی و موسسات..."
-    EntityCategory.PERSON -> "زیرمجموعه‌ها: صاحب‌خانه (اجاره/چک)، دوستان، همکاران و مطالبات شخصی..."
+private fun categoryShortHintFa(category: EntityCategory): String = when (category) {
+    EntityCategory.BNPL_PLATFORM -> "اسنپ‌پی، دیجی‌پی، تارا..."
+    EntityCategory.BANK -> "بانک مهر، بلو، ملی..."
+    EntityCategory.INSTITUTION -> "صندوق خانگی و شرکتی"
+    EntityCategory.PERSON -> "اجاره، چک و اشخاص"
 }
 
 @Composable
-private fun ParentCategoryRootFolderCard(
+private fun CategoryBentoTile(
     category: EntityCategory,
-    subProviders: List<CounterpartyEntity>,
+    subProvidersCount: Int,
     obligationsCount: Int,
     installments: List<InstallmentEntity>,
-    currencyUnit: com.example.core.CurrencyUnit,
+    currencyUnit: CurrencyUnit,
     privacyMasked: Boolean,
     onOpenCategoryFolder: () -> Unit,
-    onDirectClickSubProvider: (CounterpartyEntity) -> Unit,
-    onAddSubProvider: () -> Unit,
-    onAddObligationInCategory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val accent = Color(category.defaultColorHex)
@@ -1131,155 +1415,201 @@ private fun ParentCategoryRootFolderCard(
     val progress = if (totalPayable > 0L) {
         (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f)
     } else 0f
+    val displayAmount = if (currencyUnit == CurrencyUnit.RIAL) totalRem * 10L else totalRem
 
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(22.dp))
-            .clickable(onClick = onOpenCategoryFolder)
-            .testTag("parent_category_card_${category.name}")
+    TarazinoGlassCard(
+        cornerRadius = 22.dp,
+        accentBorderColor = accent.copy(alpha = 0.55f),
+        onClick = onOpenCategoryFolder,
+        modifier = modifier.testTag("parent_category_card_${category.name}")
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            accent.copy(alpha = 0.10f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        ) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TarazinoIconBadge(
+                        icon = categoryIcon(category),
+                        accentColor = accent,
+                        size = 42.dp,
+                        iconSize = 21.dp,
+                        cornerRadius = 14.dp
+                    )
+                    TarazinoStatusPill(
+                        text = "${PersianCurrencyEngine.toPersianDigits(obligationsCount.toString())} پرونده",
+                        accentColor = accent
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = category.badgeFa,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = categoryShortHintFa(category),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = formatCompactPersianToman(displayAmount, privacyMasked),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = accent,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!privacyMasked) {
+                        Text(
+                            text = currencyUnit.labelFa,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LinearProgressIndicator(
+                    progress = { progress },
+                    color = accent,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${PersianCurrencyEngine.toPersianDigits(subProvidersCount.toString())} زیرمجموعه",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "${PersianCurrencyEngine.toPersianDigits((progress * 100).toInt().toString())}٪",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CounterpartyQuickDeckCard(
+    counterparty: CounterpartyEntity,
+    remainingToman: Long,
+    pendingCount: Int,
+    currencyUnit: CurrencyUnit,
+    privacyMasked: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = Color(counterparty.avatarColorHex)
+    val displayAmount = if (currencyUnit == CurrencyUnit.RIAL) remainingToman * 10L else remainingToman
+
+    TarazinoGlassCard(
+        cornerRadius = 18.dp,
+        accentBorderColor = accent.copy(alpha = 0.45f),
+        onClick = onClick,
+        modifier = Modifier
+            .width(154.dp)
+            .testTag("subprovider_chip_${counterparty.id}")
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(accent.copy(alpha = 0.16f))
-                    ) {
-                        Icon(
-                            imageVector = categoryIcon(category),
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = category.labelFa,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = categorySubtitleExamplesFa(category),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                CounterpartyMonogramAvatar(
+                    name = counterparty.name,
+                    color = accent,
+                    size = 36.dp
+                )
+                if (pendingCount > 0) {
+                    TarazinoStatusPill(
+                        text = "${PersianCurrencyEngine.toPersianDigits(pendingCount.toString())} باز",
+                        accentColor = accent
+                    )
+                } else {
+                    TarazinoStatusPill(
+                        text = "تسویه",
+                        accentColor = LocalTarazinoColors.current.positive
+                    )
                 }
-
-                Column(horizontalAlignment = Alignment.End) {
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = counterparty.name,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = counterparty.categoryEnum.badgeFa,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = formatCompactPersianToman(displayAmount, privacyMasked),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Black,
+                    color = accent,
+                    maxLines = 1
+                )
+                if (!privacyMasked) {
                     Text(
-                        text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
+                        text = currencyUnit.labelFa,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )
-                    Text(
-                        text = "${PersianCurrencyEngine.toPersianDigits(obligationsCount.toString())} پرونده فعال",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "زیرمجموعه‌های این دسته (لمس برای ورود مستقیم):",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-            ) {
-                subProviders.forEach { cp ->
-                    AssistChip(
-                        onClick = { onDirectClickSubProvider(cp) },
-                        label = {
-                            Text(
-                                text = cp.name,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
-                        },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(cp.avatarColorHex))
-                            )
-                        },
-                        modifier = Modifier.testTag("subprovider_chip_${cp.id}")
-                    )
-                }
-
-                AssistChip(
-                    onClick = onAddSubProvider,
-                    label = { Text("+ زیرمجموعه جدید", maxLines = 1) }
-                )
-            }
-
-            if (totalPayable > 0L) {
-                Spacer(modifier = Modifier.height(10.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    color = accent,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(7.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "تسویه‌شده: ${PersianCurrencyEngine.formatAmount(totalPaid, currencyUnit, privacyMasked = privacyMasked)} (${PersianCurrencyEngine.toPersianDigits((progress * 100).toInt().toString())}٪)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF10B981)
-                    )
-                    Text(
-                        text = "باز کردن پوشه ‹",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onAddObligationInCategory) {
-                        Text("+ ثبت اولین قسط در این دسته", maxLines = 1)
-                    }
                 }
             }
         }
@@ -1305,15 +1635,11 @@ private fun SubProviderFolderCard(
     val totalRem = cpInst.sumOf { it.remainingToman }
     val pendingInstCount = cpInst.count { it.statusEnum != InstallmentStatus.PAID }
 
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-            .clickable(onClick = onClickProvider)
-            .testTag("subprovider_folder_card_${counterparty.id}")
+    TarazinoGlassCard(
+        cornerRadius = 22.dp,
+        accentBorderColor = accent,
+        onClick = onClickProvider,
+        modifier = Modifier.testTag("subprovider_folder_card_${counterparty.id}")
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1325,25 +1651,17 @@ private fun SubProviderFolderCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(accent.copy(alpha = 0.18f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = accent
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    CounterpartyMonogramAvatar(
+                        name = counterparty.name,
+                        color = accent,
+                        size = 46.dp
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = counterparty.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = "${counterparty.categoryEnum.badgeFa} • ${PersianCurrencyEngine.toPersianDigits(obligations.size.toString())} پرونده (${PersianCurrencyEngine.toPersianDigits(pendingInstCount.toString())} قسط باز)",
@@ -1353,13 +1671,15 @@ private fun SubProviderFolderCard(
                     }
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
+                    FormattedMoneyText(
+                        amountToman = totalRem,
+                        unit = currencyUnit,
+                        privacyMasked = privacyMasked,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
-                        maxLines = 1
+                        numberColor = accent
                     )
                     Text(
                         text = "مانده این زیرمجموعه",
@@ -1379,14 +1699,15 @@ private fun SubProviderFolderCard(
                 ) {
                     obligations.forEach { ob ->
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                            shape = RoundedCornerShape(9.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant)
                         ) {
                             Text(
                                 text = ob.title,
                                 style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
                             )
                         }
                     }
@@ -1394,7 +1715,7 @@ private fun SubProviderFolderCard(
             }
 
             if (totalPayable > 0L) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 val ratio = (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f)
                 LinearProgressIndicator(
                     progress = { ratio },
@@ -1407,7 +1728,7 @@ private fun SubProviderFolderCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1418,7 +1739,7 @@ private fun SubProviderFolderCard(
                     OutlinedButton(
                         onClick = onAddPurchaseHere,
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        contentPadding = PaddingValues(horizontal = 11.dp, vertical = 6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -1426,7 +1747,7 @@ private fun SubProviderFolderCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("ثبت خرید/قسط جدید", maxLines = 1)
+                        Text("ثبت خرید/قسط", style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     }
                     OutlinedButton(
                         onClick = onOpenA4Report,
@@ -1437,10 +1758,10 @@ private fun SubProviderFolderCard(
                             imageVector = Icons.Default.PictureAsPdf,
                             contentDescription = "گزارش A4 این زیرمجموعه",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("گزارش A4", maxLines = 1)
+                        Text("گزارش A4", style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     }
                 }
 
@@ -1465,17 +1786,14 @@ private fun SubProviderDetailHubHeaderCard(
     onDeleteProvider: () -> Unit,
     onExportA4: () -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val accent = Color(counterparty.avatarColorHex)
     val totalRem = installments.sumOf { it.remainingToman }
     val totalPaid = installments.sumOf { it.paidAmountToman }
 
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.2.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(22.dp))
+    TarazinoGlassCard(
+        cornerRadius = 24.dp,
+        accentBorderColor = accent
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1483,17 +1801,28 @@ private fun SubProviderDetailHubHeaderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = counterparty.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    CounterpartyMonogramAvatar(
+                        name = counterparty.name,
+                        color = accent,
+                        size = 48.dp
                     )
-                    Text(
-                        text = "${counterparty.categoryEnum.labelFa} • ${counterparty.priorityEnum.labelFa}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = accent
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = counterparty.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "${counterparty.categoryEnum.labelFa} • ${counterparty.priorityEnum.labelFa}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = accent
+                        )
+                    }
                 }
                 Row {
                     IconButton(onClick = onEditProvider) {
@@ -1503,14 +1832,14 @@ private fun SubProviderDetailHubHeaderCard(
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "حذف زیرمجموعه",
-                            tint = Color(0xFFEF4444)
+                            tint = ext.danger
                         )
                     }
                 }
             }
 
             if (counterparty.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = counterparty.description,
                     style = MaterialTheme.typography.bodySmall,
@@ -1518,18 +1847,19 @@ private fun SubProviderDetailHubHeaderCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(15.dp),
                     color = accent.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.28f)),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = "مانده بدهی در ${counterparty.name}",
                             style = MaterialTheme.typography.labelSmall,
@@ -1537,33 +1867,36 @@ private fun SubProviderDetailHubHeaderCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FormattedMoneyText(
+                            amountToman = totalRem,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = accent,
-                            maxLines = 1
+                            numberColor = accent
                         )
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(15.dp),
+                    color = ext.positive.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, ext.positive.copy(alpha = 0.28f)),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = "پرداخت‌شده تا امروز",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
-                        Text(
-                            text = PersianCurrencyEngine.formatAmount(totalPaid, currencyUnit, privacyMasked = privacyMasked),
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FormattedMoneyText(
+                            amountToman = totalPaid,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981),
-                            maxLines = 1
+                            numberColor = ext.positive
                         )
                     }
                 }
@@ -1578,39 +1911,90 @@ private fun SubProviderDetailHubHeaderCard(
                         .horizontalScroll(rememberScrollState())
                 ) {
                     if (counterparty.cardNumber.isNotBlank()) {
-                        AssistChip(
-                            onClick = { onCopyText("شماره کارت ${counterparty.name}", counterparty.cardNumber) },
-                            label = {
+                        Surface(
+                            shape = RoundedCornerShape(13.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (ext.isDark) 0.55f else 0.7f),
+                            border = BorderStroke(
+                                1.dp,
+                                Brush.horizontalGradient(
+                                    listOf(accent.copy(alpha = 0.55f), ext.cardBorderTop)
+                                )
+                            ),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.95f,
+                                onClick = { onCopyText("شماره کارت ${counterparty.name}", counterparty.cardNumber) }
+                            )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CreditCard,
+                                    contentDescription = null,
+                                    tint = accent,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    PersianCurrencyEngine.toPersianDigits(
+                                    text = PersianCurrencyEngine.toPersianDigits(
                                         PersianCurrencyEngine.formatCardNumber(counterparty.cardNumber)
                                     ),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
                                     maxLines = 1
                                 )
-                            },
-                            leadingIcon = {
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Default.ContentCopy,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(15.dp)
+                                    contentDescription = "کپی شماره کارت",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
-                        )
+                        }
                     }
                     if (counterparty.shebaNumber.isNotBlank()) {
-                        AssistChip(
-                            onClick = { onCopyText("شماره شبا ${counterparty.name}", counterparty.shebaNumber) },
-                            label = {
-                                Text(PersianCurrencyEngine.formatSheba(counterparty.shebaNumber), maxLines = 1)
-                            },
-                            leadingIcon = {
+                        Surface(
+                            shape = RoundedCornerShape(13.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (ext.isDark) 0.55f else 0.7f),
+                            border = BorderStroke(
+                                1.dp,
+                                Brush.horizontalGradient(
+                                    listOf(ext.positive.copy(alpha = 0.55f), ext.cardBorderTop)
+                                )
+                            ),
+                            modifier = Modifier.tarazinoPressScale(
+                                scaleDown = 0.95f,
+                                onClick = { onCopyText("شماره شبا ${counterparty.name}", counterparty.shebaNumber) }
+                            )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.ContentCopy,
+                                    imageVector = Icons.Default.AccountBalance,
                                     contentDescription = null,
+                                    tint = ext.positive,
                                     modifier = Modifier.size(15.dp)
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = PersianCurrencyEngine.formatSheba(counterparty.shebaNumber),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "کپی شماره شبا",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -1623,7 +2007,7 @@ private fun SubProviderDetailHubHeaderCard(
             ) {
                 Button(
                     onClick = onAddPurchaseForProvider,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(13.dp),
                     modifier = Modifier
                         .weight(1.2f)
                         .testTag("provider_add_obligation_btn")
@@ -1634,7 +2018,7 @@ private fun SubProviderDetailHubHeaderCard(
                 }
                 OutlinedButton(
                     onClick = onExportA4,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(13.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1657,6 +2041,7 @@ private fun ObligationSummaryRowCard(
     onEditObligation: () -> Unit,
     onOpenA4: () -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val totalPayable = installments.sumOf { it.effectiveTotalToman }
     val totalPaid = installments.sumOf { it.paidAmountToman }
     val totalRem = installments.sumOf { it.remainingToman }
@@ -1668,15 +2053,12 @@ private fun ObligationSummaryRowCard(
     val nextUnpaid = installments
         .filter { it.statusEnum != InstallmentStatus.PAID }
         .minByOrNull { it.dueDateJalali }
+    val cpAccent = Color(counterparty?.avatarColorHex ?: 0xFF10B981)
 
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpenDetail)
-            .testTag("obligation_row_card_${obligation.id}")
+    TarazinoGlassCard(
+        cornerRadius = 20.dp,
+        onClick = onOpenDetail,
+        modifier = Modifier.testTag("obligation_row_card_${obligation.id}")
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -1684,26 +2066,41 @@ private fun ObligationSummaryRowCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = obligation.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    CounterpartyMonogramAvatar(
+                        name = counterparty?.name ?: obligation.title,
+                        color = cpAccent,
+                        size = 40.dp
                     )
-                    Text(
-                        text = "${counterparty?.name ?: "طرف‌حساب"} • ${PersianCurrencyEngine.toPersianDigits(paidCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(totalCount.toString())} قسط تسویه‌شده",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = obligation.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${counterparty?.name ?: "طرف‌حساب"} • ${PersianCurrencyEngine.toPersianDigits(paidCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(totalCount.toString())} قسط تسویه",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
+                    FormattedMoneyText(
+                        amountToman = totalRem,
+                        unit = currencyUnit,
+                        privacyMasked = privacyMasked,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1
+                        numberColor = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "مانده تعهد",
@@ -1713,7 +2110,7 @@ private fun ObligationSummaryRowCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             LinearProgressIndicator(
                 progress = { progress },
@@ -1721,11 +2118,11 @@ private fun ObligationSummaryRowCard(
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(7.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1742,24 +2139,22 @@ private fun ObligationSummaryRowCard(
                             )
                         })",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFF59E0B),
+                        color = ext.warning,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                 } else {
-                    Text(
-                        text = "تمامی اقساط این پرونده تسویه شده است",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF10B981),
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f)
+                    TarazinoStatusPill(
+                        text = "تسویه کامل",
+                        accentColor = ext.positive,
+                        icon = Icons.Default.CheckCircle
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onEditObligation, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onEditObligation, modifier = Modifier.size(34.dp)) {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "ویرایش سریع پرونده",
@@ -1767,7 +2162,7 @@ private fun ObligationSummaryRowCard(
                             modifier = Modifier.size(17.dp)
                         )
                     }
-                    IconButton(onClick = onOpenA4, modifier = Modifier.size(32.dp)) {
+                    IconButton(onClick = onOpenA4, modifier = Modifier.size(34.dp)) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
                             contentDescription = "جدول اقساط A4",
@@ -1800,16 +2195,16 @@ private fun ObligationGranularHeaderCard(
     onExportA4: () -> Unit,
     onDeleteObligation: () -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val totalPayable = installments.sumOf { it.effectiveTotalToman }
     val totalPaid = installments.sumOf { it.paidAmountToman }
     val totalRem = installments.sumOf { it.remainingToman }
     val paidCount = installments.count { it.statusEnum == InstallmentStatus.PAID }
+    val cpAccent = Color(counterparty?.avatarColorHex ?: 0xFF10B981)
 
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier.fillMaxWidth()
+    TarazinoGlassCard(
+        cornerRadius = 24.dp,
+        accentBorderColor = cpAccent
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1817,17 +2212,30 @@ private fun ObligationGranularHeaderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = obligation.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    CounterpartyMonogramAvatar(
+                        name = counterparty?.name ?: obligation.title,
+                        color = cpAccent,
+                        size = 44.dp
                     )
-                    Text(
-                        text = "${counterparty?.name ?: "طرف‌حساب"} • ${obligation.categoryEnum.shortLabelFa}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = obligation.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${counterparty?.name ?: "طرف‌حساب"} • ${obligation.categoryEnum.shortLabelFa}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = cpAccent
+                        )
+                    }
                 }
                 Row {
                     IconButton(onClick = onEditObligation) {
@@ -1847,14 +2255,14 @@ private fun ObligationGranularHeaderCard(
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "حذف پرونده",
-                            tint = Color(0xFFEF4444)
+                            tint = ext.danger
                         )
                     }
                 }
             }
 
             if (obligation.notes.isNotBlank() || obligation.trackingOrCheckCode.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = listOfNotNull(
                         obligation.trackingOrCheckCode.takeIf { it.isNotBlank() }?.let { "کد چک/پیگیری: $it" },
@@ -1865,66 +2273,72 @@ private fun ObligationGranularHeaderCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(15.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = "مانده این پرونده",
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            text = PersianCurrencyEngine.formatAmount(totalRem, currencyUnit, privacyMasked = privacyMasked),
+                        Spacer(modifier = Modifier.height(3.dp))
+                        FormattedMoneyText(
+                            amountToman = totalRem,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1
+                            numberColor = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF10B981).copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(15.dp),
+                    color = ext.positive.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, ext.positive.copy(alpha = 0.28f)),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         Text(
                             text = "پرداخت‌شده (${PersianCurrencyEngine.toPersianDigits(paidCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(installments.size.toString())})",
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(
-                            text = PersianCurrencyEngine.formatAmount(totalPaid, currencyUnit, privacyMasked = privacyMasked),
+                        Spacer(modifier = Modifier.height(3.dp))
+                        FormattedMoneyText(
+                            amountToman = totalPaid,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF10B981),
-                            maxLines = 1
+                            numberColor = ext.positive
                         )
                     }
                 }
             }
 
             if (totalPayable > 0L) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 LinearProgressIndicator(
                     progress = { (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f) },
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
+                        .height(7.dp)
                         .clip(RoundedCornerShape(4.dp))
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1974,175 +2388,166 @@ private fun GranularInstallmentItemCard(
     onQuickPay: () -> Unit,
     onEditInstallment: () -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     val statusColor = Color(installment.statusEnum.colorHex)
     val isPaid = installment.statusEnum == InstallmentStatus.PAID
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isBatchChecked) {
-                Color(0xFF10B981).copy(alpha = 0.1f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = if (isBatchChecked) 1.5.dp else 1.dp,
-                color = if (isBatchChecked) Color(0xFF10B981) else statusColor.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable(onClick = onEditInstallment)
-            .testTag("granular_installment_card_${installment.id}")
+    TarazinoGlassCard(
+        cornerRadius = 18.dp,
+        accentBorderColor = if (isBatchChecked) ext.positive else statusColor,
+        containerColor = if (isBatchChecked) {
+            ext.positive.copy(alpha = if (ext.isDark) 0.14f else 0.08f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        onClick = onEditInstallment,
+        modifier = Modifier.testTag("granular_installment_card_${installment.id}")
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            // Left/Start Status Accent Rail
+            Box(
+                modifier = Modifier
+                    .width(5.dp)
+                    .fillMaxHeight()
+                    .background(if (isBatchChecked) ext.positive else statusColor)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(13.dp)
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (!isPaid) {
-                        Checkbox(
-                            checked = isBatchChecked,
-                            onCheckedChange = { onToggleBatchCheck() },
-                            modifier = Modifier
-                                .size(34.dp)
-                                .testTag("batch_check_inst_${installment.id}")
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = statusColor.copy(alpha = 0.16f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(
-                            text = "قسط ${PersianCurrencyEngine.toPersianDigits(installment.installmentNumber.toString())}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = statusColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = installment.title,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "سررسید: ${PersianCurrencyEngine.toPersianDigits(installment.dueDateJalali)} (${JalaliCalendarEngine.formatJalaliVerbose(installment.dueDateJalali)})",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = statusColor.copy(alpha = 0.14f)
-                ) {
-                    Text(
-                        text = installment.statusEnum.labelFa,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor,
-                        maxLines = 1,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "مبلغ کل قسط: ${
-                            PersianCurrencyEngine.formatAmount(
-                                installment.effectiveTotalToman,
-                                currencyUnit,
-                                privacyMasked = privacyMasked
-                            )
-                        }",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    if (installment.paidAmountToman > 0L && !isPaid) {
-                        Text(
-                            text = "پرداخت جزئی: ${
-                                PersianCurrencyEngine.formatAmount(
-                                    installment.paidAmountToman,
-                                    currencyUnit,
-                                    privacyMasked = privacyMasked
-                                )
-                            } • مانده: ${
-                                PersianCurrencyEngine.formatAmount(
-                                    installment.remainingToman,
-                                    currencyUnit,
-                                    privacyMasked = privacyMasked
-                                )
-                            }",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF3B82F6)
-                        )
-                    }
-                    if (installment.trackingCode.isNotBlank()) {
-                        Text(
-                            text = "کد رهگیری: ${PersianCurrencyEngine.toPersianDigits(installment.trackingCode)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OutlinedButton(
-                        onClick = onEditInstallment,
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("ویرایش", style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                    }
-
-                    if (!isPaid) {
-                        Button(
-                            onClick = onQuickPay,
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.testTag("tree_quick_pay_${installment.id}")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color(0xFF042F2E),
-                                modifier = Modifier.size(15.dp)
+                        if (!isPaid) {
+                            Checkbox(
+                                checked = isBatchChecked,
+                                onCheckedChange = { onToggleBatchCheck() },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .testTag("batch_check_inst_${installment.id}")
                             )
                             Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        TarazinoStatusPill(
+                            text = "قسط ${PersianCurrencyEngine.toPersianDigits(installment.installmentNumber.toString())}",
+                            accentColor = statusColor
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
                             Text(
-                                text = "تسویه",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = installment.title,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF042F2E),
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Text(
+                                text = "سررسید: ${PersianCurrencyEngine.toPersianDigits(installment.dueDateJalali)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    TarazinoStatusPill(
+                        text = installment.statusEnum.labelFa,
+                        accentColor = statusColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        FormattedMoneyText(
+                            amountToman = installment.effectiveTotalToman,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
+                            style = MaterialTheme.typography.titleSmall,
+                            numberColor = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (installment.paidAmountToman > 0L && !isPaid) {
+                            Text(
+                                text = "پرداخت جزئی: ${
+                                    PersianCurrencyEngine.formatAmount(
+                                        installment.paidAmountToman,
+                                        currencyUnit,
+                                        privacyMasked = privacyMasked
+                                    )
+                                } • مانده: ${
+                                    PersianCurrencyEngine.formatAmount(
+                                        installment.remainingToman,
+                                        currencyUnit,
+                                        privacyMasked = privacyMasked
+                                    )
+                                }",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ext.info
+                            )
+                        }
+                        if (installment.trackingCode.isNotBlank()) {
+                            Text(
+                                text = "کد رهگیری: ${PersianCurrencyEngine.toPersianDigits(installment.trackingCode)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedButton(
+                            onClick = onEditInstallment,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("ویرایش", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+
+                        if (!isPaid) {
+                            Button(
+                                onClick = onQuickPay,
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ext.positive),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+                                modifier = Modifier.testTag("tree_quick_pay_${installment.id}")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF042F2E),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "تسویه",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF042F2E),
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }

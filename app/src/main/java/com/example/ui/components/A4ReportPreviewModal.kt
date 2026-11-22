@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -60,13 +61,19 @@ fun A4ReportPreviewModal(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val ext = com.example.ui.theme.LocalTarazinoColors.current
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(10.dp)
                 .testTag("a4_report_preview_modal"),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.background
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.background,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                Brush.verticalGradient(listOf(ext.cardBorderTop, ext.cardBorderBottom))
+            ),
+            shadowElevation = 14.dp
         ) {
             Column(
                 modifier = Modifier
@@ -79,17 +86,31 @@ fun A4ReportPreviewModal(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "پیش‌نمایش رسمی برگه استاندارد A4 و استودیو خروجی",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        TarazinoIconBadge(
+                            icon = Icons.Default.PictureAsPdf,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            size = 40.dp,
+                            iconSize = 20.dp
                         )
-                        Text(
-                            text = "سایز استاندارد چاپی ۲۱۰×۲۹۷ میلی‌متر • فونت وزیرمتن • جدول راست‌به‌چپ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "پیش‌نمایش رسمی برگه A4",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "استاندارد ۲۱۰×۲۹۷ میلی‌متر • فونت وزیرمتن",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "بستن پیش‌نمایش")
@@ -98,43 +119,77 @@ fun A4ReportPreviewModal(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Export Buttons Bar
+                // Symmetrical Single-Line Export Buttons Bar (Zero Text Wrapping)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
                         onClick = onExportPdf,
+                        shape = RoundedCornerShape(13.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
                         modifier = Modifier
-                            .weight(1.2f)
+                            .weight(1.35f)
                             .testTag("export_pdf_a4_btn")
                     ) {
-                        Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("دانلود / چاپ PDF A4", color = Color.White)
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "چاپ PDF A4",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1
+                        )
                     }
 
                     OutlinedButton(
                         onClick = onExportRtlExcel,
+                        shape = RoundedCornerShape(13.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                         modifier = Modifier
                             .weight(1f)
                             .testTag("export_xls_rtl_btn")
                     ) {
-                        Icon(imageVector = Icons.Default.TableChart, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Default.TableChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("اکسل (.xls)")
+                        Text(
+                            text = "اکسل",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
                     }
 
                     OutlinedButton(
                         onClick = onExportCsv,
+                        shape = RoundedCornerShape(13.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                         modifier = Modifier
-                            .weight(0.9f)
+                            .weight(0.85f)
                             .testTag("export_csv_bom_btn")
                     ) {
-                        Icon(imageVector = Icons.Default.Description, contentDescription = null)
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("CSV")
+                        Text(
+                            text = "CSV",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
                     }
                 }
 

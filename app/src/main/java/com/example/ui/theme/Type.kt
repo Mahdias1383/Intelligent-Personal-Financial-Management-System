@@ -12,16 +12,23 @@ val VazirmatnFontFamily = FontFamily(
     Font(R.font.vazirmatn, FontWeight.Normal),
     Font(R.font.vazirmatn, FontWeight.Medium),
     Font(R.font.vazirmatn, FontWeight.SemiBold),
-    Font(R.font.vazirmatn, FontWeight.Bold)
+    Font(R.font.vazirmatn, FontWeight.Bold),
+    Font(R.font.vazirmatn, FontWeight.ExtraBold)
 )
 
 fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
     return Typography(
         displayLarge = TextStyle(
             fontFamily = VazirmatnFontFamily,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = (32 * scale).sp,
+            lineHeight = (42 * scale).sp
+        ),
+        displayMedium = TextStyle(
+            fontFamily = VazirmatnFontFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = (30 * scale).sp,
-            lineHeight = (40 * scale).sp
+            fontSize = (27 * scale).sp,
+            lineHeight = (36 * scale).sp
         ),
         headlineLarge = TextStyle(
             fontFamily = VazirmatnFontFamily,
@@ -33,7 +40,7 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             fontFamily = VazirmatnFontFamily,
             fontWeight = FontWeight.Bold,
             fontSize = (20 * scale).sp,
-            lineHeight = (28 * scale).sp
+            lineHeight = (29 * scale).sp
         ),
         titleLarge = TextStyle(
             fontFamily = VazirmatnFontFamily,
@@ -43,13 +50,13 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
         ),
         titleMedium = TextStyle(
             fontFamily = VazirmatnFontFamily,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = (15 * scale).sp,
+            fontWeight = FontWeight.Bold,
+            fontSize = (15.5f * scale).sp,
             lineHeight = (23 * scale).sp
         ),
         titleSmall = TextStyle(
             fontFamily = VazirmatnFontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = (13.5f * scale).sp,
             lineHeight = (20 * scale).sp
         ),
@@ -63,7 +70,7 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             fontFamily = VazirmatnFontFamily,
             fontWeight = FontWeight.Normal,
             fontSize = (13 * scale).sp,
-            lineHeight = (20 * scale).sp
+            lineHeight = (21 * scale).sp
         ),
         bodySmall = TextStyle(
             fontFamily = VazirmatnFontFamily,

@@ -1,6 +1,6 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -74,17 +75,25 @@ fun MoneyInputField(
             label = { Text("$labelFa (بر پایه تومان)") },
             placeholder = { Text("مثلاً ۱۵,۴۰۰,۰۰۰ یا ۱۵۰۰۰۰۰۰+۴۰۰۰۰۰") },
             singleLine = true,
+            shape = RoundedCornerShape(14.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             trailingIcon = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
-                    Text(
-                        text = "تومان",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    ) {
+                        Text(
+                            text = "تومان",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                     if (amountToman > 0L) {
                         IconButton(
                             onClick = {
@@ -105,15 +114,16 @@ fun MoneyInputField(
                 .testTag(testTagName)
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Live Persian Currency Wordifier Badge
         Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.42f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
                 val formattedNumeric = PersianCurrencyEngine.formatAmount(
                     amountToman = amountToman,
                     unit = currencyUnit,
@@ -133,7 +143,7 @@ fun MoneyInputField(
         }
 
         if (showQuickChips) {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -141,22 +151,26 @@ fun MoneyInputField(
                     .horizontalScroll(rememberScrollState())
             ) {
                 quickIncrements.forEach { (chipLabel, deltaToman) ->
-                    AssistChip(
-                        onClick = {
-                            val nextVal = (amountToman + deltaToman).coerceAtLeast(0L)
-                            rawText = PersianCurrencyEngine.formatNumberWithCommas(nextVal, true)
-                            onAmountChange(nextVal)
-                        },
-                        label = {
-                            Text(
-                                text = chipLabel,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                val nextVal = (amountToman + deltaToman).coerceAtLeast(0L)
+                                rawText = PersianCurrencyEngine.formatNumberWithCommas(nextVal, true)
+                                onAmountChange(nextVal)
+                            }
+                    ) {
+                        Text(
+                            text = chipLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)
                         )
-                    )
+                    }
                 }
             }
         }
@@ -174,35 +188,54 @@ fun JalaliDateSelectorField(
     var showPicker by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable { showPicker = true }
             .testTag(testTagName)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 11.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = labelFa,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                TarazinoIconBadge(
+                    icon = Icons.Default.CalendarMonth,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    size = 38.dp,
+                    iconSize = 19.dp,
+                    cornerRadius = 11.dp
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = JalaliCalendarEngineSafeVerbose(dateJalali),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = labelFa,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = JalaliCalendarEngineSafeVerbose(dateJalali),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
-            BoxBadge(text = PersianCurrencyEngine.toPersianDigits(dateJalali))
+            Spacer(modifier = Modifier.width(8.dp))
+            TarazinoStatusPill(
+                text = PersianCurrencyEngine.toPersianDigits(dateJalali),
+                accentColor = MaterialTheme.colorScheme.primary
+            )
         }
     }
 
@@ -216,21 +249,6 @@ fun JalaliDateSelectorField(
             }
         )
     }
-}
-
-@Composable
-private fun BoxBadge(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .background(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-    )
 }
 
 private fun JalaliCalendarEngineSafeVerbose(dateStr: String): String {

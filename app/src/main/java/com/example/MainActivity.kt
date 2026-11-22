@@ -5,30 +5,43 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Insights
@@ -36,15 +49,14 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -57,32 +69,57 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.CurrencyUnit
+import com.example.core.JalaliCalendarEngine
 import com.example.core.PersianCurrencyEngine
 import com.example.export.ReportExportEngine
 import com.example.ui.TarazinoNavTab
 import com.example.ui.TarazinoUiState
 import com.example.ui.TarazinoViewModel
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import com.example.ui.components.A4ReportPreviewModal
 import com.example.ui.components.InteractiveOnboardingTourOverlay
 import com.example.ui.components.LocalSpotlightRegistry
 import com.example.ui.components.SecurityLockOverlay
 import com.example.ui.components.SpotlightTargetRegistry
 import com.example.ui.components.StepByStepObligationWizardModal
+import com.example.ui.components.TarazinoCelebrationConfettiBurst
+import com.example.ui.components.tarazinoAmbientBackdrop
+import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.IntelligenceScreen
 import com.example.ui.screens.ReportsAndSettingsScreen
 import com.example.ui.screens.TreePortfolioScreen
+import com.example.ui.theme.LocalTarazinoColors
 import com.example.ui.theme.TarazinoTheme
+
+private data class NavBarDestination(
+    val tab: TarazinoNavTab,
+    val labelFa: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -113,6 +150,11 @@ fun TarazinoAppRoot(
 ) {
     val context = LocalContext.current
     val spotlightRegistry = remember { SpotlightTargetRegistry() }
+    val extColors = LocalTarazinoColors.current
+    val todayShortHeader = remember {
+        val parsed = JalaliCalendarEngine.parseJalali(JalaliCalendarEngine.todayJalali())
+        "${PersianCurrencyEngine.toPersianDigits(parsed.day.toString())} ${JalaliCalendarEngine.getMonthName(parsed.month)}"
+    }
 
     val activeTourStep = if (uiState.isTourActive) {
         viewModel.guidedTourSteps.getOrNull(uiState.currentTourStepIndex)
@@ -137,217 +179,350 @@ fun TarazinoAppRoot(
         }
     }
 
+    val navDestinations = remember {
+        listOf(
+            NavBarDestination(
+                tab = TarazinoNavTab.DASHBOARD,
+                labelFa = "داشبورد",
+                selectedIcon = Icons.Filled.Dashboard,
+                unselectedIcon = Icons.Outlined.Dashboard
+            ),
+            NavBarDestination(
+                tab = TarazinoNavTab.PORTFOLIO_TREE,
+                labelFa = "پوشه‌ها",
+                selectedIcon = Icons.Filled.AccountTree,
+                unselectedIcon = Icons.Outlined.AccountTree
+            ),
+            NavBarDestination(
+                tab = TarazinoNavTab.INTELLIGENCE,
+                labelFa = "هوش مالی",
+                selectedIcon = Icons.Filled.Insights,
+                unselectedIcon = Icons.Outlined.Insights
+            ),
+            NavBarDestination(
+                tab = TarazinoNavTab.REPORTS_SETTINGS,
+                labelFa = "گزارش‌ها",
+                selectedIcon = Icons.Filled.PictureAsPdf,
+                unselectedIcon = Icons.Outlined.PictureAsPdf
+            )
+        )
+    }
+
     CompositionLocalProvider(LocalSpotlightRegistry provides spotlightRegistry) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .tarazinoAmbientBackdrop(
+                    backgroundColor = MaterialTheme.colorScheme.background,
+                    auroraPrimary = extColors.auroraPrimary,
+                    auroraSecondary = extColors.auroraSecondary
+                )
+        ) {
             Scaffold(
+                containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
                     TopAppBar(
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_app_logo_1794581824694),
+                                    contentDescription = "لوگوی ترازینو",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(11.dp))
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                            RoundedCornerShape(11.dp)
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
                                         text = "ترازینو",
                                         style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
                                     )
-                                    Text(
-                                        text = "مدیریت هوشمند اقساط، بدهی و وام",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val livePulse = rememberInfiniteTransition(label = "LiveVaultPulse")
+                                        val dotAlpha by livePulse.animateFloat(
+                                            initialValue = 0.45f,
+                                            targetValue = 1f,
+                                            animationSpec = infiniteRepeatable(
+                                                animation = tween(1400, easing = FastOutSlowInEasing),
+                                                repeatMode = RepeatMode.Reverse
+                                            ),
+                                            label = "LiveDotAlpha"
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = dotAlpha))
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "خزانه امن • $todayShortHeader",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         },
                         actions = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = extColors.glassSurface,
+                                border = BorderStroke(
+                                    1.dp,
+                                    Brush.verticalGradient(listOf(extColors.cardBorderTop, extColors.cardBorderBottom))
+                                ),
                                 modifier = Modifier
+                                    .padding(end = 10.dp)
                                     .tourSpotlightTarget("top_bar_controls")
-                                    .padding(end = 4.dp)
                             ) {
-                                // Currency Unit Quick Toggle Chip (تومان / ریال)
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier
-                                        .padding(horizontal = 4.dp)
-                                        .clickable {
-                                            val nextUnit = if (uiState.preferences.currencyUnit == CurrencyUnit.TOMAN) {
-                                                CurrencyUnit.RIAL
-                                            } else {
-                                                CurrencyUnit.TOMAN
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp)
+                                ) {
+                                    // Currency Unit Quick Toggle Chip (تومان / ریال)
+                                    Surface(
+                                        shape = RoundedCornerShape(11.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                        border = BorderStroke(
+                                            0.8.dp,
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                        ),
+                                        modifier = Modifier
+                                            .padding(start = 2.dp)
+                                            .clip(RoundedCornerShape(11.dp))
+                                            .clickable {
+                                                val nextUnit = if (uiState.preferences.currencyUnit == CurrencyUnit.TOMAN) {
+                                                    CurrencyUnit.RIAL
+                                                } else {
+                                                    CurrencyUnit.TOMAN
+                                                }
+                                                viewModel.setCurrencyUnit(nextUnit)
                                             }
-                                            viewModel.setCurrencyUnit(nextUnit)
-                                        }
-                                        .testTag("currency_unit_toggle_chip")
-                                ) {
-                                    Text(
-                                        text = uiState.preferences.currencyUnit.labelFa,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    )
-                                }
+                                            .testTag("currency_unit_toggle_chip")
+                                    ) {
+                                        Text(
+                                            text = uiState.preferences.currencyUnit.labelFa,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                        )
+                                    }
 
-                                // Privacy Mask Toggle Button (مخفی‌سازی ارقام در محیط عمومی)
-                                IconButton(
-                                    onClick = { viewModel.togglePrivacyMask() },
-                                    modifier = Modifier.testTag("privacy_mask_toggle_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = if (uiState.preferences.privacyMaskEnabled) {
-                                            Icons.Default.VisibilityOff
-                                        } else {
-                                            Icons.Default.Visibility
-                                        },
-                                        contentDescription = "مخفی‌سازی ارقام مالی",
-                                        tint = if (uiState.preferences.privacyMaskEnabled) {
-                                            Color(0xFFF59E0B)
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        }
-                                    )
-                                }
+                                    // Privacy Mask Toggle Button
+                                    IconButton(
+                                        onClick = { viewModel.togglePrivacyMask() },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .testTag("privacy_mask_toggle_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (uiState.preferences.privacyMaskEnabled) {
+                                                Icons.Default.VisibilityOff
+                                            } else {
+                                                Icons.Default.Visibility
+                                            },
+                                            contentDescription = "مخفی‌سازی ارقام مالی",
+                                            tint = if (uiState.preferences.privacyMaskEnabled) {
+                                                extColors.warning
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
 
-                                // Interactive Guided Tour Launch Button
-                                IconButton(
-                                    onClick = { viewModel.startGuidedTour() },
-                                    modifier = Modifier.testTag("top_bar_tour_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = "اجرای تور آموزشی تعاملی",
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
+                                    // Interactive Guided Tour Launch Button
+                                    IconButton(
+                                        onClick = { viewModel.startGuidedTour() },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .testTag("top_bar_tour_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = "اجرای تور آموزشی تعاملی",
+                                            tint = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
 
-                                // Immediate Lock Button
-                                IconButton(
-                                    onClick = { viewModel.lockAppImmediately() },
-                                    modifier = Modifier.testTag("top_bar_lock_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "قفل آنی برنامه"
-                                    )
+                                    // Immediate Lock Button
+                                    IconButton(
+                                        onClick = { viewModel.lockAppImmediately() },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .testTag("top_bar_lock_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "قفل آنی برنامه",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     )
                 },
                 bottomBar = {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        // Floating Quick-Action Dock Bar (نوار اقدام سریع شناور برای ثبت قسط و پرداخت در هر صفحه)
-                        val mostUrgentAlert = uiState.smartAlertQueue.firstOrNull()
+                    // Iconic Floating Glassmorphic Pill Dock + Integrated Glowing Center Emerald FAB
+                    Box(
+                        contentAlignment = Alignment.BottomCenter,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .testTag("floating_quick_action_bar")
+                    ) {
                         Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f),
-                            tonalElevation = 4.dp,
+                            shape = RoundedCornerShape(28.dp),
+                            color = extColors.glassSurface,
+                            tonalElevation = 6.dp,
+                            shadowElevation = 14.dp,
+                            border = BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(extColors.cardBorderTop, extColors.cardBorderBottom)
+                                )
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .testTag("floating_quick_action_bar")
+                                .height(64.dp)
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .fillMaxSize()
+                                    .padding(horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Button(
-                                    onClick = {
+                                // First 2 Tabs (Dashboard, Portfolio Tree)
+                                DockTabItem(
+                                    dest = navDestinations[0],
+                                    selected = uiState.activeTab == navDestinations[0].tab,
+                                    onClick = { viewModel.selectTab(navDestinations[0].tab) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                DockTabItem(
+                                    dest = navDestinations[1],
+                                    selected = uiState.activeTab == navDestinations[1].tab,
+                                    onClick = { viewModel.selectTab(navDestinations[1].tab) },
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                // Center Spacer Reserved for Elevated Glowing Emerald FAB
+                                Spacer(modifier = Modifier.width(64.dp))
+
+                                // Last 2 Tabs (Intelligence, Reports & Settings)
+                                DockTabItem(
+                                    dest = navDestinations[2],
+                                    selected = uiState.activeTab == navDestinations[2].tab,
+                                    onClick = { viewModel.selectTab(navDestinations[2].tab) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                DockTabItem(
+                                    dest = navDestinations[3],
+                                    selected = uiState.activeTab == navDestinations[3].tab,
+                                    onClick = { viewModel.selectTab(navDestinations[3].tab) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        // Elevated Center Glowing Emerald Jewel FAB with Rotating Luminous Halo Ring
+                        val haloTransition = rememberInfiniteTransition(label = "FabHaloSpin")
+                        val haloAngle by haloTransition.animateFloat(
+                            initialValue = 0f,
+                            targetValue = 360f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 7000, easing = androidx.compose.animation.core.LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "FabHaloAngle"
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .offset(y = (-15).dp)
+                                .size(66.dp)
+                        ) {
+                            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                                rotate(degrees = haloAngle) {
+                                    drawCircle(
+                                        brush = Brush.sweepGradient(
+                                            listOf(
+                                                Color(0xFF00E5A0),
+                                                Color(0xFFE8C67D).copy(alpha = 0.75f),
+                                                Color.Transparent,
+                                                Color(0xFF38BDF8).copy(alpha = 0.75f),
+                                                Color(0xFF00E5A0)
+                                            )
+                                        ),
+                                        radius = size.minDimension / 2f - 1.5.dp.toPx(),
+                                        style = Stroke(width = 2.dp.toPx())
+                                    )
+                                }
+                            }
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .shadow(
+                                        elevation = 16.dp,
+                                        shape = CircleShape,
+                                        ambientColor = MaterialTheme.colorScheme.primary,
+                                        spotColor = MaterialTheme.colorScheme.primary
+                                    )
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                Color(0xFF34F5B8),
+                                                Color(0xFF00E5A0),
+                                                Color(0xFF049669)
+                                            )
+                                        )
+                                    )
+                                    .border(
+                                        width = 1.6.dp,
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.78f),
+                                                Color(0xFF047857)
+                                            )
+                                        ),
+                                        shape = CircleShape
+                                    )
+                                    .tarazinoPressScale(scaleDown = 0.88f) {
                                         viewModel.openStepByStepWizard(
                                             preselectedCategory = uiState.treeDrill.selectedCategory,
                                             preselectedCounterpartyId = uiState.treeDrill.selectedCounterpartyId
                                         )
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(40.dp)
-                                        .testTag("quick_bar_add_obligation_btn")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "ثبت خرید یا وام جدید",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-
-                                if (mostUrgentAlert != null) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.quickPayInstallment(mostUrgentAlert.installment) },
-                                        shape = RoundedCornerShape(12.dp),
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.primary
-                                        ),
-                                        modifier = Modifier
-                                            .weight(1.15f)
-                                            .height(40.dp)
-                                            .testTag("quick_bar_pay_urgent_btn")
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Bolt,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "تسویه فوری: ${
-                                                PersianCurrencyEngine.formatAmount(
-                                                    amountToman = mostUrgentAlert.installment.remainingToman,
-                                                    unit = uiState.preferences.currencyUnit,
-                                                    privacyMasked = uiState.preferences.privacyMaskEnabled
-                                                )
-                                            }",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
                                     }
-                                }
-                            }
-                        }
-
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ) {
-                            val navItems = listOf(
-                                Triple(TarazinoNavTab.DASHBOARD, "داشبورد", Icons.Default.Dashboard),
-                                Triple(TarazinoNavTab.PORTFOLIO_TREE, "پوشه اقساط", Icons.Default.AccountTree),
-                                Triple(TarazinoNavTab.INTELLIGENCE, "هوش مالی", Icons.Default.Insights),
-                                Triple(TarazinoNavTab.REPORTS_SETTINGS, "گزارش و تنظیمات", Icons.Default.PictureAsPdf)
-                            )
-                            navItems.forEach { (tab, label, icon) ->
-                                NavigationBarItem(
-                                    selected = uiState.activeTab == tab,
-                                    onClick = { viewModel.selectTab(tab) },
-                                    icon = { Icon(imageVector = icon, contentDescription = label) },
-                                    label = {
-                                        Text(
-                                            text = label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            maxLines = 1
-                                        )
-                                    },
-                                    modifier = Modifier.testTag("bottom_nav_${tab.name.lowercase()}")
+                                    .testTag("quick_bar_add_obligation_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "ثبت قسط، خرید اقساطی یا وام جدید",
+                                    tint = Color(0xFF022019),
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
@@ -360,18 +535,26 @@ fun TarazinoAppRoot(
                         .padding(innerPadding)
                 ) {
                     // Celebratory Banner on Installment Settlement
-                    AnimatedVisibility(visible = uiState.celebrationMessageFa != null) {
+                    AnimatedVisibility(
+                        visible = uiState.celebrationMessageFa != null,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
                         uiState.celebrationMessageFa?.let { msg ->
                             Surface(
+                                shape = RoundedCornerShape(16.dp),
                                 color = Color(0xFF065F46),
+                                border = BorderStroke(1.dp, Color(0xFF34D399).copy(alpha = 0.55f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable { viewModel.clearCelebration() }
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
@@ -379,13 +562,21 @@ fun TarazinoAppRoot(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            tint = Color(0xFF34D399),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF34D399).copy(alpha = 0.2f))
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = null,
+                                                tint = Color(0xFF34D399),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
                                         Text(
                                             text = msg,
                                             style = MaterialTheme.typography.labelLarge,
@@ -396,6 +587,7 @@ fun TarazinoAppRoot(
                                     Text(
                                         text = "بستن",
                                         style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
                                         color = Color(0xFFA7F3D0)
                                     )
                                 }
@@ -404,173 +596,191 @@ fun TarazinoAppRoot(
                     }
 
                     // Toast Feedback Banner
-                    AnimatedVisibility(visible = uiState.toastMessageFa != null) {
+                    AnimatedVisibility(
+                        visible = uiState.toastMessageFa != null,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
                         uiState.toastMessageFa?.let { toast ->
-                            Box(
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable { viewModel.clearToast() }
-                                    .padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
                                 Text(
                                     text = toast,
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                                 )
                             }
                         }
                     }
 
-                    // Active Tab Screen Content
+                    // Active Tab Screen Content with Smooth Transitions
                     Box(modifier = Modifier.weight(1f)) {
-                        when (uiState.activeTab) {
-                            TarazinoNavTab.DASHBOARD -> DashboardScreen(
-                                uiState = uiState,
-                                tourScrollIndex = activeTabScrollIndex,
-                                onQuickPay = { viewModel.quickPayInstallment(it) },
-                                onSnoozeTomorrow = { viewModel.snoozeInstallmentTomorrow(it) },
-                                onOpenNewObligationWizard = { viewModel.openStepByStepWizard() },
-                                onOpenCategoryInTree = { cat -> viewModel.openCategoryFolderInTree(cat) },
-                                onOpenCounterpartyInTree = { cp -> viewModel.selectTreeCounterparty(cp) },
-                                onOpenObligationInTree = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
-                                onOpenIntelligenceTab = { viewModel.selectTab(TarazinoNavTab.INTELLIGENCE) },
-                                onOpenFullA4Report = { viewModel.openA4ReportPreview() }
-                            )
+                        AnimatedContent(
+                            targetState = uiState.activeTab,
+                            transitionSpec = {
+                                fadeIn(animationSpec = tween(220)) togetherWith
+                                    fadeOut(animationSpec = tween(160))
+                            },
+                            label = "TarazinoMainTabTransition"
+                        ) { targetTab ->
+                            when (targetTab) {
+                                TarazinoNavTab.DASHBOARD -> DashboardScreen(
+                                    uiState = uiState,
+                                    tourScrollIndex = activeTabScrollIndex,
+                                    onQuickPay = { viewModel.quickPayInstallment(it) },
+                                    onSnoozeTomorrow = { viewModel.snoozeInstallmentTomorrow(it) },
+                                    onOpenNewObligationWizard = { viewModel.openStepByStepWizard() },
+                                    onOpenCategoryInTree = { cat -> viewModel.openCategoryFolderInTree(cat) },
+                                    onOpenCounterpartyInTree = { cp -> viewModel.selectTreeCounterparty(cp) },
+                                    onOpenObligationInTree = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
+                                    onOpenIntelligenceTab = { viewModel.selectTab(TarazinoNavTab.INTELLIGENCE) },
+                                    onOpenFullA4Report = { viewModel.openA4ReportPreview() }
+                                )
 
-                            TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
-                                uiState = uiState,
-                                tourScrollIndex = activeTabScrollIndex,
-                                onSelectCategory = { cat -> viewModel.openCategoryFolderInTree(cat) },
-                                onSelectCounterparty = { cp -> viewModel.selectTreeCounterparty(cp) },
-                                onSelectObligation = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
-                                onStepBackInTree = { viewModel.stepBackInTree() },
-                                onResetTreeToRoot = { viewModel.resetTreeToRoot() },
-                                onOpenWizard = { cat, cpId -> viewModel.openStepByStepWizard(cat, cpId) },
-                                onSaveCounterparty = { viewModel.saveCounterparty(it) },
-                                onDeleteCounterparty = { id, name -> viewModel.deleteCounterparty(id, name) },
-                                onDeleteObligation = { id, title -> viewModel.deleteObligation(id, title) },
-                                onUpdateObligationDetails = { ob -> viewModel.updateObligationDetails(ob) },
-                                onQuickPayInstallment = { viewModel.quickPayInstallment(it) },
-                                onBatchPayInstallments = { ids -> viewModel.batchPayInstallments(ids) },
-                                onDetailedInstallmentUpdate = { inst, title, baseAmt, dueDate, paid, fee, disc, paidDate, code, note ->
-                                    viewModel.applyDetailedInstallmentPayment(
-                                        installment = inst,
-                                        customTitle = title,
-                                        customBaseAmountToman = baseAmt,
-                                        customDueDateJalali = dueDate,
-                                        paidAmountToman = paid,
-                                        lateFeeToman = fee,
-                                        discountToman = disc,
-                                        paidDateJalali = paidDate,
-                                        trackingCode = code,
-                                        note = note
-                                    )
-                                },
-                                onAddSingleCustomInstallment = { obId, nextNum, title, dueDate, amt, isPaid, note ->
-                                    viewModel.addSingleCustomInstallmentToObligation(
-                                        obligationId = obId,
-                                        nextNumber = nextNum,
-                                        title = title,
-                                        dueDateJalali = dueDate,
-                                        amountToman = amt,
-                                        isAlreadyPaid = isPaid,
-                                        note = note
-                                    )
-                                },
-                                onDeleteSingleInstallment = { id, title ->
-                                    viewModel.deleteSingleInstallment(id, title)
-                                },
-                                onAddSubRecord = { ob, sub -> viewModel.addSubRecordToObligation(ob, sub) },
-                                onOpenCounterpartyA4Report = { cp ->
-                                    viewModel.openA4ReportPreview(
-                                        reportTitleFa = "صورتحساب اختصاصی زیرمجموعه: ${cp.name}",
-                                        subtitleFa = "${cp.categoryEnum.labelFa} • ${cp.priorityEnum.labelFa}",
-                                        filterCounterpartyId = cp.id
-                                    )
-                                },
-                                onOpenObligationA4Report = { ob ->
-                                    viewModel.openA4ReportPreview(
-                                        reportTitleFa = "جدول رسمی اقساط: ${ob.title}",
-                                        subtitleFa = "${ob.categoryEnum.labelFa} • ${ob.scheduleModeEnum.labelFa}",
-                                        filterObligationId = ob.id
-                                    )
-                                },
-                                onShowToast = { viewModel.showToast(it) }
-                            )
+                                TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
+                                    uiState = uiState,
+                                    tourScrollIndex = activeTabScrollIndex,
+                                    onSelectCategory = { cat -> viewModel.openCategoryFolderInTree(cat) },
+                                    onSelectCounterparty = { cp -> viewModel.selectTreeCounterparty(cp) },
+                                    onSelectObligation = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
+                                    onStepBackInTree = { viewModel.stepBackInTree() },
+                                    onResetTreeToRoot = { viewModel.resetTreeToRoot() },
+                                    onOpenWizard = { cat, cpId -> viewModel.openStepByStepWizard(cat, cpId) },
+                                    onSaveCounterparty = { viewModel.saveCounterparty(it) },
+                                    onDeleteCounterparty = { id, name -> viewModel.deleteCounterparty(id, name) },
+                                    onDeleteObligation = { id, title -> viewModel.deleteObligation(id, title) },
+                                    onUpdateObligationDetails = { ob -> viewModel.updateObligationDetails(ob) },
+                                    onQuickPayInstallment = { viewModel.quickPayInstallment(it) },
+                                    onBatchPayInstallments = { ids -> viewModel.batchPayInstallments(ids) },
+                                    onDetailedInstallmentUpdate = { inst, title, baseAmt, dueDate, paid, fee, disc, paidDate, code, note ->
+                                        viewModel.applyDetailedInstallmentPayment(
+                                            installment = inst,
+                                            customTitle = title,
+                                            customBaseAmountToman = baseAmt,
+                                            customDueDateJalali = dueDate,
+                                            paidAmountToman = paid,
+                                            lateFeeToman = fee,
+                                            discountToman = disc,
+                                            paidDateJalali = paidDate,
+                                            trackingCode = code,
+                                            note = note
+                                        )
+                                    },
+                                    onAddSingleCustomInstallment = { obId, nextNum, title, dueDate, amt, isPaid, note ->
+                                        viewModel.addSingleCustomInstallmentToObligation(
+                                            obligationId = obId,
+                                            nextNumber = nextNum,
+                                            title = title,
+                                            dueDateJalali = dueDate,
+                                            amountToman = amt,
+                                            isAlreadyPaid = isPaid,
+                                            note = note
+                                        )
+                                    },
+                                    onDeleteSingleInstallment = { id, title ->
+                                        viewModel.deleteSingleInstallment(id, title)
+                                    },
+                                    onAddSubRecord = { ob, sub -> viewModel.addSubRecordToObligation(ob, sub) },
+                                    onOpenCounterpartyA4Report = { cp ->
+                                        viewModel.openA4ReportPreview(
+                                            reportTitleFa = "صورتحساب اختصاصی زیرمجموعه: ${cp.name}",
+                                            subtitleFa = "${cp.categoryEnum.labelFa} • ${cp.priorityEnum.labelFa}",
+                                            filterCounterpartyId = cp.id
+                                        )
+                                    },
+                                    onOpenObligationA4Report = { ob ->
+                                        viewModel.openA4ReportPreview(
+                                            reportTitleFa = "جدول رسمی اقساط: ${ob.title}",
+                                            subtitleFa = "${ob.categoryEnum.labelFa} • ${ob.scheduleModeEnum.labelFa}",
+                                            filterObligationId = ob.id
+                                        )
+                                    },
+                                    onShowToast = { viewModel.showToast(it) }
+                                )
 
-                            TarazinoNavTab.INTELLIGENCE -> IntelligenceScreen(
-                                uiState = uiState,
-                                tourScrollIndex = activeTabScrollIndex,
-                                onUpdateExtraPayoffBudget = { viewModel.updateExtraPayoffBudget(it) },
-                                onChangeHeatmapMonth = { viewModel.changeHeatmapMonth(it) },
-                                onUpdateBudgetPlannerSettings = { inc, livingPct, days ->
-                                    viewModel.updateBudgetPlannerSettings(inc, livingPct, days)
-                                }
-                            )
+                                TarazinoNavTab.INTELLIGENCE -> IntelligenceScreen(
+                                    uiState = uiState,
+                                    tourScrollIndex = activeTabScrollIndex,
+                                    onUpdateExtraPayoffBudget = { viewModel.updateExtraPayoffBudget(it) },
+                                    onChangeHeatmapMonth = { viewModel.changeHeatmapMonth(it) },
+                                    onUpdateBudgetPlannerSettings = { inc, livingPct, days ->
+                                        viewModel.updateBudgetPlannerSettings(inc, livingPct, days)
+                                    }
+                                )
 
-                            TarazinoNavTab.REPORTS_SETTINGS -> ReportsAndSettingsScreen(
-                                uiState = uiState,
-                                tourScrollIndex = activeTabScrollIndex,
-                                onOpenFullA4Report = { viewModel.openA4ReportPreview() },
-                                onOpenCounterpartyA4Report = { cp ->
-                                    viewModel.openA4ReportPreview(
-                                        reportTitleFa = "صورتحساب اختصاصی طرف‌حساب: ${cp.name}",
-                                        subtitleFa = cp.categoryEnum.labelFa,
-                                        filterCounterpartyId = cp.id
-                                    )
-                                },
-                                onDirectExportPdf = {
-                                    val payload = ReportExportEngine.buildReportPayload(
-                                        reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
-                                        subtitleFa = "خروجی رسمی استاندارد A4 ترازینو",
-                                        obligations = uiState.obligations,
-                                        installments = uiState.installments,
-                                        counterparties = uiState.counterparties,
-                                        currencyUnit = uiState.preferences.currencyUnit
-                                    )
-                                    viewModel.exportA4Pdf(context, payload)
-                                },
-                                onDirectExportExcel = {
-                                    val payload = ReportExportEngine.buildReportPayload(
-                                        reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
-                                        subtitleFa = "خروجی اکسل راست‌به‌چپ ترازینو",
-                                        obligations = uiState.obligations,
-                                        installments = uiState.installments,
-                                        counterparties = uiState.counterparties,
-                                        currencyUnit = uiState.preferences.currencyUnit
-                                    )
-                                    viewModel.exportRtlExcel(context, payload)
-                                },
-                                onDirectExportCsv = {
-                                    val payload = ReportExportEngine.buildReportPayload(
-                                        reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
-                                        subtitleFa = "خروجی CSV جهانی ترازینو",
-                                        obligations = uiState.obligations,
-                                        installments = uiState.installments,
-                                        counterparties = uiState.counterparties,
-                                        currencyUnit = uiState.preferences.currencyUnit
-                                    )
-                                    viewModel.exportUtf8Csv(context, payload)
-                                },
-                                onSetThemeMode = { viewModel.setThemeMode(it) },
-                                onSetCurrencyUnit = { viewModel.setCurrencyUnit(it) },
-                                onSetFontScale = { viewModel.setFontScale(it) },
-                                onConfigureSecurityPin = { pin, len, bio, q, ans ->
-                                    viewModel.configureSecurityPin(pin, len, bio, q, ans)
-                                },
-                                onRemoveSecurityPin = { viewModel.removeSecurityPin() },
-                                onLockAppNow = { viewModel.lockAppImmediately() },
-                                onStartGuidedTour = { viewModel.startGuidedTour() },
-                                onClearAllDataToZero = { viewModel.clearAllDataToZero() },
-                                onRestoreDemoSeedData = { viewModel.restoreDemoSeedData() },
-                                onExportBackupJson = { cb -> viewModel.exportFullBackupJson(cb) },
-                                onImportBackupJson = { viewModel.importFullBackupJson(it) },
-                                onShowToast = { viewModel.showToast(it) }
-                            )
+                                TarazinoNavTab.REPORTS_SETTINGS -> ReportsAndSettingsScreen(
+                                    uiState = uiState,
+                                    tourScrollIndex = activeTabScrollIndex,
+                                    onOpenFullA4Report = { viewModel.openA4ReportPreview() },
+                                    onOpenCounterpartyA4Report = { cp ->
+                                        viewModel.openA4ReportPreview(
+                                            reportTitleFa = "صورتحساب اختصاصی طرف‌حساب: ${cp.name}",
+                                            subtitleFa = cp.categoryEnum.labelFa,
+                                            filterCounterpartyId = cp.id
+                                        )
+                                    },
+                                    onDirectExportPdf = {
+                                        val payload = ReportExportEngine.buildReportPayload(
+                                            reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
+                                            subtitleFa = "خروجی رسمی استاندارد A4 ترازینو",
+                                            obligations = uiState.obligations,
+                                            installments = uiState.installments,
+                                            counterparties = uiState.counterparties,
+                                            currencyUnit = uiState.preferences.currencyUnit
+                                        )
+                                        viewModel.exportA4Pdf(context, payload)
+                                    },
+                                    onDirectExportExcel = {
+                                        val payload = ReportExportEngine.buildReportPayload(
+                                            reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
+                                            subtitleFa = "خروجی اکسل راست‌به‌چپ ترازینو",
+                                            obligations = uiState.obligations,
+                                            installments = uiState.installments,
+                                            counterparties = uiState.counterparties,
+                                            currencyUnit = uiState.preferences.currencyUnit
+                                        )
+                                        viewModel.exportRtlExcel(context, payload)
+                                    },
+                                    onDirectExportCsv = {
+                                        val payload = ReportExportEngine.buildReportPayload(
+                                            reportTitleFa = "گزارش جامع وضعیت اقساط و تعهدات مالی",
+                                            subtitleFa = "خروجی CSV جهانی ترازینو",
+                                            obligations = uiState.obligations,
+                                            installments = uiState.installments,
+                                            counterparties = uiState.counterparties,
+                                            currencyUnit = uiState.preferences.currencyUnit
+                                        )
+                                        viewModel.exportUtf8Csv(context, payload)
+                                    },
+                                    onSetThemeMode = { viewModel.setThemeMode(it) },
+                                    onSetCurrencyUnit = { viewModel.setCurrencyUnit(it) },
+                                    onSetFontScale = { viewModel.setFontScale(it) },
+                                    onConfigureSecurityPin = { pin, len, bio, q, ans ->
+                                        viewModel.configureSecurityPin(pin, len, bio, q, ans)
+                                    },
+                                    onRemoveSecurityPin = { viewModel.removeSecurityPin() },
+                                    onLockAppNow = { viewModel.lockAppImmediately() },
+                                    onStartGuidedTour = { viewModel.startGuidedTour() },
+                                    onClearAllDataToZero = { viewModel.clearAllDataToZero() },
+                                    onRestoreDemoSeedData = { viewModel.restoreDemoSeedData() },
+                                    onExportBackupJson = { cb -> viewModel.exportFullBackupJson(cb) },
+                                    onImportBackupJson = { viewModel.importFullBackupJson(it) },
+                                    onShowToast = { viewModel.showToast(it) }
+                                )
+                            }
                         }
                     }
                 }
@@ -612,6 +822,11 @@ fun TarazinoAppRoot(
                 )
             }
 
+            // Procedural 60fps Emerald & Gold Confetti Burst on Installment Settlement
+            uiState.celebrationMessageFa?.let { msg ->
+                TarazinoCelebrationConfettiBurst(triggerKey = msg)
+            }
+
             // Security Vault Lock Gate Overlay
             if (uiState.isVaultLocked) {
                 SecurityLockOverlay(
@@ -625,5 +840,61 @@ fun TarazinoAppRoot(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DockTabItem(
+    dest: NavBarDestination,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "DockTabColor_${dest.tab.name}"
+    )
+    val pillBg by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "DockTabBg_${dest.tab.name}"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = modifier
+            .height(54.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(pillBg)
+            .tarazinoPressScale(scaleDown = 0.92f, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .testTag("bottom_nav_${dest.tab.name.lowercase()}")
+    ) {
+        Icon(
+            imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
+            contentDescription = dest.labelFa,
+            tint = contentColor,
+            modifier = Modifier.size(21.dp)
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = dest.labelFa,
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 10.sp,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .width(if (selected) 14.dp else 0.dp)
+                .height(2.5.dp)
+                .clip(CircleShape)
+                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+        )
     }
 }
