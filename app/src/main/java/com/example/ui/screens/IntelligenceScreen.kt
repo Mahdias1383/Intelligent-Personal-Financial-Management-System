@@ -228,12 +228,15 @@ fun IntelligenceScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Text(
-                                            text = "سقف امن قسط جدید ماهانه",
+                                            text = "سقف امن قسط جدید",
                                             style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.Bold
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
                                         )
                                         TarazinoStatusPill(
                                             text = if (hasCapacity) "ظرفیت باز" else "تکمیل",
@@ -381,12 +384,18 @@ fun IntelligenceScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
                                         Text(
                                             text = "${slice.labelFa} (${slice.rangeLabelFa})",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isPeak) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface
+                                            color = if (isPeak) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
                                         )
                                         if (isPeak) {
                                             Spacer(modifier = Modifier.width(6.dp))
@@ -396,12 +405,14 @@ fun IntelligenceScreen(
                                             )
                                         }
                                     }
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "${PersianCurrencyEngine.formatAmount(slice.amountToman, unit, privacyMasked = masked)} (${
                                             PersianCurrencyEngine.toPersianDigits(slice.sharePercent.toString())
                                         }٪)",
                                         style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(5.dp))
@@ -1301,19 +1312,21 @@ private fun FinancialHealthSpeedometerGauge(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
 
     Box(
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
         modifier = Modifier
             .fillMaxWidth()
-            .height(172.dp)
+            .height(188.dp)
     ) {
         Canvas(
             modifier = Modifier
-                .size(210.dp)
-                .padding(top = 8.dp)
+                .size(width = 204.dp, height = 164.dp)
+                .padding(top = 6.dp)
         ) {
-            val strokePx = 15.dp.toPx()
-            val arcDiameter = size.minDimension - strokePx
-            val topLeft = Offset((size.width - arcDiameter) / 2f, strokePx / 2f)
+            val strokePx = 14.dp.toPx()
+            val auraExtraPx = 8.dp.toPx()
+            val safeInset = (strokePx + auraExtraPx) / 2f
+            val arcDiameter = (minOf(size.width, size.height * 1.15f) - safeInset * 2f).coerceAtLeast(80f)
+            val topLeft = Offset((size.width - arcDiameter) / 2f, safeInset)
             val arcSize = Size(arcDiameter, arcDiameter)
             val startAngle = 160f
             val totalSweep = 220f
@@ -1339,7 +1352,7 @@ private fun FinancialHealthSpeedometerGauge(
                     useCenter = false,
                     topLeft = topLeft,
                     size = arcSize,
-                    style = Stroke(width = strokePx + 9.dp.toPx(), cap = StrokeCap.Round)
+                    style = Stroke(width = strokePx + auraExtraPx, cap = StrokeCap.Round)
                 )
 
                 // Active gradient arc
@@ -1369,12 +1382,12 @@ private fun FinancialHealthSpeedometerGauge(
 
                 drawCircle(
                     color = Color.White,
-                    radius = 5.5.dp.toPx(),
+                    radius = 5.dp.toPx(),
                     center = Offset(tipX, tipY)
                 )
                 drawCircle(
                     color = statusColor,
-                    radius = 3.dp.toPx(),
+                    radius = 2.8.dp.toPx(),
                     center = Offset(tipX, tipY)
                 )
             }
@@ -1382,12 +1395,15 @@ private fun FinancialHealthSpeedometerGauge(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 28.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 2.dp)
         ) {
             Text(
                 text = "شاخص سلامت مالی",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
             )
             Row(
                 verticalAlignment = Alignment.Bottom,
@@ -1397,13 +1413,15 @@ private fun FinancialHealthSpeedometerGauge(
                     text = PersianCurrencyEngine.toPersianDigits(score.toString()),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Black,
-                    color = statusColor
+                    color = statusColor,
+                    maxLines = 1
                 )
                 Text(
                     text = "/ ۱۰۰",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 7.dp)
+                    modifier = Modifier.padding(bottom = 6.dp),
+                    maxLines = 1
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -1456,30 +1474,32 @@ private fun StrategySegmentButton(
         shape = RoundedCornerShape(14.dp),
         color = bgColor,
         modifier = modifier
-            .height(64.dp)
             .border(
-                width = if (selected) 1.5.dp else 1.dp,
+                width = if (selected) 1.4.dp else 0.85.dp,
                 color = borderColor,
                 shape = RoundedCornerShape(14.dp)
             )
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = if (selected) Icons.Default.CheckCircle else icon,
-                contentDescription = null,
-                tint = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (selected) Icons.Default.CheckCircle else icon,
+                    contentDescription = null,
+                    tint = if (selected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
                 Text(
                     text = titleFa,
                     style = MaterialTheme.typography.labelLarge,
@@ -1488,14 +1508,15 @@ private fun StrategySegmentButton(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = subtitleFa,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = subtitleFa,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

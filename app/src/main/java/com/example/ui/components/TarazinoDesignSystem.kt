@@ -682,18 +682,19 @@ fun TarazinoSlideToSettleBar(
         val thumbSizeDp = 36.dp
         val padDp = 4.dp
         val maxTravelPx = with(density) { (maxWidth - thumbSizeDp - padDp * 2).toPx().coerceAtLeast(1f) }
+        val baseFillFrac = ((thumbSizeDp + padDp * 2) / maxWidth).coerceIn(0.12f, 0.36f)
 
         // Dynamic luminous fill growing behind the dragged thumb (RTL start -> end)
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
                 .fillMaxHeight()
-                .fillMaxWidth((0.18f + animFraction * 0.82f).coerceIn(0f, 1f))
+                .fillMaxWidth((baseFillFrac + animFraction * (1f - baseFillFrac)).coerceIn(0f, 1f))
                 .background(
                     Brush.horizontalGradient(
                         listOf(
                             accentColor.copy(alpha = 0.10f),
-                            accentColor.copy(alpha = 0.36f + animFraction * 0.35f)
+                            accentColor.copy(alpha = 0.34f + animFraction * 0.35f)
                         )
                     )
                 )
@@ -1156,7 +1157,17 @@ fun AnimatedOdometerMoneyText(
         previousAmount = amountToman
     }
 
-    val unitFontSize = (style.fontSize.value * 0.50f).coerceAtLeast(11f).sp
+    val adaptiveScale = when {
+        formattedDigits.length >= 13 -> 0.68f
+        formattedDigits.length >= 11 -> 0.78f
+        formattedDigits.length >= 9 -> 0.88f
+        else -> 1f
+    }
+    val adaptiveStyle = style.copy(
+        fontSize = (style.fontSize.value * adaptiveScale).sp,
+        lineHeight = (style.lineHeight.value * adaptiveScale).sp
+    )
+    val unitFontSize = (adaptiveStyle.fontSize.value * 0.50f).coerceAtLeast(11f).sp
 
     Row(
         verticalAlignment = Alignment.Bottom,
@@ -1168,43 +1179,44 @@ fun AnimatedOdometerMoneyText(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 formattedDigits.forEachIndexed { idx, ch ->
                     val slotKey = formattedDigits.length - idx
-                    AnimatedContent(
-                        targetState = ch,
-                        transitionSpec = {
-                            val dir = if (rollingUp) 1 else -1
-                            (slideInVertically(
-                                animationSpec = spring(
-                                    dampingRatio = 0.78f,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            ) { h -> dir * (h * 0.65f).roundToInt() } + fadeIn(tween(180))) togetherWith
-                                (slideOutVertically(
-                                    animationSpec = tween(150, easing = FastOutSlowInEasing)
-                                ) { h -> -dir * (h * 0.55f).roundToInt() } + fadeOut(tween(130)))
-                        },
-                        label = "OdometerDigit_$slotKey"
-                    ) { charState ->
-                        Text(
-                            text = charState.toString(),
-                            style = style,
-                            fontWeight = FontWeight.Black,
-                            color = numberColor,
-                            maxLines = 1
-                        )
+                    androidx.compose.runtime.key(slotKey) {
+                        AnimatedContent(
+                            targetState = ch,
+                            transitionSpec = {
+                                val dir = if (rollingUp) 1 else -1
+                                (slideInVertically(
+                                    animationSpec = spring(
+                                        dampingRatio = 0.78f,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                ) { h -> dir * (h * 0.65f).roundToInt() } + fadeIn(tween(180))) togetherWith
+                                    (slideOutVertically(
+                                        animationSpec = tween(150, easing = FastOutSlowInEasing)
+                                    ) { h -> -dir * (h * 0.55f).roundToInt() } + fadeOut(tween(130)))
+                            },
+                            label = "OdometerDigit_$slotKey"
+                        ) { charState ->
+                            Text(
+                                text = charState.toString(),
+                                style = adaptiveStyle,
+                                fontWeight = FontWeight.Black,
+                                color = numberColor,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
         }
         Text(
             text = unit.labelFa,
-            style = style.copy(
+            style = adaptiveStyle.copy(
                 fontSize = unitFontSize,
-                fontWeight = FontWeight.Medium,
-                lineHeight = style.lineHeight
+                fontWeight = FontWeight.Medium
             ),
             color = unitColor,
             maxLines = 1,
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 3.dp)
         )
     }
 }

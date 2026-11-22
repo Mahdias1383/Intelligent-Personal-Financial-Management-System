@@ -275,10 +275,11 @@ fun TarazinoAppRoot(
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
                                         Text(
-                                            text = "خزانه امن • $todayShortHeader",
+                                            text = "خزانه • $todayShortHeader",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
@@ -289,7 +290,7 @@ fun TarazinoAppRoot(
                                 shape = RoundedCornerShape(16.dp),
                                 color = extColors.glassSurface,
                                 border = BorderStroke(
-                                    1.dp,
+                                    0.8.dp,
                                     Brush.verticalGradient(listOf(extColors.cardBorderTop, extColors.cardBorderBottom))
                                 ),
                                 modifier = Modifier
@@ -302,15 +303,15 @@ fun TarazinoAppRoot(
                                 ) {
                                     // Currency Unit Quick Toggle Chip (تومان / ریال)
                                     Surface(
-                                        shape = RoundedCornerShape(11.dp),
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                         border = BorderStroke(
-                                            0.8.dp,
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                            0.75.dp,
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
                                         ),
                                         modifier = Modifier
                                             .padding(start = 2.dp)
-                                            .clip(RoundedCornerShape(11.dp))
+                                            .clip(RoundedCornerShape(10.dp))
                                             .clickable {
                                                 val nextUnit = if (uiState.preferences.currencyUnit == CurrencyUnit.TOMAN) {
                                                     CurrencyUnit.RIAL
@@ -326,7 +327,8 @@ fun TarazinoAppRoot(
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                         )
                                     }
 
@@ -334,7 +336,7 @@ fun TarazinoAppRoot(
                                     IconButton(
                                         onClick = { viewModel.togglePrivacyMask() },
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(32.dp)
                                             .testTag("privacy_mask_toggle_btn")
                                     ) {
                                         Icon(
@@ -349,7 +351,7 @@ fun TarazinoAppRoot(
                                             } else {
                                                 MaterialTheme.colorScheme.onSurfaceVariant
                                             },
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
@@ -357,14 +359,14 @@ fun TarazinoAppRoot(
                                     IconButton(
                                         onClick = { viewModel.startGuidedTour() },
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(32.dp)
                                             .testTag("top_bar_tour_btn")
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.AutoAwesome,
                                             contentDescription = "اجرای تور آموزشی تعاملی",
                                             tint = MaterialTheme.colorScheme.secondary,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(17.dp)
                                         )
                                     }
 
@@ -372,14 +374,14 @@ fun TarazinoAppRoot(
                                     IconButton(
                                         onClick = { viewModel.lockAppImmediately() },
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(32.dp)
                                             .testTag("top_bar_lock_btn")
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Lock,
                                             contentDescription = "قفل آنی برنامه",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(17.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
@@ -388,13 +390,13 @@ fun TarazinoAppRoot(
                     )
                 },
                 bottomBar = {
-                    // Sleek Weightless Floating Glass Pill Dock + Delicate Center Emerald FAB
+                    // Sleek Floating Glass Pill Dock + Properly Height-Reserved Center Emerald FAB (Zero Overlap!)
                     Box(
-                        contentAlignment = Alignment.BottomCenter,
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(74.dp)
                             .testTag("floating_quick_action_bar")
                     ) {
                         Surface(
@@ -409,8 +411,9 @@ fun TarazinoAppRoot(
                                 )
                             ),
                             modifier = Modifier
+                                .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
-                                .height(60.dp)
+                                .height(58.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -434,7 +437,7 @@ fun TarazinoAppRoot(
                                 )
 
                                 // Center Spacer Reserved for Elevated Emerald FAB
-                                Spacer(modifier = Modifier.width(60.dp))
+                                Spacer(modifier = Modifier.width(66.dp))
 
                                 // Last 2 Tabs (Intelligence, Reports & Settings)
                                 DockTabItem(
@@ -452,7 +455,7 @@ fun TarazinoAppRoot(
                             }
                         }
 
-                        // Elevated Center Emerald Jewel FAB with Whisper-Thin Rotating Orbital Arc
+                        // Elevated Center Emerald Jewel FAB seated cleanly inside its own 62dp mask ring (No border collision!)
                         val haloTransition = rememberInfiniteTransition(label = "FabHaloSpin")
                         val haloAngle by haloTransition.animateFloat(
                             initialValue = 0f,
@@ -466,10 +469,12 @@ fun TarazinoAppRoot(
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .offset(y = (-13).dp)
-                                .size(60.dp)
+                                .align(Alignment.TopCenter)
+                                .size(62.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.94f))
                         ) {
-                            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                            androidx.compose.foundation.Canvas(modifier = Modifier.size(58.dp)) {
                                 rotate(degrees = haloAngle) {
                                     drawCircle(
                                         brush = Brush.sweepGradient(
@@ -489,7 +494,7 @@ fun TarazinoAppRoot(
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(52.dp)
+                                    .size(50.dp)
                                     .shadow(
                                         elevation = 10.dp,
                                         shape = CircleShape,

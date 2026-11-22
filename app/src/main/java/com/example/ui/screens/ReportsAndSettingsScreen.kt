@@ -154,7 +154,7 @@ fun ReportsAndSettingsScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         TarazinoSectionHeader(
                             title = "استودیو گزارش‌گیری و چاپ رسمی A4",
-                            subtitle = "برگه رنگی A4 با فونت وزیرمتن، کادر مهر و امضا و اکسل راست‌به‌چپ",
+                            subtitle = "برگه رنگی A4 استاندارد، کادر مهر و امضا و اکسل راست‌به‌چپ",
                             icon = Icons.Default.PictureAsPdf,
                             accentColor = MaterialTheme.colorScheme.primary
                         )
@@ -319,7 +319,7 @@ fun ReportsAndSettingsScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         TarazinoSectionHeader(
                             title = "شخصی‌سازی پوسته، واحد پول و نمایش",
-                            subtitle = "تنظیم ظاهر حرفه‌ای، مقیاس فونت وزیرمتن و بازپخش تور آموزشی",
+                            subtitle = "تنظیم ظاهر مدرن، مقیاس فونت فارسی و بازپخش تور آموزشی",
                             icon = Icons.Default.Palette,
                             accentColor = MaterialTheme.colorScheme.primary
                         )
@@ -341,9 +341,9 @@ fun ReportsAndSettingsScreen(
                             ThemePreviewSwatchCard(
                                 mode = TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
                                 titleFa = "زمرد شب",
-                                bgPreview = Color(0xFF070D11),
-                                surfacePreview = Color(0xFF14222A),
-                                accentPreview = Color(0xFF10B981),
+                                bgPreview = Color(0xFF0D1119),
+                                surfacePreview = Color(0xFF151C28),
+                                accentPreview = Color(0xFF10E5A5),
                                 selected = uiState.preferences.themeMode == TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
                                 onClick = { onSetThemeMode(TarazinoThemeMode.OBSIDIAN_EMERALD_DARK) },
                                 modifier = Modifier
@@ -353,7 +353,7 @@ fun ReportsAndSettingsScreen(
                             ThemePreviewSwatchCard(
                                 mode = TarazinoThemeMode.ALABASTER_LIGHT,
                                 titleFa = "مرمر روشن",
-                                bgPreview = Color(0xFFF4F7F6),
+                                bgPreview = Color(0xFFF6F9F8),
                                 surfacePreview = Color(0xFFFFFFFF),
                                 accentPreview = Color(0xFF047857),
                                 selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
@@ -365,9 +365,9 @@ fun ReportsAndSettingsScreen(
                             ThemePreviewSwatchCard(
                                 mode = TarazinoThemeMode.DEEP_SAPPHIRE,
                                 titleFa = "اقیانوس کبود",
-                                bgPreview = Color(0xFF070C19),
-                                surfacePreview = Color(0xFF13203E),
-                                accentPreview = Color(0xFF06B6D4),
+                                bgPreview = Color(0xFF0C1222),
+                                surfacePreview = Color(0xFF152038),
+                                accentPreview = Color(0xFF38BDF8),
                                 selected = uiState.preferences.themeMode == TarazinoThemeMode.DEEP_SAPPHIRE,
                                 onClick = { onSetThemeMode(TarazinoThemeMode.DEEP_SAPPHIRE) },
                                 modifier = Modifier
@@ -395,7 +395,7 @@ fun ReportsAndSettingsScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "مقیاس اندازه فونت وزیرمتن:",
+                            text = "مقیاس اندازه فونت برنامه:",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -569,20 +569,27 @@ fun ReportsAndSettingsScreen(
                                     recAnswer = ""
                                 },
                                 shape = RoundedCornerShape(13.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                 modifier = Modifier
-                                    .weight(1.3f)
+                                    .weight(1.35f)
                                     .testTag("save_security_pin_btn")
                             ) {
-                                Text("فعال‌سازی / ذخیره قفل", fontWeight = FontWeight.Bold, maxLines = 1)
+                                Text(
+                                    text = "ذخیره و فعال‌سازی قفل",
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                             if (isPinActive) {
                                 OutlinedButton(
                                     onClick = onRemoveSecurityPin,
                                     shape = RoundedCornerShape(13.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                     border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(0.95f)
                                 ) {
-                                    Text("حذف قفل", color = Color(0xFFEF4444), maxLines = 1)
+                                    Text("حذف قفل", color = Color(0xFFEF4444), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
@@ -661,20 +668,22 @@ fun ReportsAndSettingsScreen(
                                     }
                                 },
                                 shape = RoundedCornerShape(13.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("export_backup_json_btn")
                             ) {
-                                Text("خروجی پشتیبان JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("خروجی JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             OutlinedButton(
                                 onClick = { showImportJsonDialog = true },
                                 shape = RoundedCornerShape(13.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag("import_backup_json_btn")
                             ) {
-                                Text("بازیابی از JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("بازیابی JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }

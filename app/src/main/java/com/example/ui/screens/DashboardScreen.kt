@@ -73,6 +73,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -236,7 +238,7 @@ fun DashboardScreen(
         // =========================================================================
         item {
             val heroModes = listOf(
-                uiState.dtiHealthReport?.let { "ماه ${it.currentMonthYearLabelFa.substringBefore(" ")}" } ?: "این ماه",
+                uiState.dtiHealthReport?.currentMonthYearLabelFa?.substringBefore(" ") ?: "این ماه",
                 "کل بدهی",
                 "مطالبات"
             )
@@ -461,7 +463,7 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 18.dp)
                 ) {
-                    // Top Row: Mode Pill Switcher + 3D Flip Trigger + Smart Chip
+                    // Top Row: Mode Pill Switcher + 3D Flip Trigger (Clean spacing, zero horizontal collision)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -470,7 +472,8 @@ fun DashboardScreen(
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = Color.White.copy(alpha = 0.075f),
-                            border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.16f))
+                            border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.16f)),
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Row(
                                 modifier = Modifier.padding(3.dp),
@@ -495,37 +498,34 @@ fun DashboardScreen(
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
                                             color = if (selected) Color(0xFF031915) else Color(0xFFD5E1EC),
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
                             }
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White.copy(alpha = 0.09f),
-                                border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.22f)),
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .tarazinoPressScale(scaleDown = 0.88f) {
-                                        isVaultCardFlipped = true
-                                    }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.FlipCameraAndroid,
-                                        contentDescription = "چرخش سه‌بعدی پشت کارت",
-                                        tint = Color.White.copy(alpha = 0.88f),
-                                        modifier = Modifier.size(15.dp)
-                                    )
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.09f),
+                            border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.22f)),
+                            modifier = Modifier
+                                .size(32.dp)
+                                .tarazinoPressScale(scaleDown = 0.88f) {
+                                    isVaultCardFlipped = true
                                 }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.FlipCameraAndroid,
+                                    contentDescription = "چرخش سه‌بعدی پشت کارت",
+                                    tint = Color.White.copy(alpha = 0.88f),
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
-                            MetallicSmartChipEmblem(accentColor = cardAccentPrimary)
                         }
                     }
 
@@ -598,11 +598,13 @@ fun DashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "تسویه‌شده تا امروز",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9EB3C4)
+                                color = Color(0xFF9EB3C4),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             FormattedMoneyText(
                                 amountToman = totalPaid,
@@ -613,17 +615,24 @@ fun DashboardScreen(
                                 unitColor = Color(0xFFA7F3D0)
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
                                 .width(1.dp)
                                 .height(26.dp)
                                 .background(Color.White.copy(alpha = 0.14f))
                         )
-                        Column(horizontalAlignment = Alignment.End) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
                                 text = "کل بدهی مانده",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9EB3C4)
+                                color = Color(0xFF9EB3C4),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             FormattedMoneyText(
                                 amountToman = totalRem,
@@ -807,24 +816,32 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Interactive Expanding Donut Ring
+                        // Interactive Expanding Donut Ring (Properly inset so stroke NEVER overflows bounds!)
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .size(138.dp)
+                                .size(116.dp)
                                 .clickable { selectedDonutCategory = null }
                         ) {
-                            Canvas(modifier = Modifier.size(124.dp)) {
-                                val baseStroke = 15.dp.toPx()
-                                val selectedStroke = 21.dp.toPx()
+                            Canvas(modifier = Modifier.size(114.dp)) {
+                                val baseStroke = 13.dp.toPx()
+                                val selectedStroke = 17.dp.toPx()
+                                val inset = selectedStroke / 2f + 1.dp.toPx()
+                                val arcSize = Size(
+                                    (size.width - inset * 2f).coerceAtLeast(10f),
+                                    (size.height - inset * 2f).coerceAtLeast(10f)
+                                )
+                                val arcTopLeft = Offset(inset, inset)
 
                                 drawArc(
                                     color = Color.Gray.copy(alpha = 0.13f),
                                     startAngle = 0f,
                                     sweepAngle = 360f,
                                     useCenter = false,
+                                    topLeft = arcTopLeft,
+                                    size = arcSize,
                                     style = Stroke(width = baseStroke)
                                 )
                                 if (totalRem > 0L) {
@@ -841,6 +858,8 @@ fun DashboardScreen(
                                                 startAngle = currentStartAngle,
                                                 sweepAngle = (sweep - 4f).coerceAtLeast(2f),
                                                 useCenter = false,
+                                                topLeft = arcTopLeft,
+                                                size = arcSize,
                                                 style = Stroke(
                                                     width = if (isFocused) selectedStroke else baseStroke,
                                                     cap = StrokeCap.Round
@@ -860,45 +879,49 @@ fun DashboardScreen(
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
                                             text = formatCompactPersianToman(focused.remainingToman, masked),
-                                            style = MaterialTheme.typography.titleMedium,
+                                            style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = focused.color
+                                            color = focused.color,
+                                            maxLines = 1
                                         )
                                         Text(
                                             text = "${PersianCurrencyEngine.toPersianDigits((focused.shareRatio * 100).toInt().toString())}٪",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                     }
                                 } else {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
                                             text = PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString()),
-                                            style = MaterialTheme.typography.headlineMedium,
+                                            style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1
                                         )
                                         Text(
-                                            text = "پرونده فعال",
+                                            text = "پرونده",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                     }
                                 }
                             }
                         }
 
-                        // Crisp Interactive Category Legend List
+                        // Crisp Interactive Category Legend List (Generous width, zero cramping)
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             categorySlices.forEach { slice ->
                                 val pct = (slice.shareRatio * 100).toInt()
                                 val isSel = selectedDonutCategory == slice.category
                                 val borderW by animateDpAsState(
-                                    targetValue = if (isSel) 1.5.dp else 0.8.dp,
+                                    targetValue = if (isSel) 1.4.dp else 0.75.dp,
                                     label = "SliceBorder_${slice.category.name}"
                                 )
                                 Surface(
@@ -923,7 +946,7 @@ fun DashboardScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            .padding(horizontal = 9.dp, vertical = 7.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -933,11 +956,11 @@ fun DashboardScreen(
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(9.dp)
+                                                    .size(8.dp)
                                                     .clip(CircleShape)
                                                     .background(slice.color)
                                             )
-                                            Spacer(modifier = Modifier.width(7.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Column {
                                                 Text(
                                                     text = slice.category.badgeFa,
@@ -955,18 +978,20 @@ fun DashboardScreen(
                                                 )
                                             }
                                         }
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.ExtraBold,
-                                                color = slice.color
+                                                color = slice.color,
+                                                maxLines = 1
                                             )
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                                 contentDescription = null,
                                                 tint = slice.color,
-                                                modifier = Modifier.size(16.dp)
+                                                modifier = Modifier.size(15.dp)
                                             )
                                         }
                                     }
@@ -1164,13 +1189,18 @@ fun DashboardScreen(
                                     )
                                 }",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "برنامه‌ریز بودجه و تقویم ‹",
+                                text = "بودجه و تقویم ‹",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
                             )
                         }
                     }
@@ -1502,32 +1532,36 @@ private fun SmartAlertRadarCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
-                    FormattedMoneyText(
-                        amountToman = alert.installment.remainingToman,
-                        unit = currencyUnit,
-                        privacyMasked = privacyMasked,
-                        style = MaterialTheme.typography.titleSmall,
-                        numberColor = MaterialTheme.colorScheme.onSurface
+                FormattedMoneyText(
+                    amountToman = alert.installment.remainingToman,
+                    unit = currencyUnit,
+                    privacyMasked = privacyMasked,
+                    style = MaterialTheme.typography.titleSmall,
+                    numberColor = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(7.dp))
+
+            // Dedicated non-colliding status pill strip below title & amount
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TarazinoStatusPill(
+                    text = countdownTextFa,
+                    accentColor = bucketColor
+                )
+                if (isCritical) {
+                    TarazinoStatusPill(
+                        text = "اولویت حیاتی",
+                        accentColor = Color(0xFFFF4D67),
+                        icon = Icons.Default.PriorityHigh
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TarazinoStatusPill(
-                            text = countdownTextFa,
-                            accentColor = bucketColor
-                        )
-                        if (isCritical) {
-                            TarazinoStatusPill(
-                                text = "حیاتی",
-                                accentColor = Color(0xFFFF4D67),
-                                icon = Icons.Default.PriorityHigh
-                            )
-                        }
-                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(11.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Kinetic CRED/Revolut Slide-to-Settle Track + Compact Snooze Button
             Row(
@@ -1536,7 +1570,7 @@ private fun SmartAlertRadarCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TarazinoSlideToSettleBar(
-                    labelFa = "بکشید برای تسویه سریع",
+                    labelFa = "بکشید برای تسویه",
                     accentColor = ext.positive,
                     onConfirmSettle = onQuickPay,
                     modifier = Modifier

@@ -18,11 +18,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Fingerprint
@@ -103,7 +107,10 @@ fun SecurityLockOverlay(
                 auroraPrimary = Color(0x3610B981),
                 auroraSecondary = Color(0x2838BDF8)
             )
-            .padding(24.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 18.dp)
             .testTag("security_lock_overlay"),
         contentAlignment = Alignment.Center
     ) {
@@ -221,11 +228,11 @@ fun SecurityLockOverlay(
             )
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 rows.forEach { rowItems ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                         rowItems.forEach { (faDigit, enDigit) ->
                             KeypadCircleButton(
                                 label = faDigit,
@@ -236,11 +243,11 @@ fun SecurityLockOverlay(
                 }
 
                 // Bottom Row: Biometric | 0 | Backspace
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(66.dp)
                             .clip(CircleShape)
                             .background(
                                 if (biometricEnabled) Color(0xFF10B981).copy(alpha = 0.2f)
@@ -261,7 +268,7 @@ fun SecurityLockOverlay(
                             imageVector = Icons.Default.Fingerprint,
                             contentDescription = "ورود بیومتریک اثر انگشت",
                             tint = if (biometricEnabled) Color(0xFF34D399) else Color(0xFF475569),
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(30.dp)
                         )
                     }
 
@@ -273,7 +280,7 @@ fun SecurityLockOverlay(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(66.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
@@ -287,7 +294,7 @@ fun SecurityLockOverlay(
                             imageVector = Icons.AutoMirrored.Filled.Backspace,
                             contentDescription = "پاک کردن رقم آخر",
                             tint = Color.White,
-                            modifier = Modifier.size(25.dp)
+                            modifier = Modifier.size(23.dp)
                         )
                     }
                 }
@@ -468,7 +475,7 @@ private fun KeypadCircleButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(72.dp)
+            .size(66.dp)
             .tarazinoPressScale(scaleDown = 0.88f, onClick = onClick)
             .clip(CircleShape)
             .background(

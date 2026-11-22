@@ -24,8 +24,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -225,6 +227,8 @@ fun StepByStepObligationWizardModal(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(10.dp)
                 .testTag("step_by_step_obligation_wizard"),
             shape = RoundedCornerShape(28.dp),
@@ -506,6 +510,7 @@ fun StepByStepObligationWizardModal(
                             OutlinedButton(
                                 onClick = { currentStep-- },
                                 shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                 modifier = Modifier.testTag("wizard_prev_step_btn")
                             ) {
                                 Icon(
@@ -513,14 +518,16 @@ fun StepByStepObligationWizardModal(
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("مرحله قبل", fontWeight = FontWeight.SemiBold)
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text("مرحله قبل", fontWeight = FontWeight.SemiBold, maxLines = 1)
                             }
                         } else {
                             TextButton(onClick = onDismiss) {
-                                Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
 
                         Button(
                             onClick = {
@@ -612,7 +619,9 @@ fun StepByStepObligationWizardModal(
                                     else -> "ثبت نهایی (${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط)"
                                 },
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary
+                                color = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
@@ -1312,6 +1321,8 @@ private fun WizardStep3GranularInstallmentTable(
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         if (diffToman != 0L) {
                             TarazinoStatusPill(
                                 text = "اختلاف: ${PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit)}",
@@ -1423,10 +1434,12 @@ private fun WizardStep3GranularInstallmentTable(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
 
-                    // Interactive Haptic Pills for Editing Due Date, Amount, and Paid Status
+                    // Interactive Haptic Pills for Editing Due Date, Amount, and Paid Status (Scrollable so huge Rial amounts never collide!)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(

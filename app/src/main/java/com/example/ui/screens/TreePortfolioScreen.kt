@@ -563,17 +563,23 @@ fun TreePortfolioScreen(
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Column {
                                                 Text(
-                                                    text = "تسویه گروهی چند قسط با هم",
+                                                    text = "تسویه گروهی چند قسط",
                                                     style = MaterialTheme.typography.labelLarge,
-                                                    fontWeight = FontWeight.Bold
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                                 Text(
                                                     text = "اقساط دلخواه را انتخاب و یکجا تسویه کنید",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
+
+                                        Spacer(modifier = Modifier.width(6.dp))
 
                                         TextButton(
                                             onClick = {
@@ -583,10 +589,11 @@ fun TreePortfolioScreen(
                                                     unpaidIds
                                                 }
                                             },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                             modifier = Modifier.testTag("batch_select_all_unpaid_btn")
                                         ) {
                                             Text(
-                                                text = if (batchSelectionIds.size == unpaidIds.size) "لغو انتخاب" else "انتخاب همه (${PersianCurrencyEngine.toPersianDigits(unpaidIds.size.toString())})",
+                                                text = if (batchSelectionIds.size == unpaidIds.size) "لغو" else "همه (${PersianCurrencyEngine.toPersianDigits(unpaidIds.size.toString())})",
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1
                                             )
@@ -720,16 +727,26 @@ fun TreePortfolioScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "جدول اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())} قسط)",
+                                    text = "جدول اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())})",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.ExtraBold
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
+
+                                Spacer(modifier = Modifier.width(6.dp))
 
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Tactile Sort Cycle Pill
+                                    val shortSortLabel = when (sortOption) {
+                                        InstallmentSortOption.BY_DUE_DATE -> "سررسید"
+                                        InstallmentSortOption.HIGHEST_AMOUNT -> "مبلغ"
+                                        InstallmentSortOption.LOWEST_REMAINING -> "مانده"
+                                    }
                                     Surface(
                                         shape = RoundedCornerShape(11.dp),
                                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
@@ -754,7 +771,7 @@ fun TreePortfolioScreen(
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = sortOption.labelFa,
+                                                text = shortSortLabel,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface,
@@ -870,14 +887,19 @@ fun TreePortfolioScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "لیست خریدها، وام‌ها و پرونده‌های «${cp.name}»",
+                                    text = "پرونده‌های «${cp.name}»",
                                     style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "${PersianCurrencyEngine.toPersianDigits(cpObligations.size.toString())} پرونده",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
                                 )
                             }
 
@@ -1732,41 +1754,57 @@ private fun SubProviderFolderCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = onAddPurchaseHere,
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 11.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("ثبت خرید/قسط", style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                    }
-                    OutlinedButton(
-                        onClick = onOpenA4Report,
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PictureAsPdf,
-                            contentDescription = "گزارش A4 این زیرمجموعه",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("گزارش A4", style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                    }
+                OutlinedButton(
+                    onClick = onAddPurchaseHere,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(1.1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "ثبت قسط",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-
-                TextButton(onClick = onClickProvider) {
-                    Text("مشاهده اقساط ‹", fontWeight = FontWeight.Bold, maxLines = 1)
+                OutlinedButton(
+                    onClick = onOpenA4Report,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.weight(0.9f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PictureAsPdf,
+                        contentDescription = "گزارش A4 این زیرمجموعه",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "A4",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1
+                    )
+                }
+                TextButton(
+                    onClick = onClickProvider,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "اقساط ‹",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
                 }
             }
         }
@@ -2008,22 +2046,24 @@ private fun SubProviderDetailHubHeaderCard(
                 Button(
                     onClick = onAddPurchaseForProvider,
                     shape = RoundedCornerShape(13.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
                     modifier = Modifier
                         .weight(1.2f)
                         .testTag("provider_add_obligation_btn")
                 ) {
-                    Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("ثبت خرید / قسط جدید", fontWeight = FontWeight.Bold, maxLines = 1)
+                    Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("ثبت خرید / قسط", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 OutlinedButton(
                     onClick = onExportA4,
                     shape = RoundedCornerShape(13.dp),
-                    modifier = Modifier.weight(1f)
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                    modifier = Modifier.weight(0.95f)
                 ) {
-                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("صورتحساب A4", maxLines = 1)
+                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("گزارش A4", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -2153,28 +2193,31 @@ private fun ObligationSummaryRowCard(
                     )
                 }
 
+                Spacer(modifier = Modifier.width(6.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onEditObligation, modifier = Modifier.size(34.dp)) {
+                    IconButton(onClick = onEditObligation, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "ویرایش سریع پرونده",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
-                    IconButton(onClick = onOpenA4, modifier = Modifier.size(34.dp)) {
+                    IconButton(onClick = onOpenA4, modifier = Modifier.size(32.dp)) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
                             contentDescription = "جدول اقساط A4",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                     }
                     Text(
-                        text = "جدول قسط‌ها ‹",
+                        text = "قسط‌ها ‹",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
                     )
                 }
             }
@@ -2237,25 +2280,29 @@ private fun ObligationGranularHeaderCard(
                         )
                     }
                 }
-                Row {
-                    IconButton(onClick = onEditObligation) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onEditObligation, modifier = Modifier.size(34.dp)) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "ویرایش مشخصات پرونده"
+                            contentDescription = "ویرایش مشخصات پرونده",
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(onClick = onExportA4) {
+                    IconButton(onClick = onExportA4, modifier = Modifier.size(34.dp)) {
                         Icon(
                             imageVector = Icons.Default.PictureAsPdf,
                             contentDescription = "چاپ جدول اقساط A4",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(onClick = onDeleteObligation) {
+                    IconButton(onClick = onDeleteObligation, modifier = Modifier.size(34.dp)) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "حذف پرونده",
-                            tint = ext.danger
+                            tint = ext.danger,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -2514,14 +2561,16 @@ private fun GranularInstallmentItemCard(
                         }
                     }
 
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         OutlinedButton(
                             onClick = onEditInstallment,
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text("ویرایش", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
 
@@ -2530,16 +2579,16 @@ private fun GranularInstallmentItemCard(
                                 onClick = onQuickPay,
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = ext.positive),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+                                contentPadding = PaddingValues(horizontal = 9.dp, vertical = 5.dp),
                                 modifier = Modifier.testTag("tree_quick_pay_${installment.id}")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
                                     tint = Color(0xFF042F2E),
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
                                 Text(
                                     text = "تسویه",
                                     style = MaterialTheme.typography.labelSmall,
@@ -2801,13 +2850,20 @@ private fun GranularInstallmentEditModal(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "وضعیت پرداخت و تسویه این قسط",
+                        text = "وضعیت پرداخت و تسویه قسط",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
-                    TextButton(onClick = { paidAmount = effectivePayable }) {
-                        Text("پر کردن کل مبلغ (${PersianCurrencyEngine.formatAmount(effectivePayable, currencyUnit)})", maxLines = 1)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    TextButton(
+                        onClick = { paidAmount = effectivePayable },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("پر کردن کل مبلغ", fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
 
