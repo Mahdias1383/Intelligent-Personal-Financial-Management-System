@@ -221,7 +221,8 @@ fun TarazinoAppRoot(
                 .tarazinoAmbientBackdrop(
                     backgroundColor = MaterialTheme.colorScheme.background,
                     auroraPrimary = extColors.auroraPrimary,
-                    auroraSecondary = extColors.auroraSecondary
+                    auroraSecondary = extColors.auroraSecondary,
+                    auroraTertiary = extColors.auroraTertiary
                 )
         ) {
             Scaffold(
@@ -288,13 +289,14 @@ fun TarazinoAppRoot(
                         actions = {
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
-                                color = extColors.glassSurface,
+                                color = extColors.dockSurface,
                                 border = BorderStroke(
-                                    0.8.dp,
+                                    0.85.dp,
                                     Brush.verticalGradient(listOf(extColors.cardBorderTop, extColors.cardBorderBottom))
                                 ),
+                                shadowElevation = if (extColors.isDark) 0.dp else 3.dp,
                                 modifier = Modifier
-                                    .padding(end = 10.dp)
+                                    .padding(end = 8.dp)
                                     .tourSpotlightTarget("top_bar_controls")
                             ) {
                                 Row(
@@ -401,11 +403,11 @@ fun TarazinoAppRoot(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(26.dp),
-                            color = extColors.glassSurface,
+                            color = extColors.dockSurface,
                             tonalElevation = 0.dp,
-                            shadowElevation = if (extColors.isDark) 8.dp else 6.dp,
+                            shadowElevation = if (extColors.isDark) 10.dp else 8.dp,
                             border = BorderStroke(
-                                0.75.dp,
+                                0.85.dp,
                                 Brush.verticalGradient(
                                     listOf(extColors.cardBorderTop, extColors.cardBorderBottom)
                                 )
@@ -466,28 +468,48 @@ fun TarazinoAppRoot(
                             ),
                             label = "FabHaloAngle"
                         )
+                        val haloPulse by haloTransition.animateFloat(
+                            initialValue = 0.78f,
+                            targetValue = 1.0f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "FabHaloPulse"
+                        )
+                        val primaryHaloColor = MaterialTheme.colorScheme.primary
+                        val secondaryHaloColor = MaterialTheme.colorScheme.secondary
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .align(Alignment.TopCenter)
-                                .size(62.dp)
+                                .size(64.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.94f))
                         ) {
-                            androidx.compose.foundation.Canvas(modifier = Modifier.size(58.dp)) {
+                            androidx.compose.foundation.Canvas(modifier = Modifier.size(62.dp)) {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            primaryHaloColor.copy(alpha = 0.24f * haloPulse),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    radius = size.minDimension * 0.5f * haloPulse
+                                )
                                 rotate(degrees = haloAngle) {
                                     drawCircle(
                                         brush = Brush.sweepGradient(
                                             listOf(
-                                                Color(0xFF10E5A5).copy(alpha = 0.85f),
-                                                Color(0xFF38BDF8).copy(alpha = 0.45f),
+                                                primaryHaloColor.copy(alpha = 0.92f),
+                                                secondaryHaloColor.copy(alpha = 0.55f),
                                                 Color.Transparent,
                                                 Color.Transparent,
-                                                Color(0xFF10E5A5).copy(alpha = 0.85f)
+                                                primaryHaloColor.copy(alpha = 0.92f)
                                             )
                                         ),
-                                        radius = size.minDimension / 2f - 1.dp.toPx(),
-                                        style = Stroke(width = 1.4.dp.toPx())
+                                        radius = size.minDimension / 2f - 2.dp.toPx(),
+                                        style = Stroke(width = 1.5.dp.toPx())
                                     )
                                 }
                             }
@@ -505,9 +527,9 @@ fun TarazinoAppRoot(
                                     .background(
                                         Brush.linearGradient(
                                             listOf(
-                                                Color(0xFF2FF0B5),
-                                                Color(0xFF10E5A5),
-                                                Color(0xFF059669)
+                                                extColors.fabStart,
+                                                extColors.fabMid,
+                                                extColors.fabEnd
                                             )
                                         )
                                     )
@@ -516,7 +538,7 @@ fun TarazinoAppRoot(
                                         brush = Brush.verticalGradient(
                                             listOf(
                                                 Color.White.copy(alpha = 0.65f),
-                                                Color(0xFF047857)
+                                                extColors.fabEnd
                                             )
                                         ),
                                         shape = CircleShape
@@ -532,7 +554,7 @@ fun TarazinoAppRoot(
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "ثبت قسط، خرید اقساطی یا وام جدید",
-                                    tint = Color(0xFF03211A),
+                                    tint = extColors.fabOnContent,
                                     modifier = Modifier.size(26.dp)
                                 )
                             }
@@ -554,8 +576,8 @@ fun TarazinoAppRoot(
                         uiState.celebrationMessageFa?.let { msg ->
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
-                                color = Color(0xFF065F46),
-                                border = BorderStroke(1.dp, Color(0xFF34D399).copy(alpha = 0.55f)),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
@@ -578,12 +600,12 @@ fun TarazinoAppRoot(
                                             modifier = Modifier
                                                 .size(28.dp)
                                                 .clip(CircleShape)
-                                                .background(Color(0xFF34D399).copy(alpha = 0.2f))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.CheckCircle,
                                                 contentDescription = null,
-                                                tint = Color(0xFF34D399),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -591,15 +613,16 @@ fun TarazinoAppRoot(
                                         Text(
                                             text = msg,
                                             style = MaterialTheme.typography.labelLarge,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = "بستن",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFA7F3D0)
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -883,12 +906,12 @@ private fun DockTabItem(
         label = "DockTabColor_${dest.tab.name}"
     )
     val pillBg by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.11f) else Color.Transparent,
+        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "DockTabBg_${dest.tab.name}"
     )
     val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.12f else 1.0f,
+        targetValue = if (selected) 1.14f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -904,7 +927,7 @@ private fun DockTabItem(
         label = "DockIconLift_${dest.tab.name}"
     )
     val indicatorWidth by animateDpAsState(
-        targetValue = if (selected) 18.dp else 0.dp,
+        targetValue = if (selected) 20.dp else 0.dp,
         animationSpec = spring(
             dampingRatio = 0.72f,
             stiffness = Spring.StiffnessMediumLow
@@ -940,7 +963,7 @@ private fun DockTabItem(
             text = dest.labelFa,
             style = MaterialTheme.typography.labelSmall,
             fontSize = 10.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -949,9 +972,21 @@ private fun DockTabItem(
         Box(
             modifier = Modifier
                 .width(indicatorWidth)
-                .height(2.5.dp)
+                .height(2.8.dp)
                 .clip(CircleShape)
-                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                .background(
+                    if (selected) {
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
+                            )
+                        )
+                    } else {
+                        Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                    }
+                )
         )
     }
 }

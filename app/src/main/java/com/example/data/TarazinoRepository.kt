@@ -11,9 +11,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class TarazinoThemeMode(val labelFa: String) {
-    OBSIDIAN_EMERALD_DARK("زمرد شب (تیره)"),
-    ALABASTER_LIGHT("مرمر روشن (روشن)"),
-    DEEP_SAPPHIRE("اقیانوس کبود (تیره خاص)")
+    OBSIDIAN_EMERALD_DARK("زمرد شب"),
+    ALABASTER_LIGHT("مروارید صبح"),
+    PERSIAN_TURQUOISE_LIGHT("فیروزه بهار"),
+    DEEP_SAPPHIRE("اقیانوس کبود"),
+    MIDNIGHT_GOLD("شبِ طلایی"),
+    VELVET_AMETHYST("ارغوان مخملی")
 }
 
 enum class FontScalePreset(val labelFa: String, val scaleFactor: Float) {

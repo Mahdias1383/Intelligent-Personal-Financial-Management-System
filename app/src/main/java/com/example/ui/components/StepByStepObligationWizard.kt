@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -514,7 +515,7 @@ fun StepByStepObligationWizardModal(
                                 modifier = Modifier.testTag("wizard_prev_step_btn")
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -619,15 +620,15 @@ fun StepByStepObligationWizardModal(
                                     else -> "ثبت نهایی (${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط)"
                                 },
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary,
+                                color = if (currentStep == 3) ext.onPositive else MaterialTheme.colorScheme.onPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = if (currentStep == 3) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
-                                tint = if (currentStep == 3) Color(0xFF042F2E) else MaterialTheme.colorScheme.onPrimary,
+                                tint = if (currentStep == 3) ext.onPositive else MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -646,13 +647,22 @@ fun StepByStepObligationWizardModal(
             var editedDate by remember(row) { mutableStateOf(row.dueDateJalali) }
             var editedNote by remember(row) { mutableStateOf(row.note) }
 
-            Dialog(onDismissRequest = { editingRowIndex = null }) {
+            Dialog(
+                onDismissRequest = { editingRowIndex = null },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
                 TarazinoGlassCard(
                     cornerRadius = 26.dp,
-                    accentBorderColor = MaterialTheme.colorScheme.primary
+                    accentBorderColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .fillMaxWidth(0.93f)
+                        .padding(vertical = 12.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(18.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         TarazinoSectionHeader(
@@ -795,7 +805,7 @@ private fun WizardStep1CategoryAndProvider(
                     title = "خرید اقساطی (BNPL)",
                     subtitle = "اسنپ‌پی، دیجی‌پی، تارا...",
                     icon = Icons.Default.CreditScore,
-                    color = Color(0xFF3B82F6),
+                    color = ext.info,
                     isSelected = selectedCategory == EntityCategory.BNPL_PLATFORM,
                     onClick = { onSelectCategory(EntityCategory.BNPL_PLATFORM) },
                     modifier = Modifier.weight(1f)
@@ -804,7 +814,7 @@ private fun WizardStep1CategoryAndProvider(
                     title = "بانک‌ها و تسهیلات",
                     subtitle = "مهر ایران، ملت، بلوبانک...",
                     icon = Icons.Default.AccountBalance,
-                    color = Color(0xFF10B981),
+                    color = ext.positive,
                     isSelected = selectedCategory == EntityCategory.BANK,
                     onClick = { onSelectCategory(EntityCategory.BANK) },
                     modifier = Modifier.weight(1f)
@@ -828,7 +838,7 @@ private fun WizardStep1CategoryAndProvider(
                     title = "اشخاص، قرض و چک",
                     subtitle = "دوست، صاحب‌خانه، چک...",
                     icon = Icons.Default.Person,
-                    color = Color(0xFFF59E0B),
+                    color = ext.warning,
                     isSelected = selectedCategory == EntityCategory.PERSON,
                     onClick = { onSelectCategory(EntityCategory.PERSON) },
                     modifier = Modifier.weight(1f)
@@ -961,7 +971,8 @@ private fun WizardStep1CategoryAndProvider(
                             OutlinedTextField(
                                 value = newProviderName,
                                 onValueChange = onNewProviderNameChange,
-                                label = { Text("نام زیرمجموعه (مثلاً اسنپ‌پی، دیجی‌پی، بانک ملت...)") },
+                                label = { Text("نام زیرمجموعه", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("مثلاً اسنپ‌پی، دیجی‌پی، بانک ملت...", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -974,7 +985,8 @@ private fun WizardStep1CategoryAndProvider(
                                         PersianCurrencyEngine.toEnglishDigits(it).filter { c -> c.isDigit() }.take(16)
                                     )
                                 },
-                                label = { Text("شماره کارت ۱۶ رقمی مقصد (اختیاری)") },
+                                label = { Text("شماره کارت ۱۶ رقمی (اختیاری)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("مثلاً ۶۰۳۷۹۹۷۵۰۰۰۰۰۰۰۰", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(14.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -1000,7 +1012,8 @@ private fun WizardStep1CategoryAndProvider(
                     OutlinedTextField(
                         value = obligationTitle,
                         onValueChange = onObligationTitleChange,
-                        label = { Text("عنوان (مثلاً خرید گوشی، لپ‌تاپ، وام ازدواج، چک اجاره...)") },
+                        label = { Text("عنوان خرید یا تعهد", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        placeholder = { Text("مثلاً خرید گوشی، لپ‌تاپ، وام ازدواج، چک اجاره...", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
@@ -1033,7 +1046,13 @@ private fun WizardStep1CategoryAndProvider(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     TarazinoSegmentedControl(
-                        options = TrustPriority.entries.map { it.labelFa },
+                        options = TrustPriority.entries.map {
+                            when (it) {
+                                TrustPriority.CRITICAL -> "حیاتی و چک"
+                                TrustPriority.HIGH -> "اولویت بالا"
+                                TrustPriority.NORMAL -> "عادی"
+                            }
+                        },
                         selectedIndex = TrustPriority.entries.indexOf(priority).coerceAtLeast(0),
                         onSelectIndex = { idx -> onPriorityChange(TrustPriority.entries[idx]) },
                         compact = true
@@ -1216,12 +1235,38 @@ private fun WizardStep2AmountAndTemplate(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    TarazinoSegmentedControl(
-                        options = PaymentInterval.entries.map { it.labelFa },
-                        selectedIndex = PaymentInterval.entries.indexOf(interval).coerceAtLeast(0),
-                        onSelectIndex = { idx -> onIntervalChange(PaymentInterval.entries[idx]) },
-                        compact = true
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        PaymentInterval.entries.forEach { itemInterval ->
+                            val selected = interval == itemInterval
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                border = BorderStroke(
+                                    0.9.dp,
+                                    if (selected) MaterialTheme.colorScheme.primary else ext.cardBorderTop
+                                ),
+                                modifier = Modifier.tarazinoPressScale(
+                                    scaleDown = 0.93f,
+                                    onClick = { onIntervalChange(itemInterval) }
+                                )
+                            ) {
+                                Text(
+                                    text = itemInterval.labelFa,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
 
                     JalaliDateSelectorField(
                         labelFa = "تاریخ اولین سررسید شمسی (قسط اول)",

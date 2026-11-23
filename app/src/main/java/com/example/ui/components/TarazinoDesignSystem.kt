@@ -44,7 +44,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material3.Icon
@@ -214,41 +214,100 @@ fun Modifier.tarazinoPressScale(
 }
 
 /**
- * Ambient fintech backdrop with subtle layered radial aurora washes drawn behind content.
+ * Living breathing fintech ambient backdrop with 3 ultra-soft drifting radial aurora clouds.
+ * Reads animation phases strictly inside drawBehind for silky 60fps performance with zero layout work.
  */
 fun Modifier.tarazinoAmbientBackdrop(
     backgroundColor: Color,
     auroraPrimary: Color,
-    auroraSecondary: Color
-): Modifier = this.drawBehind {
-    drawRect(color = backgroundColor)
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(auroraPrimary, Color.Transparent),
-            center = Offset(size.width * 0.88f, size.height * 0.04f),
-            radius = size.width * 0.98f
+    auroraSecondary: Color,
+    auroraTertiary: Color = Color.Transparent
+): Modifier = composed {
+    val infinite = rememberInfiniteTransition(label = "TarazinoLivingAurora")
+    val driftPhase by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = (2.0 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 16000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        radius = size.width * 0.98f,
-        center = Offset(size.width * 0.88f, size.height * 0.04f)
+        label = "AuroraDriftPhase"
     )
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(auroraSecondary, Color.Transparent),
-            center = Offset(size.width * 0.10f, size.height * 0.34f),
-            radius = size.width * 0.85f
+    val breathPhase by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = (2.0 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 11000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        radius = size.width * 0.85f,
-        center = Offset(size.width * 0.10f, size.height * 0.34f)
+        label = "AuroraBreathPhase"
     )
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(auroraPrimary.copy(alpha = auroraPrimary.alpha * 0.48f), Color.Transparent),
-            center = Offset(size.width * 0.5f, size.height * 0.94f),
-            radius = size.width * 0.72f
-        ),
-        radius = size.width * 0.72f,
-        center = Offset(size.width * 0.5f, size.height * 0.94f)
-    )
+
+    this.drawBehind {
+        drawRect(color = backgroundColor)
+
+        val dx1 = (cos(driftPhase.toDouble()) * size.width * 0.055f).toFloat()
+        val dy1 = (sin(driftPhase.toDouble()) * size.height * 0.025f).toFloat()
+        val breath1 = 1f + (sin(breathPhase.toDouble()) * 0.06f).toFloat()
+
+        val c1 = Offset(size.width * 0.86f + dx1, size.height * 0.05f + dy1)
+        val r1 = size.width * 1.12f * breath1
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    auroraPrimary,
+                    auroraPrimary.copy(alpha = auroraPrimary.alpha * 0.45f),
+                    auroraPrimary.copy(alpha = auroraPrimary.alpha * 0.12f),
+                    Color.Transparent
+                ),
+                center = c1,
+                radius = r1
+            ),
+            radius = r1,
+            center = c1
+        )
+
+        val dx2 = (sin(driftPhase.toDouble()) * size.width * 0.05f).toFloat()
+        val dy2 = (cos(driftPhase.toDouble()) * size.height * 0.025f).toFloat()
+        val breath2 = 1f + (cos(breathPhase.toDouble()) * 0.05f).toFloat()
+
+        val c2 = Offset(size.width * 0.10f + dx2, size.height * 0.34f + dy2)
+        val r2 = size.width * 0.96f * breath2
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    auroraSecondary,
+                    auroraSecondary.copy(alpha = auroraSecondary.alpha * 0.38f),
+                    Color.Transparent
+                ),
+                center = c2,
+                radius = r2
+            ),
+            radius = r2,
+            center = c2
+        )
+
+        val tertiaryColor = if (auroraTertiary.alpha > 0.001f) {
+            auroraTertiary
+        } else {
+            auroraPrimary.copy(alpha = auroraPrimary.alpha * 0.40f)
+        }
+        val c3 = Offset(size.width * 0.52f - dx1 * 0.7f, size.height * 0.92f - dy2 * 0.6f)
+        val r3 = size.width * 0.88f * breath1
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    tertiaryColor,
+                    tertiaryColor.copy(alpha = tertiaryColor.alpha * 0.35f),
+                    Color.Transparent
+                ),
+                center = c3,
+                radius = r3
+            ),
+            radius = r3,
+            center = c3
+        )
+    }
 }
 
 /**
@@ -266,6 +325,7 @@ fun TarazinoMetalVaultCard(
     baseStart: Color,
     baseEnd: Color,
     modifier: Modifier = Modifier,
+    baseMid: Color? = null,
     cornerRadius: Dp = 30.dp,
     isFlipped: Boolean = false,
     backContent: (@Composable ColumnScope.() -> Unit)? = null,
@@ -286,6 +346,16 @@ fun TarazinoMetalVaultCard(
         targetValue = baseStart,
         animationSpec = tween(420, easing = FastOutSlowInEasing),
         label = "MetalBaseStart"
+    )
+    val animBaseMid by animateColorAsState(
+        targetValue = baseMid ?: Color(
+            red = (baseStart.red + baseEnd.red) * 0.5f,
+            green = (baseStart.green + baseEnd.green) * 0.5f,
+            blue = (baseStart.blue + baseEnd.blue) * 0.5f,
+            alpha = 1f
+        ),
+        animationSpec = tween(420, easing = FastOutSlowInEasing),
+        label = "MetalBaseMid"
     )
     val animBaseEnd by animateColorAsState(
         targetValue = baseEnd,
@@ -401,10 +471,10 @@ fun TarazinoMetalVaultCard(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Canvas(modifier = Modifier.matchParentSize()) {
-                // 1. Deep velvet brushed obsidian base
+                // 1. Deep 3-stop velvet brushed metallic base
                 drawRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(animBaseStart, animBaseEnd),
+                        colors = listOf(animBaseStart, animBaseMid, animBaseEnd),
                         start = Offset(0f, 0f),
                         end = Offset(size.width, size.height)
                     )
@@ -413,29 +483,35 @@ fun TarazinoMetalVaultCard(
                 // 2. Soft airy corner radial aurora orbs
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(animAccent1.copy(alpha = 0.28f), Color.Transparent),
+                        colors = listOf(animAccent1.copy(alpha = 0.32f), animAccent1.copy(alpha = 0.08f), Color.Transparent),
                         center = Offset(size.width * 0.88f, size.height * 0.12f),
-                        radius = size.width * 0.64f
+                        radius = size.width * 0.66f
                     ),
-                    radius = size.width * 0.64f,
+                    radius = size.width * 0.66f,
                     center = Offset(size.width * 0.88f, size.height * 0.12f)
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(animAccent2.copy(alpha = 0.18f), Color.Transparent),
+                        colors = listOf(animAccent2.copy(alpha = 0.22f), Color.Transparent),
                         center = Offset(size.width * 0.12f, size.height * 0.90f),
-                        radius = size.width * 0.54f
+                        radius = size.width * 0.56f
                     ),
-                    radius = size.width * 0.54f,
+                    radius = size.width * 0.56f,
                     center = Offset(size.width * 0.12f, size.height * 0.90f)
                 )
 
-                // 3. Minimalist subtle geometric arc accent (clean & weightless)
+                // 3. Refined twin concentric guilloché filigree arcs
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.045f),
+                    color = Color.White.copy(alpha = 0.055f),
                     radius = size.width * 0.48f,
                     center = Offset(size.width * 0.10f, size.height * 0.12f),
-                    style = Stroke(width = 0.8.dp.toPx())
+                    style = Stroke(width = 0.85.dp.toPx())
+                )
+                drawCircle(
+                    color = animAccent1.copy(alpha = 0.06f),
+                    radius = size.width * 0.36f,
+                    center = Offset(size.width * 0.10f, size.height * 0.12f),
+                    style = Stroke(width = 0.7.dp.toPx())
                 )
 
                 // 4. Real-time holographic spotlight tracking finger tilt
@@ -631,7 +707,7 @@ fun LiquidWaveHealthOrb(
 @Composable
 fun TarazinoSlideToSettleBar(
     labelFa: String,
-    accentColor: Color = Color(0xFF00E5A0),
+    accentColor: Color = LocalTarazinoColors.current.positive,
     onConfirmSettle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -662,7 +738,7 @@ fun TarazinoSlideToSettleBar(
             .height(44.dp)
             .clip(RoundedCornerShape(15.dp))
             .background(
-                if (ext.isDark) Color(0xFF091614) else accentColor.copy(alpha = 0.10f)
+                if (ext.isDark) accentColor.copy(alpha = 0.11f) else accentColor.copy(alpha = 0.10f)
             )
             .border(
                 width = 1.dp,
@@ -712,14 +788,14 @@ fun TarazinoSlideToSettleBar(
                 text = if (animFraction > 0.65f) "رها کنید برای تسویه ✓" else labelFa,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = if (ext.isDark) accentColor else Color(0xFF046C4E),
+                color = accentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             if (animFraction <= 0.65f) {
                 Spacer(modifier = Modifier.width(3.dp))
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = accentColor.copy(alpha = chevronAlpha),
                     modifier = Modifier.size(16.dp)
@@ -727,7 +803,7 @@ fun TarazinoSlideToSettleBar(
             }
         }
 
-        // Draggable glowing emerald checkmark thumb (starts at RTL start = visual right)
+        // Draggable glowing checkmark thumb (starts at RTL start = visual right)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -740,7 +816,7 @@ fun TarazinoSlideToSettleBar(
                     Brush.linearGradient(
                         listOf(
                             accentColor,
-                            Color(0xFF059669)
+                            accentColor.copy(alpha = 0.82f)
                         )
                     )
                 )
@@ -776,7 +852,7 @@ fun TarazinoSlideToSettleBar(
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = "تسویه قسط",
-                tint = Color(0xFF022019),
+                tint = ext.onPositive,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -800,26 +876,27 @@ fun TarazinoMiniBrandCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val ext = LocalTarazinoColors.current
     val displayAmount = remainingToman * currencyUnit.multiplierFromToman
     val shape = RoundedCornerShape(22.dp)
 
     Surface(
         shape = shape,
         color = Color.Transparent,
-        shadowElevation = 3.dp,
+        shadowElevation = if (ext.isDark) 3.dp else 5.dp,
         border = BorderStroke(
-            width = 0.85.dp,
+            width = if (ext.isDark) 0.85.dp else 1.dp,
             brush = Brush.linearGradient(
                 listOf(
-                    accentColor.copy(alpha = 0.48f),
-                    Color.White.copy(alpha = 0.14f),
-                    accentColor.copy(alpha = 0.14f)
+                    accentColor.copy(alpha = if (ext.isDark) 0.50f else 0.42f),
+                    if (ext.isDark) Color.White.copy(alpha = 0.14f) else ext.cardBorderTop,
+                    accentColor.copy(alpha = if (ext.isDark) 0.14f else 0.20f)
                 )
             )
         ),
         modifier = modifier
-            .width(166.dp)
-            .height(106.dp)
+            .width(170.dp)
+            .height(108.dp)
             .tarazinoPressScale(scaleDown = 0.95f, onClick = onClick)
             .clip(shape)
     ) {
@@ -827,17 +904,17 @@ fun TarazinoMiniBrandCard(
             Canvas(modifier = Modifier.matchParentSize()) {
                 drawRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF172133),
-                            Color(0xFF101724)
-                        ),
+                        colors = listOf(ext.miniCardStart, ext.miniCardEnd),
                         start = Offset.Zero,
                         end = Offset(size.width, size.height)
                     )
                 )
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(accentColor.copy(alpha = 0.26f), Color.Transparent),
+                        colors = listOf(
+                            accentColor.copy(alpha = if (ext.isDark) 0.26f else 0.14f),
+                            Color.Transparent
+                        ),
                         center = Offset(size.width * 0.88f, size.height * 0.14f),
                         radius = size.width * 0.68f
                     ),
@@ -871,7 +948,7 @@ fun TarazinoMiniBrandCard(
                             text = name.substringBefore(" ("),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
+                            color = ext.miniCardOnSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -879,7 +956,7 @@ fun TarazinoMiniBrandCard(
                     Icon(
                         imageVector = Icons.Default.Contactless,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.45f),
+                        tint = ext.miniCardOnSurfaceMuted.copy(alpha = 0.65f),
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -890,7 +967,7 @@ fun TarazinoMiniBrandCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (!lastFourDigits.isNullOrBlank()) {
                                     "•••• ${PersianCurrencyEngine.toPersianDigits(lastFourDigits)}"
@@ -899,8 +976,9 @@ fun TarazinoMiniBrandCard(
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 fontSize = 10.sp,
-                                color = Color(0xFF9FB2C6),
-                                maxLines = 1
+                                color = ext.miniCardOnSurfaceMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Row(
                                 verticalAlignment = Alignment.Bottom,
@@ -910,8 +988,9 @@ fun TarazinoMiniBrandCard(
                                     text = formatCompactPersianToman(displayAmount, privacyMasked),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Black,
-                                    color = Color.White,
-                                    maxLines = 1
+                                    color = ext.miniCardOnSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 if (!privacyMasked) {
                                     Text(
@@ -925,10 +1004,12 @@ fun TarazinoMiniBrandCard(
                             }
                         }
 
+                        Spacer(modifier = Modifier.width(4.dp))
+
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = accentColor.copy(alpha = 0.18f),
-                            border = BorderStroke(0.7.dp, accentColor.copy(alpha = 0.45f))
+                            color = accentColor.copy(alpha = if (ext.isDark) 0.18f else 0.12f),
+                            border = BorderStroke(0.7.dp, accentColor.copy(alpha = 0.42f))
                         ) {
                             Text(
                                 text = if (pendingCount > 0) {
@@ -940,6 +1021,7 @@ fun TarazinoMiniBrandCard(
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = accentColor,
+                                maxLines = 1,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -953,7 +1035,10 @@ fun TarazinoMiniBrandCard(
                             .fillMaxWidth()
                             .height(3.5.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.12f))
+                            .background(
+                                if (ext.isDark) Color.White.copy(alpha = 0.12f)
+                                else accentColor.copy(alpha = 0.14f)
+                            )
                     ) {
                         Box(
                             modifier = Modifier
@@ -962,7 +1047,10 @@ fun TarazinoMiniBrandCard(
                                 .clip(CircleShape)
                                 .background(
                                     Brush.horizontalGradient(
-                                        listOf(accentColor, Color.White.copy(alpha = 0.85f))
+                                        listOf(
+                                            accentColor,
+                                            if (ext.isDark) Color.White.copy(alpha = 0.85f) else accentColor.copy(alpha = 0.72f)
+                                        )
                                     )
                                 )
                         )
@@ -1084,24 +1172,25 @@ fun TarazinoCelebrationConfettiBurst(
 }
 
 /**
- * Premium Fintech Card with specular top-to-bottom 1dp hairline border and tactile press motion.
+ * Sculpted Fintech Glass Card with overhead tonal sheen, specular top-to-bottom border, and tactile press motion.
  */
 @Composable
 fun TarazinoGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
     accentBorderColor: Color? = null,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val ext = LocalTarazinoColors.current
     val shape = RoundedCornerShape(cornerRadius)
+    val useSculptedGlass = containerColor == Color.Unspecified
     val borderBrush = if (accentBorderColor != null) {
         Brush.verticalGradient(
             listOf(
-                accentBorderColor.copy(alpha = 0.42f),
-                accentBorderColor.copy(alpha = 0.10f)
+                accentBorderColor.copy(alpha = if (ext.isDark) 0.52f else 0.44f),
+                accentBorderColor.copy(alpha = if (ext.isDark) 0.12f else 0.16f)
             )
         )
     } else {
@@ -1110,10 +1199,10 @@ fun TarazinoGlassCard(
 
     Surface(
         shape = shape,
-        color = containerColor,
+        color = if (useSculptedGlass) ext.cardGlassBottom else containerColor,
         tonalElevation = 0.dp,
-        shadowElevation = if (ext.isDark) 0.dp else 1.5.dp,
-        border = BorderStroke(0.75.dp, borderBrush),
+        shadowElevation = if (ext.isDark) 0.dp else 2.5.dp,
+        border = BorderStroke(0.85.dp, borderBrush),
         modifier = modifier
             .fillMaxWidth()
             .then(
@@ -1124,7 +1213,22 @@ fun TarazinoGlassCard(
                 } else Modifier
             )
     ) {
-        Column(content = content)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (useSculptedGlass) {
+                        Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(ext.cardGlassTop, ext.cardGlassBottom)
+                            )
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
+            content = content
+        )
     }
 }
 
@@ -1244,10 +1348,12 @@ fun FormattedMoneyText(
 
     val unitFontSize = (style.fontSize.value * 0.62f).coerceAtLeast(10f).sp
 
+    val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
     val annotated = buildAnnotatedString {
         withStyle(
             SpanStyle(
                 color = numberColor,
+                fontFamily = resolvedFontFamily,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = style.fontSize
             )
@@ -1258,6 +1364,7 @@ fun FormattedMoneyText(
         withStyle(
             SpanStyle(
                 color = unitColor,
+                fontFamily = resolvedFontFamily,
                 fontWeight = FontWeight.Medium,
                 fontSize = unitFontSize
             )
@@ -1451,7 +1558,7 @@ fun TarazinoQuickActionTile(
                     modifier = Modifier
                         .size(20.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFF4D67))
+                        .background(ext.danger)
                         .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
                 ) {
                     Text(
@@ -1537,8 +1644,8 @@ fun TarazinoSegmentedControl(
     val animatedIndex by animateFloatAsState(
         targetValue = safeIndex.toFloat(),
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
+            dampingRatio = 0.80f,
+            stiffness = Spring.StiffnessMediumLow
         ),
         label = "SegThumbSlide"
     )
@@ -1548,8 +1655,8 @@ fun TarazinoSegmentedControl(
 
     Surface(
         shape = RoundedCornerShape(outerRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (ext.isDark) 0.55f else 0.72f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (ext.isDark) 0.58f else 0.78f),
+        border = BorderStroke(0.9.dp, ext.cardBorderTop),
         modifier = modifier.fillMaxWidth()
     ) {
         BoxWithConstraints(
@@ -1569,10 +1676,20 @@ fun TarazinoSegmentedControl(
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.88f)
+                                ext.fabStart.copy(alpha = 0.96f),
+                                ext.fabMid
                             )
                         )
+                    )
+                    .border(
+                        width = 0.75.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.42f),
+                                Color.Transparent
+                            )
+                        ),
+                        shape = RoundedCornerShape(thumbRadius)
                     )
             )
 
@@ -1651,3 +1768,58 @@ fun CounterpartyMonogramAvatar(
         )
     }
 }
+
+/**
+ * Spring-animated, RTL-native luminous progress bar with soft horizontal gradient sheen.
+ */
+@Composable
+fun TarazinoLuminousProgressBar(
+    progress: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f),
+    height: Dp = 7.dp
+) {
+    val target = progress.coerceIn(0f, 1f)
+    var started by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { started = true }
+    val animatedProgress by animateFloatAsState(
+        targetValue = if (started) target else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.84f,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "LuminousProgress"
+    )
+    val animColor by animateColorAsState(
+        targetValue = color,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        label = "LuminousProgressColor"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(CircleShape)
+            .background(trackColor)
+    ) {
+        if (animatedProgress > 0.005f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(animatedProgress.coerceIn(0.015f, 1f))
+                    .clip(CircleShape)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                animColor,
+                                animColor.copy(alpha = 0.82f)
+                            )
+                        )
+                    )
+            )
+        }
+    }
+}
+

@@ -3,8 +3,23 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,13 +32,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
@@ -59,8 +78,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -80,6 +101,7 @@ import com.example.ui.components.TarazinoSegmentedControl
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
+import com.example.ui.theme.LocalTarazinoColors
 
 @Composable
 fun ReportsAndSettingsScreen(
@@ -104,6 +126,7 @@ fun ReportsAndSettingsScreen(
     tourScrollIndex: Int? = null
 ) {
     val context = LocalContext.current
+    val ext = LocalTarazinoColors.current
     val listState = rememberLazyListState()
     var activeSectionIndex by remember { mutableIntStateOf(0) } // 0=Reports, 1=Theme&Security, 2=Backup&Data
     var backupJsonDialogContent by remember { mutableStateOf<String?>(null) }
@@ -197,7 +220,7 @@ fun ReportsAndSettingsScreen(
                                 titleFa = "فایل PDF",
                                 subtitleFa = "استاندارد A4",
                                 icon = Icons.Default.PictureAsPdf,
-                                accentColor = Color(0xFF10B981),
+                                accentColor = ext.positive,
                                 onClick = onDirectExportPdf,
                                 modifier = Modifier
                                     .weight(1f)
@@ -207,7 +230,7 @@ fun ReportsAndSettingsScreen(
                                 titleFa = "فایل اکسل",
                                 subtitleFa = "راست‌به‌چپ .xls",
                                 icon = Icons.Default.TableChart,
-                                accentColor = Color(0xFF3B82F6),
+                                accentColor = ext.info,
                                 onClick = onDirectExportExcel,
                                 modifier = Modifier
                                     .weight(1f)
@@ -217,7 +240,7 @@ fun ReportsAndSettingsScreen(
                                 titleFa = "فایل CSV",
                                 subtitleFa = "UTF-8 BOM",
                                 icon = Icons.Default.Description,
-                                accentColor = Color(0xFFF59E0B),
+                                accentColor = ext.warning,
                                 onClick = onDirectExportCsv,
                                 modifier = Modifier
                                     .weight(1f)
@@ -327,53 +350,235 @@ fun ReportsAndSettingsScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "انتخاب پوسته ظاهری (تیره و روشن):",
+                            text = "استودیوی پوسته‌های ظاهری (۴ تم تیره + ۲ تم روشن):",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        // 3 Tactile Visual Theme Preview Swatch Cards
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        // Live Interactive Theme Mood Banner (Liquid-Morphs Smoothly on Every Theme Tap!)
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color.Transparent,
+                            border = BorderStroke(
+                                1.dp,
+                                Brush.linearGradient(
+                                    listOf(
+                                        ext.heroAccent.copy(alpha = 0.65f),
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.30f)
+                                    )
+                                )
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
                         ) {
-                            ThemePreviewSwatchCard(
-                                mode = TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
-                                titleFa = "زمرد شب",
-                                bgPreview = Color(0xFF0D1119),
-                                surfacePreview = Color(0xFF151C28),
-                                accentPreview = Color(0xFF10E5A5),
-                                selected = uiState.preferences.themeMode == TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
-                                onClick = { onSetThemeMode(TarazinoThemeMode.OBSIDIAN_EMERALD_DARK) },
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("theme_chip_${TarazinoThemeMode.OBSIDIAN_EMERALD_DARK.name}")
-                            )
-                            ThemePreviewSwatchCard(
-                                mode = TarazinoThemeMode.ALABASTER_LIGHT,
-                                titleFa = "مرمر روشن",
-                                bgPreview = Color(0xFFF6F9F8),
-                                surfacePreview = Color(0xFFFFFFFF),
-                                accentPreview = Color(0xFF047857),
-                                selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
-                                onClick = { onSetThemeMode(TarazinoThemeMode.ALABASTER_LIGHT) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("theme_chip_${TarazinoThemeMode.ALABASTER_LIGHT.name}")
-                            )
-                            ThemePreviewSwatchCard(
-                                mode = TarazinoThemeMode.DEEP_SAPPHIRE,
-                                titleFa = "اقیانوس کبود",
-                                bgPreview = Color(0xFF0C1222),
-                                surfacePreview = Color(0xFF152038),
-                                accentPreview = Color(0xFF38BDF8),
-                                selected = uiState.preferences.themeMode == TarazinoThemeMode.DEEP_SAPPHIRE,
-                                onClick = { onSetThemeMode(TarazinoThemeMode.DEEP_SAPPHIRE) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("theme_chip_${TarazinoThemeMode.DEEP_SAPPHIRE.name}")
-                            )
+                                    .fillMaxWidth()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(ext.heroStart, ext.heroMid, ext.heroEnd)
+                                        )
+                                    )
+                                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = uiState.preferences.themeMode.labelFa,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = ext.heroOnSurface,
+                                                maxLines = 1
+                                            )
+                                            Surface(
+                                                shape = RoundedCornerShape(999.dp),
+                                                color = ext.heroAccent.copy(alpha = 0.22f),
+                                                border = BorderStroke(0.75.dp, ext.heroAccent.copy(alpha = 0.55f))
+                                            ) {
+                                                Text(
+                                                    text = if (ext.isDark) "تم تیره" else "تم روشن",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = ext.heroAccent,
+                                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        AnimatedContent(
+                                            targetState = ext.moodTagFa,
+                                            transitionSpec = {
+                                                fadeIn(tween(260)) togetherWith fadeOut(tween(180))
+                                            },
+                                            label = "ThemeMoodTagMorph"
+                                        ) { moodText ->
+                                            Text(
+                                                text = moodText,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = ext.heroOnSurfaceMuted,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    // Live 3-Token Palette Harmony Swatch Pill
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = Color.Black.copy(alpha = 0.28f),
+                                        border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.16f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.secondary,
+                                                MaterialTheme.colorScheme.tertiary
+                                            ).forEach { swatchColor ->
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(12.dp)
+                                                        .clip(CircleShape)
+                                                        .background(swatchColor)
+                                                        .border(0.8.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 2×3 Curated Emotional Fintech Theme Gallery (6 Distinct Atmospheres)
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
+                                    titleFa = "زمرد شب",
+                                    subtitleFa = "ابسیدین • زمرد عمیق",
+                                    isLightTheme = false,
+                                    bgPreview = Color(0xFF0A0F14),
+                                    surfacePreview = Color(0xFF152029),
+                                    heroStartPreview = Color(0xFF0B2E28),
+                                    accentPreview = Color(0xFF24C696),
+                                    secondaryPreview = Color(0xFFE0BC6A),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.OBSIDIAN_EMERALD_DARK) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.OBSIDIAN_EMERALD_DARK.name}")
+                                )
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.ALABASTER_LIGHT,
+                                    titleFa = "مروارید صبح",
+                                    subtitleFa = "روشن • زمرد بانکی",
+                                    isLightTheme = true,
+                                    bgPreview = Color(0xFFF5F4F0),
+                                    surfacePreview = Color(0xFFFFFFFF),
+                                    heroStartPreview = Color(0xFF064635),
+                                    accentPreview = Color(0xFF065F46),
+                                    secondaryPreview = Color(0xFF9A4D06),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.ALABASTER_LIGHT) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.ALABASTER_LIGHT.name}")
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT,
+                                    titleFa = "فیروزه بهار",
+                                    subtitleFa = "روشن • فیروزه عمیق",
+                                    isLightTheme = true,
+                                    bgPreview = Color(0xFFF1F5F8),
+                                    surfacePreview = Color(0xFFFFFFFF),
+                                    heroStartPreview = Color(0xFF06445C),
+                                    accentPreview = Color(0xFF075975),
+                                    secondaryPreview = Color(0xFF9A5208),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT.name}")
+                                )
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.DEEP_SAPPHIRE,
+                                    titleFa = "اقیانوس کبود",
+                                    subtitleFa = "سرمه‌ای • لاجوردی",
+                                    isLightTheme = false,
+                                    bgPreview = Color(0xFF080D1B),
+                                    surfacePreview = Color(0xFF141F3D),
+                                    heroStartPreview = Color(0xFF142857),
+                                    accentPreview = Color(0xFF4DA6F0),
+                                    secondaryPreview = Color(0xFFA794E8),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.DEEP_SAPPHIRE,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.DEEP_SAPPHIRE) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.DEEP_SAPPHIRE.name}")
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.MIDNIGHT_GOLD,
+                                    titleFa = "شبِ طلایی",
+                                    subtitleFa = "خزانه • طلای مات",
+                                    isLightTheme = false,
+                                    bgPreview = Color(0xFF0C0B09),
+                                    surfacePreview = Color(0xFF201C17),
+                                    heroStartPreview = Color(0xFF2E2315),
+                                    accentPreview = Color(0xFFDEB14B),
+                                    secondaryPreview = Color(0xFFD9884B),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.MIDNIGHT_GOLD,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.MIDNIGHT_GOLD) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.MIDNIGHT_GOLD.name}")
+                                )
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.VELVET_AMETHYST,
+                                    titleFa = "ارغوان مخملی",
+                                    subtitleFa = "تیره • یاسی و رز",
+                                    isLightTheme = false,
+                                    bgPreview = Color(0xFF0C0A12),
+                                    surfacePreview = Color(0xFF211B30),
+                                    heroStartPreview = Color(0xFF2F1D45),
+                                    accentPreview = Color(0xFFC58DF0),
+                                    secondaryPreview = Color(0xFFD884A8),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.VELVET_AMETHYST,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.VELVET_AMETHYST) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.VELVET_AMETHYST.name}")
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -440,14 +645,14 @@ fun ReportsAndSettingsScreen(
                 val isPinActive = uiState.preferences.pinHash.isNotBlank()
 
                 TarazinoGlassCard(
-                    accentBorderColor = if (isPinActive) Color(0xFF10B981) else null
+                    accentBorderColor = if (isPinActive) ext.positive else null
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         TarazinoSectionHeader(
                             title = "خزانه امنیتی آفلاین (PIN + بیومتریک)",
                             subtitle = if (isPinActive) "قفل رمز عبور فعال با هش SHA-256" else "محافظت از اطلاعات مالی در دستگاه",
                             icon = Icons.Default.Shield,
-                            accentColor = if (isPinActive) Color(0xFF10B981) else MaterialTheme.colorScheme.secondary,
+                            accentColor = if (isPinActive) ext.positive else MaterialTheme.colorScheme.secondary,
                             trailing = if (isPinActive) {
                                 {
                                     OutlinedButton(
@@ -493,7 +698,11 @@ fun ReportsAndSettingsScreen(
                                 }
                             },
                             label = {
-                                Text("رمز پین جدید (${PersianCurrencyEngine.toPersianDigits(selectedPinLength.toString())} رقم)")
+                                Text(
+                                    text = "رمز پین جدید (${PersianCurrencyEngine.toPersianDigits(selectedPinLength.toString())} رقم)",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             },
                             singleLine = true,
                             shape = RoundedCornerShape(14.dp),
@@ -533,7 +742,7 @@ fun ReportsAndSettingsScreen(
                         OutlinedTextField(
                             value = recQuestion,
                             onValueChange = { recQuestion = it },
-                            label = { Text("سوال امنیتی بازیابی رمز") },
+                            label = { Text("سوال امنیتی بازیابی رمز", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             singleLine = true,
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -544,7 +753,8 @@ fun ReportsAndSettingsScreen(
                         OutlinedTextField(
                             value = recAnswer,
                             onValueChange = { recAnswer = it },
-                            label = { Text("پاسخ سوال امنیتی (برای بازگشایی اضطراری)") },
+                            label = { Text("پاسخ سوال امنیتی", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            placeholder = { Text("برای بازگشایی اضطراری رمز", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             singleLine = true,
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -586,10 +796,10 @@ fun ReportsAndSettingsScreen(
                                     onClick = onRemoveSecurityPin,
                                     shape = RoundedCornerShape(13.dp),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
-                                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                                    border = BorderStroke(1.dp, ext.danger.copy(alpha = 0.55f)),
                                     modifier = Modifier.weight(0.95f)
                                 ) {
-                                    Text("حذف قفل", color = Color(0xFFEF4444), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("حذف قفل", color = ext.danger, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
@@ -625,7 +835,10 @@ fun ReportsAndSettingsScreen(
                         Button(
                             onClick = onClearAllDataToZero,
                             shape = RoundedCornerShape(13.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ext.danger,
+                                contentColor = Color.White
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("clear_all_data_to_zero_btn")
@@ -635,7 +848,8 @@ fun ReportsAndSettingsScreen(
                             Text(
                                 text = "پاکسازی داده‌های نمونه (شروع از صفر)",
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -650,7 +864,11 @@ fun ReportsAndSettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Restore, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("بازگردانی مجدد داده‌های نمونه آزمایشی", maxLines = 1)
+                            Text(
+                                text = "بازگردانی مجدد داده‌های نمونه آزمایشی",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -694,12 +912,24 @@ fun ReportsAndSettingsScreen(
 
     // Backup JSON Copy Modal (Specular Glass Dialog)
     backupJsonDialogContent?.let { json ->
-        androidx.compose.ui.window.Dialog(onDismissRequest = { backupJsonDialogContent = null }) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { backupJsonDialogContent = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             TarazinoGlassCard(
                 cornerRadius = 26.dp,
-                accentBorderColor = MaterialTheme.colorScheme.primary
+                accentBorderColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 440.dp)
+                    .imePadding()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(18.dp)
+                ) {
                     TarazinoSectionHeader(
                         title = "پشتیبان کامل آفلاین (JSON)",
                         subtitle = "کپی و ذخیره امن برای انتقال به دستگاه دیگر",
@@ -711,7 +941,7 @@ fun ReportsAndSettingsScreen(
                         value = json,
                         onValueChange = {},
                         readOnly = true,
-                        maxLines = 9,
+                        maxLines = 8,
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -725,7 +955,7 @@ fun ReportsAndSettingsScreen(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("بستن")
+                            Text("بستن", maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -739,7 +969,7 @@ fun ReportsAndSettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("کپی در حافظه", fontWeight = FontWeight.Bold)
+                            Text("کپی در حافظه", fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                 }
@@ -749,12 +979,24 @@ fun ReportsAndSettingsScreen(
 
     // Import JSON Modal (Specular Glass Dialog)
     if (showImportJsonDialog) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showImportJsonDialog = false }) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showImportJsonDialog = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             TarazinoGlassCard(
                 cornerRadius = 26.dp,
-                accentBorderColor = MaterialTheme.colorScheme.secondary
+                accentBorderColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 440.dp)
+                    .imePadding()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(18.dp)
+                ) {
                     TarazinoSectionHeader(
                         title = "بازیابی از پشتیبان JSON",
                         subtitle = "متن پشتیبان قبلی را جای‌گذاری کنید",
@@ -765,7 +1007,7 @@ fun ReportsAndSettingsScreen(
                     OutlinedTextField(
                         value = importJsonInput,
                         onValueChange = { importJsonInput = it },
-                        label = { Text("متن JSON پشتیبان را اینجا جای‌گذاری کنید") },
+                        label = { Text("متن JSON پشتیبان", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         maxLines = 8,
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -780,7 +1022,7 @@ fun ReportsAndSettingsScreen(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("انصراف")
+                            Text("انصراف", maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -790,7 +1032,7 @@ fun ReportsAndSettingsScreen(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Text("بازیابی اطلاعات", fontWeight = FontWeight.Bold)
+                            Text("بازیابی اطلاعات", fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                 }
@@ -803,40 +1045,125 @@ fun ReportsAndSettingsScreen(
 private fun ThemePreviewSwatchCard(
     mode: TarazinoThemeMode,
     titleFa: String,
+    subtitleFa: String,
+    isLightTheme: Boolean,
     bgPreview: Color,
     surfacePreview: Color,
+    heroStartPreview: Color,
     accentPreview: Color,
+    secondaryPreview: Color,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val borderCol by animateColorAsState(
         targetValue = if (selected) accentPreview else MaterialTheme.colorScheme.outlineVariant,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
         label = "ThemeSwatchBorder_${mode.name}"
+    )
+    val cardScale by animateFloatAsState(
+        targetValue = if (selected) 1.02f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "ThemeSwatchScale_${mode.name}"
+    )
+    val shimmerTransition = rememberInfiniteTransition(label = "ThemeCardSheen_${mode.name}")
+    val shimmerX by shimmerTransition.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ThemeCardSheenX_${mode.name}"
     )
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        shape = RoundedCornerShape(18.dp),
+        color = if (selected) {
+            accentPreview.copy(alpha = 0.11f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
+        },
         border = BorderStroke(if (selected) 2.dp else 1.dp, borderCol),
+        shadowElevation = if (selected) 4.dp else 0.dp,
         modifier = modifier
-            .tarazinoPressScale(scaleDown = 0.94f, onClick = onClick)
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            }
+            .tarazinoPressScale(scaleDown = 0.95f, onClick = onClick)
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.padding(10.dp)
         ) {
-            // Miniature Phone Theme Preview Box
+            // Miniature Living App Interface Preview with Radial Aurora + Active Shimmer
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(bgPreview)
-                    .border(0.8.dp, accentPreview.copy(alpha = 0.3f), RoundedCornerShape(11.dp))
-                    .padding(6.dp)
+                    .height(74.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(
+                        width = 0.85.dp,
+                        color = accentPreview.copy(alpha = if (selected) 0.55f else 0.28f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Canvas(modifier = Modifier.matchParentSize()) {
+                    drawRect(color = bgPreview)
+                    // Ambient radial aurora top-right
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                accentPreview.copy(alpha = if (isLightTheme) 0.22f else 0.34f),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.85f, size.height * 0.15f),
+                            radius = size.width * 0.62f
+                        ),
+                        radius = size.width * 0.62f,
+                        center = Offset(size.width * 0.85f, size.height * 0.15f)
+                    )
+                    // Secondary ambient radial glow bottom-left
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                secondaryPreview.copy(alpha = if (isLightTheme) 0.16f else 0.24f),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.16f, size.height * 0.88f),
+                            radius = size.width * 0.52f
+                        ),
+                        radius = size.width * 0.52f,
+                        center = Offset(size.width * 0.16f, size.height * 0.88f)
+                    )
+                    // Subtle live specular sweep on selected theme card
+                    if (selected) {
+                        val sweepX = size.width * shimmerX
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.White.copy(alpha = if (isLightTheme) 0.28f else 0.12f),
+                                    accentPreview.copy(alpha = 0.14f),
+                                    Color.Transparent
+                                ),
+                                start = Offset(sweepX - size.width * 0.28f, 0f),
+                                end = Offset(sweepX + size.width * 0.28f, size.height)
+                            )
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(7.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    // Mini Top Bar + Light/Dark Mood Pill
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -845,56 +1172,138 @@ private fun ThemePreviewSwatchCard(
                         Box(
                             modifier = Modifier
                                 .width(28.dp)
-                                .height(7.dp)
+                                .height(5.5.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(accentPreview)
                         )
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFF59E0B))
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.5.dp)
+                                    .clip(CircleShape)
+                                    .background(accentPreview)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(6.5.dp)
+                                    .clip(CircleShape)
+                                    .background(secondaryPreview)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(6.5.dp)
+                                    .clip(CircleShape)
+                                    .background(heroStartPreview)
+                                    .border(0.6.dp, Color.White.copy(alpha = 0.45f), CircleShape)
+                            )
+                        }
                     }
+
+                    // Mini Vault Hero Card Gradient
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(22.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(surfacePreview)
-                            .padding(4.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        heroStartPreview,
+                                        if (isLightTheme) heroStartPreview.copy(alpha = 0.85f) else surfacePreview
+                                    )
+                                )
+                            )
+                            .border(0.65.dp, accentPreview.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 6.dp, vertical = 4.5.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.SpaceBetween) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.58f)
+                                    .height(5.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(accentPreview)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.36f)
+                                    .height(3.5.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(secondaryPreview.copy(alpha = 0.84f))
+                            )
+                        }
+                    }
+
+                    // Mini Surface Cards Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.65f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(accentPreview.copy(alpha = 0.65f))
+                                .weight(1f)
+                                .height(11.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(surfacePreview)
+                                .border(
+                                    0.5.dp,
+                                    accentPreview.copy(alpha = if (isLightTheme) 0.22f else 0.16f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(11.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(surfacePreview)
+                                .border(
+                                    0.5.dp,
+                                    secondaryPreview.copy(alpha = if (isLightTheme) 0.22f else 0.16f),
+                                    RoundedCornerShape(4.dp)
+                                )
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = titleFa,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold,
+                        color = if (selected) accentPreview else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitleFa,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 if (selected) {
                     Icon(
                         imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
+                        contentDescription = "پوسته فعال",
                         tint = accentPreview,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(7.dp))
-
-            Text(
-                text = titleFa,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) accentPreview else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }

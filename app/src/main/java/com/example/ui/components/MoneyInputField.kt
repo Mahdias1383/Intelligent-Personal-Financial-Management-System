@@ -32,8 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
@@ -72,15 +74,28 @@ fun MoneyInputField(
                     onAmountChange(evaluated)
                 }
             },
-            label = { Text("$labelFa (بر پایه تومان)") },
-            placeholder = { Text("مثلاً ۱۵,۴۰۰,۰۰۰ یا ۱۵۰۰۰۰۰۰+۴۰۰۰۰۰") },
+            label = {
+                Text(
+                    text = "$labelFa (تومان)",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            placeholder = {
+                Text(
+                    text = "مثلاً ۱۵,۴۰۰,۰۰۰ یا ۱۵۰۰۰۰۰۰+۴۰۰۰۰۰",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             trailingIcon = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 6.dp)
                 ) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -88,10 +103,11 @@ fun MoneyInputField(
                     ) {
                         Text(
                             text = "تومان",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
                         )
                     }
                     if (amountToman > 0L) {
@@ -99,11 +115,13 @@ fun MoneyInputField(
                             onClick = {
                                 rawText = ""
                                 onAmountChange(0L)
-                            }
+                            },
+                            modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
-                                contentDescription = "پاک کردن مبلغ"
+                                contentDescription = "پاک کردن مبلغ",
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }

@@ -130,12 +130,17 @@ object ReportExportEngine {
         val pageWidth = 595 // Standard A4 width in PostScript points (210mm)
         val pageHeight = 842 // Standard A4 height in PostScript points (297mm)
 
-        val vazirmatnTypeface = try {
-            ResourcesCompat.getFont(context, R.font.vazirmatn) ?: Typeface.DEFAULT
+        val estedadRegularTypeface = try {
+            ResourcesCompat.getFont(context, R.font.estedad_regular) ?: Typeface.DEFAULT
         } catch (_: Exception) {
             Typeface.DEFAULT
         }
-        val boldTypeface = Typeface.create(vazirmatnTypeface, Typeface.BOLD)
+        val boldTypeface = try {
+            ResourcesCompat.getFont(context, R.font.estedad_bold)
+                ?: Typeface.create(estedadRegularTypeface, Typeface.BOLD)
+        } catch (_: Exception) {
+            Typeface.create(estedadRegularTypeface, Typeface.BOLD)
+        }
 
         val rowsPerFirstPage = 14
         val rowsPerSubsequentPage = 20
@@ -168,7 +173,7 @@ object ReportExportEngine {
                     pageRows = pageRows,
                     pageNumber = pageIndex + 1,
                     totalPages = totalPages,
-                    regularFont = vazirmatnTypeface,
+                    regularFont = estedadRegularTypeface,
                     boldFont = boldTypeface,
                     isFirstPage = pageIndex == 0,
                     isLastPage = pageIndex == totalPages - 1

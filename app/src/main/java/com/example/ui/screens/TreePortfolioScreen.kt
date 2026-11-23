@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -30,7 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -111,6 +113,7 @@ import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MoneyInputField
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
+import com.example.ui.components.TarazinoLuminousProgressBar
 import com.example.ui.components.TarazinoMiniBrandCard
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
@@ -300,13 +303,13 @@ fun TreePortfolioScreen(
                         )
                     }
 
-                    // Sleek 52dp Glowing Quick-Add Squircle
+                    // Sleek 54dp Glowing Quick-Add Squircle (aligned with search field height)
                     Surface(
                         shape = RoundedCornerShape(18.dp),
                         color = MaterialTheme.colorScheme.primary,
                         shadowElevation = 4.dp,
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(54.dp)
                             .tarazinoPressScale(
                                 scaleDown = 0.92f,
                                 onClick = {
@@ -375,7 +378,7 @@ fun TreePortfolioScreen(
 
                             drill.selectedCategory?.let { cat ->
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
@@ -389,7 +392,7 @@ fun TreePortfolioScreen(
 
                             selectedCounterparty?.let { cp ->
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
@@ -403,7 +406,7 @@ fun TreePortfolioScreen(
 
                             selectedObligation?.let { ob ->
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(15.dp)
@@ -638,13 +641,13 @@ fun TreePortfolioScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.CheckCircle,
                                                         contentDescription = null,
-                                                        tint = Color(0xFF042F2E),
+                                                        tint = ext.onPositive,
                                                         modifier = Modifier.size(16.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
                                                         text = "تسویه یکجا",
-                                                        color = Color(0xFF042F2E),
+                                                        color = ext.onPositive,
                                                         fontWeight = FontWeight.Bold,
                                                         maxLines = 1
                                                     )
@@ -674,6 +677,7 @@ fun TreePortfolioScreen(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
+                                    val extLedger = LocalTarazinoColors.current
                                     obSubRecords.forEach { sr ->
                                         val isCharge = sr.recordTypeEnum == SubRecordType.CHARGE
                                         Row(
@@ -687,7 +691,9 @@ fun TreePortfolioScreen(
                                                 Text(
                                                     text = sr.title,
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = FontWeight.SemiBold
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                                 Text(
                                                     text = PersianCurrencyEngine.toPersianDigits(sr.dateJalali),
@@ -695,6 +701,7 @@ fun TreePortfolioScreen(
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = "${if (isCharge) "+" else "-"} ${
                                                     PersianCurrencyEngine.formatAmount(
@@ -705,7 +712,8 @@ fun TreePortfolioScreen(
                                                 }",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isCharge) Color(0xFFF59E0B) else Color(0xFF10B981)
+                                                color = if (isCharge) extLedger.warning else extLedger.positive,
+                                                maxLines = 1
                                             )
                                         }
                                     }
@@ -994,17 +1002,21 @@ fun TreePortfolioScreen(
                                         iconSize = 22.dp
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = cat.labelFa,
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = catAccent
+                                            color = catAccent,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = "${PersianCurrencyEngine.toPersianDigits(subProviders.size.toString())} زیرمجموعه / طرف پرداخت",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                 }
@@ -1013,17 +1025,17 @@ fun TreePortfolioScreen(
                                     onClick = { showAddCounterpartyModalForCategory = cat },
                                     shape = RoundedCornerShape(12.dp),
                                     border = BorderStroke(1.dp, catAccent.copy(alpha = 0.5f)),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                                     modifier = Modifier.testTag("add_subprovider_btn")
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
                                         tint = catAccent,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("زیرمجموعه جدید", color = catAccent, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    Text("جدید", color = catAccent, fontWeight = FontWeight.Bold, maxLines = 1)
                                 }
                             }
                         }
@@ -1466,10 +1478,11 @@ private fun CategoryBentoTile(
                     TarazinoIconBadge(
                         icon = categoryIcon(category),
                         accentColor = accent,
-                        size = 42.dp,
-                        iconSize = 21.dp,
-                        cornerRadius = 14.dp
+                        size = 38.dp,
+                        iconSize = 19.dp,
+                        cornerRadius = 12.dp
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     TarazinoStatusPill(
                         text = "${PersianCurrencyEngine.toPersianDigits(obligationsCount.toString())} پرونده",
                         accentColor = accent
@@ -1519,14 +1532,10 @@ private fun CategoryBentoTile(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LinearProgressIndicator(
-                    progress = { progress },
+                TarazinoLuminousProgressBar(
+                    progress = progress,
                     color = accent,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                    height = 5.5.dp
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
@@ -1679,16 +1688,20 @@ private fun SubProviderFolderCard(
                         size = 46.dp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = counterparty.name,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${counterparty.categoryEnum.badgeFa} • ${PersianCurrencyEngine.toPersianDigits(obligations.size.toString())} پرونده (${PersianCurrencyEngine.toPersianDigits(pendingInstCount.toString())} قسط باز)",
+                            text = "${counterparty.categoryEnum.badgeFa} • ${PersianCurrencyEngine.toPersianDigits(obligations.size.toString())} پرونده (${PersianCurrencyEngine.toPersianDigits(pendingInstCount.toString())} باز)",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -1739,14 +1752,10 @@ private fun SubProviderFolderCard(
             if (totalPayable > 0L) {
                 Spacer(modifier = Modifier.height(12.dp))
                 val ratio = (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f)
-                LinearProgressIndicator(
-                    progress = { ratio },
+                TarazinoLuminousProgressBar(
+                    progress = ratio,
                     color = accent,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                    height = 6.5.dp
                 )
             }
 
@@ -1853,24 +1862,34 @@ private fun SubProviderDetailHubHeaderCard(
                         Text(
                             text = counterparty.name,
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "${counterparty.categoryEnum.labelFa} • ${counterparty.priorityEnum.labelFa}",
                             style = MaterialTheme.typography.labelMedium,
-                            color = accent
+                            color = accent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-                Row {
-                    IconButton(onClick = onEditProvider) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = "ویرایش زیرمجموعه")
+                Spacer(modifier = Modifier.width(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(onClick = onEditProvider, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "ویرایش زیرمجموعه",
+                            modifier = Modifier.size(19.dp)
+                        )
                     }
-                    IconButton(onClick = onDeleteProvider) {
+                    IconButton(onClick = onDeleteProvider, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "حذف زیرمجموعه",
-                            tint = ext.danger
+                            tint = ext.danger,
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                 }
@@ -2152,14 +2171,10 @@ private fun ObligationSummaryRowCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            LinearProgressIndicator(
-                progress = { progress },
+            TarazinoLuminousProgressBar(
+                progress = progress,
                 color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                height = 6.5.dp
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -2374,14 +2389,10 @@ private fun ObligationGranularHeaderCard(
 
             if (totalPayable > 0L) {
                 Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f) },
+                TarazinoLuminousProgressBar(
+                    progress = (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f),
                     color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(7.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                    height = 7.dp
                 )
             }
 
@@ -2487,12 +2498,24 @@ private fun GranularInstallmentItemCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
-                        TarazinoStatusPill(
-                            text = "قسط ${PersianCurrencyEngine.toPersianDigits(installment.installmentNumber.toString())}",
-                            accentColor = statusColor
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(statusColor.copy(alpha = 0.16f))
+                                .border(0.8.dp, statusColor.copy(alpha = 0.45f), RoundedCornerShape(9.dp))
+                        ) {
+                            Text(
+                                text = PersianCurrencyEngine.toPersianDigits(installment.installmentNumber.toString()),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = statusColor,
+                                maxLines = 1
+                            )
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = installment.title,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -2585,7 +2608,7 @@ private fun GranularInstallmentItemCard(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = Color(0xFF042F2E),
+                                    tint = ext.onPositive,
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
@@ -2593,7 +2616,7 @@ private fun GranularInstallmentItemCard(
                                     text = "تسویه",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF042F2E),
+                                    color = ext.onPositive,
                                     maxLines = 1
                                 )
                             }
@@ -2619,11 +2642,18 @@ private fun EditObligationDetailsModal(
     var trackingOrCheckCode by remember { mutableStateOf(obligation.trackingOrCheckCode) }
     var notes by remember { mutableStateOf(obligation.notes) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        TarazinoGlassCard(
+            cornerRadius = 26.dp,
+            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            modifier = Modifier
+                .fillMaxWidth(0.93f)
+                .widthIn(max = 460.dp)
+                .imePadding()
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -2783,16 +2813,19 @@ private fun GranularInstallmentEditModal(
 
     val effectivePayable = (customBaseAmount + lateFee - discount).coerceAtLeast(0L)
 
+    val ext = LocalTarazinoColors.current
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+        TarazinoGlassCard(
+            cornerRadius = 26.dp,
+            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(vertical = 16.dp)
+                .fillMaxWidth(0.94f)
+                .widthIn(max = 480.dp)
+                .imePadding()
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -2815,7 +2848,7 @@ private fun GranularInstallmentEditModal(
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "حذف این ردیف قسط",
-                            tint = Color(0xFFEF4444)
+                            tint = ext.danger
                         )
                     }
                 }
@@ -2874,27 +2907,21 @@ private fun GranularInstallmentEditModal(
                     onAmountChange = { paidAmount = it }
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        MoneyInputField(
-                            labelFa = "جریمه دیرکرد (اختیاری)",
-                            amountToman = lateFee,
-                            currencyUnit = currencyUnit,
-                            onAmountChange = { lateFee = it }
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        MoneyInputField(
-                            labelFa = "تخفیف خوش‌حسابی",
-                            amountToman = discount,
-                            currencyUnit = currencyUnit,
-                            onAmountChange = { discount = it }
-                        )
-                    }
-                }
+                // Stacked vertically with showQuickChips = false so neither MoneyInputField ever cramps or overlaps!
+                MoneyInputField(
+                    labelFa = "جریمه دیرکرد (اختیاری)",
+                    amountToman = lateFee,
+                    currencyUnit = currencyUnit,
+                    showQuickChips = false,
+                    onAmountChange = { lateFee = it }
+                )
+                MoneyInputField(
+                    labelFa = "تخفیف خوش‌حسابی (اختیاری)",
+                    amountToman = discount,
+                    currencyUnit = currencyUnit,
+                    showQuickChips = false,
+                    onAmountChange = { discount = it }
+                )
 
                 JalaliDateSelectorField(
                     labelFa = "تاریخ پرداخت شمسی",
@@ -2974,11 +3001,18 @@ private fun AddSingleCustomInstallmentModal(
     var isPaid by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        TarazinoGlassCard(
+            cornerRadius = 26.dp,
+            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            modifier = Modifier
+                .fillMaxWidth(0.93f)
+                .widthIn(max = 460.dp)
+                .imePadding()
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -3073,11 +3107,18 @@ private fun SubProviderFormDialog(
     var shebaNumber by remember { mutableStateOf(initialEntity?.shebaNumber ?: "") }
     var description by remember { mutableStateOf(initialEntity?.description ?: "") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        TarazinoGlassCard(
+            cornerRadius = 26.dp,
+            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            modifier = Modifier
+                .fillMaxWidth(0.93f)
+                .widthIn(max = 460.dp)
+                .imePadding()
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -3114,7 +3155,8 @@ private fun SubProviderFormDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("نام زیرمجموعه (مثلاً: اسنپ‌پی، دیجی‌پی، تارا، بانک ملت)") },
+                    label = { Text("نام زیرمجموعه", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("مثلاً: اسنپ‌پی، دیجی‌پی، تارا، بانک ملت", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -3123,7 +3165,7 @@ private fun SubProviderFormDialog(
                 OutlinedTextField(
                     value = cardNumber,
                     onValueChange = { cardNumber = it },
-                    label = { Text("شماره کارت ۱۶ رقمی مقصد (اختیاری)") },
+                    label = { Text("شماره کارت ۱۶ رقمی (اختیاری)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -3201,11 +3243,18 @@ private fun AddSubRecordDialog(
     var recordType by remember { mutableStateOf(SubRecordType.CHARGE) }
     var receiptCode by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        TarazinoGlassCard(
+            cornerRadius = 26.dp,
+            accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+            modifier = Modifier
+                .fillMaxWidth(0.93f)
+                .widthIn(max = 460.dp)
+                .imePadding()
+                .padding(vertical = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -3236,7 +3285,8 @@ private fun AddSubRecordDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("شرح تراکنش (مثلاً: خرید جدید یا واریز علی‌الحساب)") },
+                    label = { Text("شرح تراکنش", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("مثلاً: خرید جدید یا واریز علی‌الحساب", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()

@@ -10,9 +10,12 @@ import com.example.R
 
 /**
  * Authentic 7-weight Estedad-FD (Farsi Digits) — modern Iranian neo-grotesque fintech typeface.
- * Every weight maps to a real static .ttf with 100% native Persian letters & digits coverage.
+ * All 9 Material/Compose FontWeights map cleanly to static local .ttf files with 100% native
+ * Persian letters and digits coverage, eliminating every fallback to system Roboto/Noto.
  */
 val EstedadFontFamily = FontFamily(
+    Font(R.font.estedad_light, FontWeight.Thin),
+    Font(R.font.estedad_light, FontWeight.ExtraLight),
     Font(R.font.estedad_light, FontWeight.Light),
     Font(R.font.estedad_regular, FontWeight.Normal),
     Font(R.font.estedad_medium, FontWeight.Medium),
@@ -22,7 +25,7 @@ val EstedadFontFamily = FontFamily(
     Font(R.font.estedad_black, FontWeight.Black)
 )
 
-/** Backward-compatible alias pointing to the upgraded Estedad-FD family. */
+/** Backward-compatible alias pointing to the unified Estedad-FD family. */
 val VazirmatnFontFamily: FontFamily = EstedadFontFamily
 
 fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
@@ -32,7 +35,7 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             fontWeight = FontWeight.Black,
             fontSize = (31 * scale).sp,
             lineHeight = (40 * scale).sp,
-            letterSpacing = (-0.4).sp,
+            letterSpacing = (-0.35).sp,
             fontFeatureSettings = "tnum"
         ),
         displayMedium = TextStyle(
@@ -40,14 +43,22 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             fontWeight = FontWeight.ExtraBold,
             fontSize = (26 * scale).sp,
             lineHeight = (35 * scale).sp,
-            letterSpacing = (-0.25).sp,
+            letterSpacing = (-0.2).sp,
+            fontFeatureSettings = "tnum"
+        ),
+        displaySmall = TextStyle(
+            fontFamily = EstedadFontFamily,
+            fontWeight = FontWeight.Black,
+            fontSize = (24 * scale).sp,
+            lineHeight = (32 * scale).sp,
+            letterSpacing = (-0.15).sp,
             fontFeatureSettings = "tnum"
         ),
         headlineLarge = TextStyle(
             fontFamily = EstedadFontFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = (23 * scale).sp,
-            lineHeight = (32 * scale).sp,
+            fontSize = (22.5f * scale).sp,
+            lineHeight = (31 * scale).sp,
             fontFeatureSettings = "tnum"
         ),
         headlineMedium = TextStyle(
@@ -57,11 +68,18 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             lineHeight = (28 * scale).sp,
             fontFeatureSettings = "tnum"
         ),
+        headlineSmall = TextStyle(
+            fontFamily = EstedadFontFamily,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = (18 * scale).sp,
+            lineHeight = (26 * scale).sp,
+            fontFeatureSettings = "tnum"
+        ),
         titleLarge = TextStyle(
             fontFamily = EstedadFontFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = (17.5f * scale).sp,
-            lineHeight = (26 * scale).sp
+            fontSize = (17 * scale).sp,
+            lineHeight = (25 * scale).sp
         ),
         titleMedium = TextStyle(
             fontFamily = EstedadFontFamily,
@@ -73,13 +91,13 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
             fontFamily = EstedadFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = (13.5f * scale).sp,
-            lineHeight = (20 * scale).sp
+            lineHeight = (20.5f * scale).sp
         ),
         bodyLarge = TextStyle(
             fontFamily = EstedadFontFamily,
             fontWeight = FontWeight.Normal,
             fontSize = (14.5f * scale).sp,
-            lineHeight = (24 * scale).sp
+            lineHeight = (23.5f * scale).sp
         ),
         bodyMedium = TextStyle(
             fontFamily = EstedadFontFamily,
@@ -89,7 +107,7 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
         ),
         bodySmall = TextStyle(
             fontFamily = EstedadFontFamily,
-            fontWeight = FontWeight.Light,
+            fontWeight = FontWeight.Normal,
             fontSize = (11.5f * scale).sp,
             lineHeight = (19 * scale).sp
         ),
@@ -107,7 +125,7 @@ fun buildTarazinoTypography(scale: Float = 1.0f): Typography {
         ),
         labelSmall = TextStyle(
             fontFamily = EstedadFontFamily,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSize = (10.5f * scale).sp,
             lineHeight = (15.5f * scale).sp
         )

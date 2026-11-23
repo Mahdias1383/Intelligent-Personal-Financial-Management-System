@@ -329,7 +329,7 @@ fun A4ReportPreviewModal(
 
                             LinearProgressIndicator(
                                 progress = { payload.progressPercent / 100f },
-                                color = Color(0xFF10B981),
+                                color = Color(0xFF047857),
                                 trackColor = Color(0xFFE2E8F0),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -354,29 +354,34 @@ fun A4ReportPreviewModal(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(24.dp),
+                                    maxLines = 1,
+                                    modifier = Modifier.width(22.dp),
                                     textAlign = TextAlign.Center
                                 )
                                 Text(
-                                    text = "عنوان قسط / تعهد و طرف‌حساب",
+                                    text = "عنوان و طرف‌حساب",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1.4f)
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1.45f)
                                 )
                                 Text(
                                     text = "سررسید",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(0.8f),
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(0.85f),
                                     textAlign = TextAlign.Center
                                 )
                                 Text(
-                                    text = "مبلغ (${payload.currencyUnit.labelFa})",
+                                    text = "مبلغ",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
                                     modifier = Modifier.weight(1f),
                                     textAlign = TextAlign.Center
                                 )
@@ -385,7 +390,8 @@ fun A4ReportPreviewModal(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(0.75f),
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(0.72f),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -414,27 +420,34 @@ fun A4ReportPreviewModal(
                                         text = PersianCurrencyEngine.toPersianDigits(row.rowNumber.toString()),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color(0xFF334155),
-                                        modifier = Modifier.width(24.dp),
+                                        maxLines = 1,
+                                        modifier = Modifier.width(22.dp),
                                         textAlign = TextAlign.Center
                                     )
-                                    Column(modifier = Modifier.weight(1.4f)) {
+                                    Column(modifier = Modifier.weight(1.45f)) {
                                         Text(
                                             text = row.title,
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFF0F172A)
+                                            color = Color(0xFF0F172A),
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = "${row.counterpartyName} • ${row.trackingOrNote}",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF64748B)
+                                            color = Color(0xFF64748B),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
                                     Text(
                                         text = row.dueDateJalali,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color(0xFF1E293B),
-                                        modifier = Modifier.weight(0.8f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(0.85f),
                                         textAlign = TextAlign.Center
                                     )
                                     Text(
@@ -446,6 +459,8 @@ fun A4ReportPreviewModal(
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F172A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Center
                                     )
@@ -454,7 +469,9 @@ fun A4ReportPreviewModal(
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = statusColor,
-                                        modifier = Modifier.weight(0.75f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(0.72f),
                                         textAlign = TextAlign.Center
                                     )
                                 }

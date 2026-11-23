@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -93,9 +95,11 @@ import com.example.domain.CalendarHeatmapDay
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
+import com.example.ui.components.MlFinancialForecastSection
 import com.example.ui.components.MoneyInputField
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
+import com.example.ui.components.TarazinoLuminousProgressBar
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.formatCompactPersianToman
@@ -117,6 +121,7 @@ fun IntelligenceScreen(
 ) {
     val unit = uiState.preferences.currencyUnit
     val masked = uiState.preferences.privacyMaskEnabled
+    val ext = LocalTarazinoColors.current
     val listState = rememberLazyListState()
 
     var selectedHeatmapDay by remember { mutableStateOf<CalendarHeatmapDay?>(null) }
@@ -144,7 +149,7 @@ fun IntelligenceScreen(
         uiState.dtiHealthReport?.let { dti ->
             item {
                 val hasCapacity = dti.safeNewInstallmentCapacityToman > 0L
-                val capAccent = if (hasCapacity) Color(0xFF10B981) else Color(0xFFEF4444)
+                val capAccent = if (hasCapacity) ext.positive else ext.danger
                 val statusColor = Color(dti.statusColorHex)
 
                 val incomeSafe = dti.monthlyIncomeToman.coerceAtLeast(1L).toFloat()
@@ -302,7 +307,7 @@ fun IntelligenceScreen(
 
                             // Draw right-to-left visually for Persian readers
                             drawRect(
-                                color = Color(0xFF38BDF8),
+                                color = ext.info,
                                 topLeft = Offset(totalW - livingW, 0f),
                                 size = Size(livingW, size.height)
                             )
@@ -313,7 +318,7 @@ fun IntelligenceScreen(
                             )
                             if (capW > 0f) {
                                 drawRect(
-                                    color = Color(0xFF10B981),
+                                    color = ext.positive,
                                     topLeft = Offset(0f, 0f),
                                     size = Size(capW, size.height)
                                 )
@@ -338,8 +343,8 @@ fun IntelligenceScreen(
                                 MetricMiniCard(
                                     label = "معیشت (${PersianCurrencyEngine.toPersianDigits(dti.livingExpensePercent.toString())}٪)",
                                     value = PersianCurrencyEngine.formatAmount(dti.essentialLivingExpenseToman, unit, privacyMasked = masked),
-                                    color = Color(0xFF38BDF8),
-                                    dotColor = Color(0xFF38BDF8),
+                                    color = ext.info,
+                                    dotColor = ext.info,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -392,7 +397,7 @@ fun IntelligenceScreen(
                                             text = "${slice.labelFa} (${slice.rangeLabelFa})",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isPeak) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurface,
+                                            color = if (isPeak) ext.warning else MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             modifier = Modifier.weight(1f, fill = false)
@@ -401,7 +406,7 @@ fun IntelligenceScreen(
                                             Spacer(modifier = Modifier.width(6.dp))
                                             TarazinoStatusPill(
                                                 text = "اوج فشار",
-                                                accentColor = Color(0xFFF59E0B)
+                                                accentColor = ext.warning
                                             )
                                         }
                                     }
@@ -412,18 +417,15 @@ fun IntelligenceScreen(
                                         }٪)",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(5.dp))
-                                LinearProgressIndicator(
-                                    progress = { (slice.sharePercent / 100f).coerceIn(0f, 1f) },
-                                    color = if (isPeak) Color(0xFFF59E0B) else MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(7.dp)
-                                        .clip(RoundedCornerShape(4.dp))
+                                TarazinoLuminousProgressBar(
+                                    progress = (slice.sharePercent / 100f).coerceIn(0f, 1f),
+                                    color = if (isPeak) ext.warning else MaterialTheme.colorScheme.primary,
+                                    height = 7.dp
                                 )
                             }
                         }
@@ -445,7 +447,7 @@ fun IntelligenceScreen(
                                     Icon(
                                         imageVector = Icons.Default.Lightbulb,
                                         contentDescription = null,
-                                        tint = Color(0xFFF59E0B),
+                                        tint = ext.warning,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -467,6 +469,23 @@ fun IntelligenceScreen(
                         }
                     }
                 }
+            }
+        }
+
+        // =========================================================================
+        // 1B. MACHINE LEARNING FINANCIAL HEALTH FORECASTING & DEFICIT WARNINGS
+        // =========================================================================
+        uiState.mlForecastReport?.let { mlReport ->
+            item {
+                MlFinancialForecastSection(
+                    baselineReport = mlReport,
+                    installments = uiState.installments,
+                    obligations = uiState.obligations,
+                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                    livingExpensePercent = uiState.preferences.livingExpensePercent,
+                    unit = unit,
+                    privacyMasked = masked
+                )
             }
         }
 
@@ -501,7 +520,7 @@ fun IntelligenceScreen(
                         ) {
                             IconButton(onClick = { onChangeHeatmapMonth(-1) }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "ماه قبل"
                                 )
                             }
@@ -514,7 +533,7 @@ fun IntelligenceScreen(
                             )
                             IconButton(onClick = { onChangeHeatmapMonth(1) }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = "ماه بعد"
                                 )
                             }
@@ -529,10 +548,10 @@ fun IntelligenceScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        LegendDotLabel("پرفشار", Color(0xFFEF4444))
-                        LegendDotLabel("دارای قسط", Color(0xFFF59E0B))
-                        LegendDotLabel("طلب", Color(0xFF06B6D4))
-                        LegendDotLabel("تسویه‌شده", Color(0xFF10B981))
+                        LegendDotLabel("پرفشار", ext.danger)
+                        LegendDotLabel("دارای قسط", ext.warning)
+                        LegendDotLabel("طلب", ext.info)
+                        LegendDotLabel("تسویه‌شده", ext.positive)
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -544,7 +563,7 @@ fun IntelligenceScreen(
                                 text = JalaliCalendarEngine.WEEKDAY_SHORT[w],
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (w == 6) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                color = if (w == 6) ext.danger else MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.weight(1f)
                             )
@@ -579,10 +598,10 @@ fun IntelligenceScreen(
                                         val isSelectedDay = selectedHeatmapDay?.dateJalali == dayItem.dateJalali
 
                                         val cellColor = when {
-                                            dayItem.unpaidDebtToman >= 10_000_000L -> Color(0xFFEF4444).copy(alpha = 0.28f)
-                                            hasUnpaid -> Color(0xFFF59E0B).copy(alpha = 0.24f)
-                                            hasRec -> Color(0xFF06B6D4).copy(alpha = 0.24f)
-                                            hasPaid -> Color(0xFF10B981).copy(alpha = 0.20f)
+                                            dayItem.unpaidDebtToman >= 10_000_000L -> ext.danger.copy(alpha = 0.24f)
+                                            hasUnpaid -> ext.warning.copy(alpha = 0.22f)
+                                            hasRec -> ext.info.copy(alpha = 0.22f)
+                                            hasPaid -> ext.positive.copy(alpha = 0.20f)
                                             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                                         }
 
@@ -628,9 +647,9 @@ fun IntelligenceScreen(
                                                             .clip(CircleShape)
                                                             .background(
                                                                 when {
-                                                                    hasUnpaid -> Color(0xFFEF4444)
-                                                                    hasRec -> Color(0xFF06B6D4)
-                                                                    else -> Color(0xFF10B981)
+                                                                    hasUnpaid -> ext.danger
+                                                                    hasRec -> ext.info
+                                                                    else -> ext.positive
                                                                 }
                                                             )
                                                     )
@@ -711,7 +730,6 @@ fun IntelligenceScreen(
         // =========================================================================
         if (uiState.forward12MonthBars.isNotEmpty()) {
             item {
-                val ext = LocalTarazinoColors.current
                 val safeBarIdx = selectedForwardBarIndex.coerceIn(0, uiState.forward12MonthBars.lastIndex)
                 val focusedBar = uiState.forward12MonthBars[safeBarIdx]
 
@@ -748,26 +766,32 @@ fun IntelligenceScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = "ماه ${focusedBar.monthLabelFa}",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     val focusedDisplayTotal = if (unit == CurrencyUnit.RIAL) focusedBar.totalDebtToman * 10L else focusedBar.totalDebtToman
                                     Text(
                                         text = "کل بار ماه: ${formatCompactPersianToman(focusedDisplayTotal, masked)} ${if (masked) "" else unit.labelFa}",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
                                             text = "مانده",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                         Text(
                                             text = formatCompactPersianToman(
@@ -776,14 +800,16 @@ fun IntelligenceScreen(
                                             ),
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFFF59E0B)
+                                            color = ext.warning,
+                                            maxLines = 1
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
                                             text = "پرداخت‌شده",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
                                         )
                                         Text(
                                             text = formatCompactPersianToman(
@@ -792,7 +818,8 @@ fun IntelligenceScreen(
                                             ),
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF10B981)
+                                            color = ext.positive,
+                                            maxLines = 1
                                         )
                                     }
                                 }
@@ -863,11 +890,11 @@ fun IntelligenceScreen(
                                 drawRoundRect(
                                     brush = Brush.verticalGradient(
                                         if (isFocused) {
-                                            listOf(Color(0xFFFCD34D), Color(0xFFF59E0B))
+                                            listOf(ext.warning, ext.warning.copy(alpha = 0.80f))
                                         } else {
                                             listOf(
-                                                Color(0xFFF59E0B).copy(alpha = 0.62f),
-                                                Color(0xFFF59E0B).copy(alpha = 0.28f)
+                                                ext.warning.copy(alpha = 0.62f),
+                                                ext.warning.copy(alpha = 0.28f)
                                             )
                                         }
                                     ),
@@ -879,9 +906,9 @@ fun IntelligenceScreen(
                                     drawRoundRect(
                                         brush = Brush.verticalGradient(
                                             if (isFocused) {
-                                                listOf(Color(0xFF34D399), Color(0xFF059669))
+                                                listOf(ext.positive, ext.positive.copy(alpha = 0.80f))
                                             } else {
-                                                listOf(Color(0xFF10B981), Color(0xFF047857))
+                                                listOf(ext.positive.copy(alpha = 0.78f), ext.positive.copy(alpha = 0.48f))
                                             }
                                         ),
                                         topLeft = Offset(x, size.height - paidH),
@@ -1009,7 +1036,7 @@ fun IntelligenceScreen(
                             MetricMiniCard(
                                 label = "صرفه‌جویی زمانی",
                                 value = "${PersianCurrencyEngine.toPersianDigits(sim.monthsSavedAvalanche.toString())} ماه زودتر!",
-                                color = Color(0xFFF59E0B),
+                                color = ext.warning,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1061,7 +1088,7 @@ fun IntelligenceScreen(
                                     titleFa = "استراتژی بهمن",
                                     subtitleFa = "حداقل ریسک و هزینه",
                                     icon = Icons.Default.Shield,
-                                    accentColor = Color(0xFFF59E0B),
+                                    accentColor = ext.warning,
                                     onClick = { selectedStrategyTab = 0 },
                                     modifier = Modifier
                                         .weight(1f)
@@ -1072,7 +1099,7 @@ fun IntelligenceScreen(
                                     titleFa = "استراتژی گلوله برفی",
                                     subtitleFa = "حذف سریع خرده‌بدهی",
                                     icon = Icons.Default.Speed,
-                                    accentColor = Color(0xFF10B981),
+                                    accentColor = ext.positive,
                                     onClick = { selectedStrategyTab = 1 },
                                     modifier = Modifier
                                         .weight(1f)
@@ -1169,10 +1196,14 @@ fun IntelligenceScreen(
                 accentBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
+                    .imePadding()
                     .padding(vertical = 16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1251,7 +1282,7 @@ fun IntelligenceScreen(
                                 text = "${PersianCurrencyEngine.toPersianDigits(newAlertDays.roundToInt().toString())} روز",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFF59E0B)
+                                color = ext.warning
                             )
                         }
                         Slider(
@@ -1271,7 +1302,7 @@ fun IntelligenceScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("انصراف", fontWeight = FontWeight.SemiBold)
+                            Text("انصراف", fontWeight = FontWeight.SemiBold, maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -1285,7 +1316,7 @@ fun IntelligenceScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.weight(1.4f)
                         ) {
-                            Text("ذخیره بودجه", fontWeight = FontWeight.Bold)
+                            Text("ذخیره بودجه", fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                     }
                 }
@@ -1315,11 +1346,11 @@ private fun FinancialHealthSpeedometerGauge(
         contentAlignment = Alignment.TopCenter,
         modifier = Modifier
             .fillMaxWidth()
-            .height(188.dp)
+            .height(206.dp)
     ) {
         Canvas(
             modifier = Modifier
-                .size(width = 204.dp, height = 164.dp)
+                .size(width = 210.dp, height = 168.dp)
                 .padding(top = 6.dp)
         ) {
             val strokePx = 14.dp.toPx()
@@ -1359,9 +1390,9 @@ private fun FinancialHealthSpeedometerGauge(
                 drawArc(
                     brush = Brush.horizontalGradient(
                         listOf(
-                            statusColor.copy(alpha = 0.75f),
+                            statusColor.copy(alpha = 0.65f),
                             statusColor,
-                            Color(0xFF34D399)
+                            statusColor.copy(alpha = 0.95f)
                         )
                     ),
                     startAngle = startAngle,

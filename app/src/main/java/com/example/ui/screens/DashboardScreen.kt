@@ -30,8 +30,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -40,7 +42,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Alarm
@@ -106,6 +108,7 @@ import com.example.ui.components.MetallicSmartChipEmblem
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
 import com.example.ui.components.TarazinoLivePulseDot
+import com.example.ui.components.TarazinoLuminousProgressBar
 import com.example.ui.components.TarazinoMetalVaultCard
 import com.example.ui.components.TarazinoMiniBrandCard
 import com.example.ui.components.TarazinoQuickActionTile
@@ -253,26 +256,31 @@ fun DashboardScreen(
                 else -> "مجموع طلب‌های دریافت‌نشده از دیگران"
             }
 
-            // Dynamic Airy Aura Morphing per Mode
+            // Dynamic Theme-Synced Aura Morphing per Mode (Institutional Private-Banking Finishes)
             val cardAccentPrimary = when (heroModeIndex) {
-                0 -> Color(0xFF10E5A5) // Fresh Electric Mint
-                1 -> Color(0xFFF0CE82) // Soft Champagne Gold
-                else -> Color(0xFF38BDF8) // Luminous Sky Sapphire
+                0 -> ext.heroAccent
+                1 -> Color(0xFFDEB14B) // Sovereign Bullion Champagne Gold
+                else -> Color(0xFF4DA6F0) // Imperial Sapphire Slate
             }
             val cardAccentSecondary = when (heroModeIndex) {
-                0 -> Color(0xFF38BDF8)
-                1 -> Color(0xFFFF7A96)
-                else -> Color(0xFF818CF8)
+                0 -> MaterialTheme.colorScheme.secondary
+                1 -> Color(0xFFD9884B)
+                else -> Color(0xFFA794E8)
             }
             val cardBaseStart = when (heroModeIndex) {
-                0 -> Color(0xFF0E2925)
-                1 -> Color(0xFF251E14)
-                else -> Color(0xFF0F243E)
+                0 -> ext.heroStart
+                1 -> if (ext.isDark) Color(0xFF2C2215) else Color(0xFF3B2B16)
+                else -> if (ext.isDark) Color(0xFF102446) else Color(0xFF0E3254)
+            }
+            val cardBaseMid = when (heroModeIndex) {
+                0 -> ext.heroMid
+                1 -> if (ext.isDark) Color(0xFF1E1914) else Color(0xFF282019)
+                else -> if (ext.isDark) Color(0xFF101C36) else Color(0xFF102640)
             }
             val cardBaseEnd = when (heroModeIndex) {
-                0 -> Color(0xFF131B29)
-                1 -> Color(0xFF151A27)
-                else -> Color(0xFF121A2B)
+                0 -> ext.heroEnd
+                1 -> if (ext.isDark) Color(0xFF13110E) else Color(0xFF1A1715)
+                else -> if (ext.isDark) Color(0xFF0B1224) else Color(0xFF0E1B2E)
             }
 
             val freedomDateShort = uiState.payoffSimulation?.projectedBaselineDateJalali?.let {
@@ -286,6 +294,7 @@ fun DashboardScreen(
                     accentPrimary = cardAccentPrimary,
                     accentSecondary = cardAccentSecondary,
                     baseStart = cardBaseStart,
+                    baseMid = cardBaseMid,
                     baseEnd = cardBaseEnd,
                     isFlipped = isVaultCardFlipped,
                     modifier = Modifier.tourSpotlightTarget("dashboard_monthly_summary"),
@@ -336,7 +345,10 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Verified,
                                         contentDescription = null,
@@ -345,12 +357,15 @@ fun DashboardScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "شناسنامه خزانه و افق آزادی مالی",
+                                        text = "شناسنامه خزانه و آزادی مالی",
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
+                                Spacer(modifier = Modifier.width(8.dp))
 
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
@@ -395,7 +410,7 @@ fun DashboardScreen(
                                         Text(
                                             text = "تاریخ آزادی از بدهی",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF9EB3C4)
+                                            color = ext.heroOnSurfaceMuted
                                         )
                                         Spacer(modifier = Modifier.height(3.dp))
                                         Text(
@@ -418,7 +433,7 @@ fun DashboardScreen(
                                         Text(
                                             text = "امتیاز سلامت مالی",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color(0xFF9EB3C4)
+                                            color = ext.heroOnSurfaceMuted
                                         )
                                         Spacer(modifier = Modifier.height(3.dp))
                                         Text(
@@ -441,16 +456,21 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString())} پرونده فعال • ${PersianCurrencyEngine.toPersianDigits(paidInstCount.toString())} قسط تسویه‌شده",
+                                    text = "${PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString())} پرونده فعال • ${PersianCurrencyEngine.toPersianDigits(paidInstCount.toString())} قسط تسویه",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFFD5E1EC)
+                                    color = ext.heroOnSurface.copy(alpha = 0.88f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "آفلاین و رمزنگاری‌شده",
+                                    text = "آفلاین و امن",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
-                                    color = cardAccentPrimary
+                                    color = cardAccentPrimary,
+                                    maxLines = 1
                                 )
                             }
                         }
@@ -497,7 +517,7 @@ fun DashboardScreen(
                                             text = label,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (selected) Color(0xFF031915) else Color(0xFFD5E1EC),
+                                            color = if (selected) Color(0xFF041C19) else ext.heroOnSurface.copy(alpha = 0.88f),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -548,7 +568,7 @@ fun DashboardScreen(
                                 Text(
                                     text = sub,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFFA8BACD),
+                                    color = ext.heroOnSurfaceMuted,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -602,7 +622,7 @@ fun DashboardScreen(
                             Text(
                                 text = "تسویه‌شده تا امروز",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9EB3C4),
+                                color = ext.heroOnSurfaceMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -611,7 +631,7 @@ fun DashboardScreen(
                                 unit = unit,
                                 privacyMasked = masked,
                                 style = MaterialTheme.typography.labelLarge,
-                                numberColor = Color(0xFF00E5A0),
+                                numberColor = Color(0xFF34D399),
                                 unitColor = Color(0xFFA7F3D0)
                             )
                         }
@@ -630,7 +650,7 @@ fun DashboardScreen(
                             Text(
                                 text = "کل بدهی مانده",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF9EB3C4),
+                                color = ext.heroOnSurfaceMuted,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -662,7 +682,7 @@ fun DashboardScreen(
                 TarazinoQuickActionTile(
                     label = "ثبت قسط",
                     icon = Icons.Default.AddCircle,
-                    accentColor = Color(0xFF00E5A0),
+                    accentColor = MaterialTheme.colorScheme.primary,
                     onClick = onOpenNewObligationWizard,
                     modifier = Modifier
                         .weight(1f)
@@ -671,7 +691,7 @@ fun DashboardScreen(
                 TarazinoQuickActionTile(
                     label = "تسویه فوری",
                     icon = Icons.Default.Bolt,
-                    accentColor = Color(0xFFE8C67D),
+                    accentColor = ext.warning,
                     badgeCount = urgentCount,
                     onClick = {
                         if (mostUrgent != null) {
@@ -687,14 +707,14 @@ fun DashboardScreen(
                 TarazinoQuickActionTile(
                     label = "بودجه و هوش",
                     icon = Icons.Default.Insights,
-                    accentColor = Color(0xFF22D3EE),
+                    accentColor = ext.info,
                     onClick = onOpenIntelligenceTab,
                     modifier = Modifier.weight(1f)
                 )
                 TarazinoQuickActionTile(
                     label = "گزارش A4",
                     icon = Icons.Default.PictureAsPdf,
-                    accentColor = Color(0xFFA78BFA),
+                    accentColor = Color(0xFF8B5CF6),
                     onClick = onOpenFullA4Report,
                     modifier = Modifier
                         .weight(1f)
@@ -876,13 +896,17 @@ fun DashboardScreen(
                                 label = "DonutCenterContent"
                             ) { focused ->
                                 if (focused != null) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 18.dp)
+                                    ) {
                                         Text(
                                             text = formatCompactPersianToman(focused.remainingToman, masked),
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = focused.color,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = "${PersianCurrencyEngine.toPersianDigits((focused.shareRatio * 100).toInt().toString())}٪",
@@ -893,7 +917,10 @@ fun DashboardScreen(
                                         )
                                     }
                                 } else {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 18.dp)
+                                    ) {
                                         Text(
                                             text = PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString()),
                                             style = MaterialTheme.typography.titleLarge,
@@ -988,7 +1015,7 @@ fun DashboardScreen(
                                                 maxLines = 1
                                             )
                                             Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                                 contentDescription = null,
                                                 tint = slice.color,
                                                 modifier = Modifier.size(15.dp)
@@ -1163,14 +1190,10 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        LinearProgressIndicator(
-                            progress = { capacityRatio },
+                        TarazinoLuminousProgressBar(
+                            progress = capacityRatio,
                             color = statusColor,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
+                            height = 7.dp
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -1196,12 +1219,63 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "بودجه و تقویم ‹",
+                                text = "بودجه و پیش‌بینی ML ‹",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1
                             )
+                        }
+
+                        // Proactive ML Deficit Early-Warning Strip right on the Dashboard
+                        uiState.mlForecastReport?.let { forecast ->
+                            val hasDeficit = forecast.deficitMonths.isNotEmpty()
+                            val stripColor = if (hasDeficit) ext.danger else ext.positive
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = stripColor.copy(alpha = if (ext.isDark) 0.14f else 0.09f),
+                                border = BorderStroke(0.8.dp, stripColor.copy(alpha = 0.36f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("dashboard_ml_deficit_alert_strip")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        TarazinoLivePulseDot(
+                                            color = stripColor,
+                                            size = 6.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = if (hasDeficit) {
+                                                val firstDef = forecast.firstDeficitMonth?.monthShortFa ?: ""
+                                                "هشدار ML: ${
+                                                    PersianCurrencyEngine.toPersianDigits(forecast.deficitMonths.size.toString())
+                                                } ماه کسری در پیش است (نزدیک‌ترین: $firstDef)"
+                                            } else {
+                                                "پیش‌بینی ML: ۱۲ ماه آینده بدون کسری بودجه (امتیاز ${
+                                                    PersianCurrencyEngine.toPersianDigits(forecast.averageProjectedHealthScore.toString())
+                                                })"
+                                            },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = stripColor,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1295,16 +1369,16 @@ private fun WeeklyJalaliCashflowStrip(
                     val isSelected = selectedOffset == offset
                     val hasDue = dayAlerts.isNotEmpty()
                     val dotColor = when {
-                        hasDue && isToday -> Color(0xFFFF4D67)
-                        hasDue -> Color(0xFFF5B742)
-                        else -> Color(0xFF00E5A0).copy(alpha = 0.40f)
+                        hasDue && isToday -> ext.danger
+                        hasDue -> ext.warning
+                        else -> ext.positive.copy(alpha = 0.45f)
                     }
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = when {
                             isSelected -> MaterialTheme.colorScheme.primary
                             isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                            hasDue -> Color(0xFFF5B742).copy(alpha = 0.13f)
+                            hasDue -> ext.warning.copy(alpha = 0.13f)
                             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f)
                         },
                         border = BorderStroke(
@@ -1312,7 +1386,7 @@ private fun WeeklyJalaliCashflowStrip(
                             color = when {
                                 isSelected -> MaterialTheme.colorScheme.primary
                                 isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
-                                hasDue -> Color(0xFFF5B742).copy(alpha = 0.45f)
+                                hasDue -> ext.warning.copy(alpha = 0.45f)
                                 else -> Color.Transparent
                             }
                         ),
@@ -1425,7 +1499,9 @@ private fun WeeklyJalaliCashflowStrip(
                                                     privacyMasked = privacyMasked
                                                 ),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -1440,7 +1516,7 @@ private fun WeeklyJalaliCashflowStrip(
                                                 text = "تسویه",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.ExtraBold,
-                                                color = Color(0xFF022019),
+                                                color = ext.onPositive,
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                                             )
                                         }
@@ -1555,7 +1631,7 @@ private fun SmartAlertRadarCard(
                 if (isCritical) {
                     TarazinoStatusPill(
                         text = "اولویت حیاتی",
-                        accentColor = Color(0xFFFF4D67),
+                        accentColor = ext.danger,
                         icon = Icons.Default.PriorityHigh
                     )
                 }
@@ -1641,7 +1717,12 @@ private fun AllAlertsModalDialog(
                     auroraSecondary = ext.auroraSecondary
                 )
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+            ) {
                 Surface(
                     color = ext.glassSurface,
                     border = BorderStroke(0.8.dp, ext.cardBorderTop),
@@ -1654,7 +1735,10 @@ private fun AllAlertsModalDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             TarazinoIconBadge(
                                 icon = Icons.Default.NotificationsActive,
                                 accentColor = MaterialTheme.colorScheme.secondary,
@@ -1662,16 +1746,20 @@ private fun AllAlertsModalDialog(
                                 iconSize = 20.dp
                             )
                             Spacer(modifier = Modifier.width(10.dp))
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "تمام سررسیدها و اقساط پیش‌رو",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.ExtraBold
+                                    fontWeight = FontWeight.ExtraBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${PersianCurrencyEngine.toPersianDigits(alerts.size.toString())} قسط فعال در صف یادآوری",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -1700,6 +1788,7 @@ private fun AllAlertsModalDialog(
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (allSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         )
                     }
@@ -1717,7 +1806,8 @@ private fun AllAlertsModalDialog(
                                 text = "${b.labelFa} (${PersianCurrencyEngine.toPersianDigits(c.toString())})",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (sel) Color(0xFF041C19) else bColor,
+                                color = if (sel) Color.White else bColor,
+                                maxLines = 1,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                             )
                         }

@@ -18,11 +18,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,9 +56,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.example.core.PersianCurrencyEngine
+import com.example.ui.theme.LocalTarazinoColors
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -99,13 +103,18 @@ fun SecurityLockOverlay(
         }
     }
 
+    val ext = LocalTarazinoColors.current
+    val primaryAccent = MaterialTheme.colorScheme.primary
+    val lockOnSurface = MaterialTheme.colorScheme.onSurface
+    val lockOnMuted = MaterialTheme.colorScheme.onSurfaceVariant
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .tarazinoAmbientBackdrop(
-                backgroundColor = Color(0xFF061015),
-                auroraPrimary = Color(0x3610B981),
-                auroraSecondary = Color(0x2838BDF8)
+                backgroundColor = ext.lockBackdropStart,
+                auroraPrimary = ext.auroraPrimary.copy(alpha = 0.28f),
+                auroraSecondary = ext.auroraSecondary.copy(alpha = 0.22f)
             )
             .statusBarsPadding()
             .navigationBarsPadding()
@@ -127,7 +136,7 @@ fun SecurityLockOverlay(
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                Color(0xFF10B981).copy(alpha = 0.25f),
+                                primaryAccent.copy(alpha = 0.26f),
                                 Color.Transparent
                             )
                         )
@@ -141,17 +150,17 @@ fun SecurityLockOverlay(
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0xFF10B981).copy(alpha = 0.24f),
-                                    Color(0xFF059669).copy(alpha = 0.1f)
+                                    primaryAccent.copy(alpha = 0.22f),
+                                    primaryAccent.copy(alpha = 0.08f)
                                 )
                             )
                         )
-                        .border(1.5.dp, Color(0xFF34D399).copy(alpha = 0.7f), CircleShape)
+                        .border(1.5.dp, primaryAccent.copy(alpha = 0.65f), CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "قفل خزانه امنیتی ترازینو",
-                        tint = Color(0xFF34D399),
+                        tint = primaryAccent,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -163,13 +172,13 @@ fun SecurityLockOverlay(
                 text = "خزانه امنیتی ترازینو قفل است",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = lockOnSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "لطفاً رمز پین ${PersianCurrencyEngine.toPersianDigits(pinLength.toString())} رقمی خود را وارد نمایید",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF94A3B8)
+                color = lockOnMuted
             )
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -193,7 +202,7 @@ fun SecurityLockOverlay(
                         label = "PinDotSize_$i"
                     )
                     val dotColor by animateColorAsState(
-                        targetValue = if (filled) Color(0xFF10B981) else Color.White.copy(alpha = 0.14f),
+                        targetValue = if (filled) primaryAccent else MaterialTheme.colorScheme.surfaceVariant,
                         label = "PinDotColor_$i"
                     )
                     Box(
@@ -203,7 +212,7 @@ fun SecurityLockOverlay(
                             .background(dotColor)
                             .border(
                                 width = 1.5.dp,
-                                color = if (filled) Color(0xFF6EE7B7) else Color(0xFF475569),
+                                color = if (filled) primaryAccent else MaterialTheme.colorScheme.outline,
                                 shape = CircleShape
                             )
                     )
@@ -214,7 +223,7 @@ fun SecurityLockOverlay(
                 Spacer(modifier = Modifier.height(12.dp))
                 TarazinoStatusPill(
                     text = errorMessage!!,
-                    accentColor = Color(0xFFEF4444)
+                    accentColor = ext.danger
                 )
             } else {
                 Spacer(modifier = Modifier.height(28.dp))
@@ -250,13 +259,13 @@ fun SecurityLockOverlay(
                             .size(66.dp)
                             .clip(CircleShape)
                             .background(
-                                if (biometricEnabled) Color(0xFF10B981).copy(alpha = 0.2f)
-                                else Color.White.copy(alpha = 0.04f)
+                                if (biometricEnabled) primaryAccent.copy(alpha = 0.18f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                             )
                             .border(
                                 1.dp,
-                                if (biometricEnabled) Color(0xFF34D399).copy(alpha = 0.45f)
-                                else Color.White.copy(alpha = 0.08f),
+                                if (biometricEnabled) primaryAccent.copy(alpha = 0.5f)
+                                else ext.cardBorderTop,
                                 CircleShape
                             )
                             .clickable(enabled = biometricEnabled) {
@@ -267,7 +276,7 @@ fun SecurityLockOverlay(
                         Icon(
                             imageVector = Icons.Default.Fingerprint,
                             contentDescription = "ورود بیومتریک اثر انگشت",
-                            tint = if (biometricEnabled) Color(0xFF34D399) else Color(0xFF475569),
+                            tint = if (biometricEnabled) primaryAccent else lockOnMuted.copy(alpha = 0.55f),
                             modifier = Modifier.size(30.dp)
                         )
                     }
@@ -282,8 +291,11 @@ fun SecurityLockOverlay(
                         modifier = Modifier
                             .size(66.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape)
+                            .background(
+                                if (ext.isDark) Color.White.copy(alpha = 0.08f)
+                                else MaterialTheme.colorScheme.surface
+                            )
+                            .border(1.dp, ext.cardBorderTop, CircleShape)
                             .clickable {
                                 if (enteredPin.isNotEmpty()) {
                                     enteredPin = enteredPin.dropLast(1)
@@ -293,7 +305,7 @@ fun SecurityLockOverlay(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Backspace,
                             contentDescription = "پاک کردن رقم آخر",
-                            tint = Color.White,
+                            tint = lockOnSurface,
                             modifier = Modifier.size(23.dp)
                         )
                     }
@@ -306,32 +318,39 @@ fun SecurityLockOverlay(
                 OutlinedButton(
                     onClick = { showBiometricTouchSheet = true },
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, Color(0xFF34D399).copy(alpha = 0.45f))
+                    border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.45f))
                 ) {
-                    Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = Color(0xFF34D399))
+                    Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = primaryAccent)
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("لمس سنسور اثر انگشت / تشخیص چهره", color = Color(0xFF34D399), fontWeight = FontWeight.SemiBold)
+                    Text("لمس سنسور اثر انگشت / تشخیص چهره", color = primaryAccent, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             if (hasRecoveryConfigured) {
                 TextButton(onClick = { showRecoveryModal = true }) {
-                    Text("رمز پین را فراموش کرده‌اید؟ بازیابی با سوال امنیتی", color = Color(0xFFFBBF24))
+                    Text("رمز پین را فراموش کرده‌اید؟ بازیابی با سوال امنیتی", color = ext.warning)
                 }
             }
         }
     }
 
     if (showBiometricTouchSheet) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showBiometricTouchSheet = false }) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showBiometricTouchSheet = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             TarazinoGlassCard(
                 cornerRadius = 28.dp,
-                accentBorderColor = MaterialTheme.colorScheme.primary
+                accentBorderColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth(0.90f)
+                    .widthIn(max = 420.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(20.dp)
                 ) {
                     TarazinoIconBadge(
@@ -345,7 +364,9 @@ fun SecurityLockOverlay(
                     Text(
                         text = "احراز هویت بیومتریک ترازینو",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
@@ -383,12 +404,12 @@ fun SecurityLockOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        androidx.compose.material3.OutlinedButton(
+                        OutlinedButton(
                             onClick = { showBiometricTouchSheet = false },
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("انصراف")
+                            Text("انصراف", maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -398,7 +419,7 @@ fun SecurityLockOverlay(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Text("تایید اثر انگشت", fontWeight = FontWeight.Bold)
+                            Text("تایید اثر انگشت", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -407,16 +428,30 @@ fun SecurityLockOverlay(
     }
 
     if (showRecoveryModal) {
-        androidx.compose.ui.window.Dialog(onDismissRequest = { showRecoveryModal = false }) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showRecoveryModal = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             TarazinoGlassCard(
                 cornerRadius = 26.dp,
-                accentBorderColor = Color(0xFFF59E0B)
+                accentBorderColor = ext.warning,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 420.dp)
+                    .imePadding()
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(18.dp)
+                ) {
                     Text(
                         text = "بازیابی امنیتی رمز عبور",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -429,7 +464,7 @@ fun SecurityLockOverlay(
                     OutlinedTextField(
                         value = recoveryInput,
                         onValueChange = { recoveryInput = it },
-                        label = { Text("پاسخ سوال امنیتی") },
+                        label = { Text("پاسخ سوال امنیتی", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -439,12 +474,12 @@ fun SecurityLockOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        androidx.compose.material3.OutlinedButton(
+                        OutlinedButton(
                             onClick = { showRecoveryModal = false },
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("انصراف")
+                            Text("انصراف", maxLines = 1)
                         }
                         Button(
                             onClick = {
@@ -458,7 +493,7 @@ fun SecurityLockOverlay(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Text("بازگشایی قفل", fontWeight = FontWeight.Bold)
+                            Text("بازگشایی قفل", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -472,6 +507,7 @@ private fun KeypadCircleButton(
     label: String,
     onClick: () -> Unit
 ) {
+    val ext = LocalTarazinoColors.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -479,20 +515,26 @@ private fun KeypadCircleButton(
             .tarazinoPressScale(scaleDown = 0.88f, onClick = onClick)
             .clip(CircleShape)
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.14f),
-                        Color.White.copy(alpha = 0.05f)
+                if (ext.isDark) {
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.14f),
+                            Color.White.copy(alpha = 0.05f)
+                        )
                     )
-                )
+                } else {
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                        )
+                    )
+                }
             )
             .border(
                 width = 1.dp,
                 brush = Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.30f),
-                        Color.White.copy(alpha = 0.07f)
-                    )
+                    listOf(ext.cardBorderTop, ext.cardBorderBottom)
                 ),
                 shape = CircleShape
             )
@@ -501,7 +543,7 @@ private fun KeypadCircleButton(
             text = label,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

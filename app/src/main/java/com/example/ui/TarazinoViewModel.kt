@@ -23,6 +23,8 @@ import com.example.domain.CalendarHeatmapDay
 import com.example.domain.DtiHealthReport
 import com.example.domain.EarlyPayoffSimulationResult
 import com.example.domain.EnrichedInstallmentAlert
+import com.example.domain.FinancialForecastMlEngine
+import com.example.domain.FinancialForecastReport
 import com.example.domain.FinancialIntelligenceEngine
 import com.example.domain.InstallmentScheduleEngine
 import com.example.domain.MonthlyForwardLoadBar
@@ -77,6 +79,7 @@ data class TarazinoUiState(
     val subRecords: List<LedgerSubRecordEntity> = emptyList(),
     val smartAlertQueue: List<EnrichedInstallmentAlert> = emptyList(),
     val dtiHealthReport: DtiHealthReport? = null,
+    val mlForecastReport: FinancialForecastReport? = null,
     val payoffSimulation: EarlyPayoffSimulationResult? = null,
     val forward12MonthBars: List<MonthlyForwardLoadBar> = emptyList(),
     val heatmapYear: Int = 1405,
@@ -322,6 +325,13 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             todayJalali = today,
             livingExpensePercent = core.preferences.livingExpensePercent
         )
+        val mlForecast = FinancialForecastMlEngine.generateForecast(
+            installments = core.installments,
+            obligations = core.obligations,
+            monthlyIncomeToman = core.preferences.monthlyIncomeToman,
+            livingExpensePercent = core.preferences.livingExpensePercent,
+            todayJalali = today
+        )
         val simResult = FinancialIntelligenceEngine.simulateEarlyPayoffStrategies(
             obligations = core.obligations,
             installments = core.installments,
@@ -355,6 +365,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             subRecords = core.subRecords,
             smartAlertQueue = alerts,
             dtiHealthReport = dtiReport,
+            mlForecastReport = mlForecast,
             payoffSimulation = simResult,
             forward12MonthBars = forwardBars,
             heatmapYear = over.heatmapYm.first,

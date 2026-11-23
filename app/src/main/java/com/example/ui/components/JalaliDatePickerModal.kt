@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.core.JalaliCalendarEngine
 import com.example.core.JalaliDate
 import com.example.core.PersianCurrencyEngine
@@ -80,7 +82,10 @@ fun JalaliDatePickerModal(
 
     val currentPreviewStr = JalaliDate(selectedYear, selectedMonth, selectedDay).formatCanonical()
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(26.dp),
             color = MaterialTheme.colorScheme.surface,
@@ -91,7 +96,8 @@ fun JalaliDatePickerModal(
                 Brush.verticalGradient(listOf(ext.cardBorderTop, ext.cardBorderBottom))
             ),
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.92f)
+                .widthIn(max = 420.dp)
                 .testTag("jalali_date_picker_dialog")
         ) {
             Column(
@@ -206,7 +212,7 @@ fun JalaliDatePickerModal(
                         ) {
                             IconButton(onClick = { if (selectedYear > 1395) selectedYear-- }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "سال قبل"
                                 )
                             }
@@ -218,7 +224,7 @@ fun JalaliDatePickerModal(
                             )
                             IconButton(onClick = { if (selectedYear < 1420) selectedYear++ }) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = "سال بعد"
                                 )
                             }
@@ -241,7 +247,7 @@ fun JalaliDatePickerModal(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                                     contentDescription = "ماه قبل"
                                 )
                             }
@@ -262,7 +268,7 @@ fun JalaliDatePickerModal(
                                 }
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = "ماه بعد"
                                 )
                             }
@@ -348,7 +354,7 @@ fun JalaliDatePickerModal(
                                 Spacer(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .size(36.dp)
+                                        .aspectRatio(1f)
                                 )
                             }
                         }

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -64,12 +65,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.AbsoluteAlignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import com.example.ui.theme.LocalTarazinoColors
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -216,25 +222,36 @@ fun InteractiveOnboardingTourOverlay(
         val spaceBelowPx = ((screenHeightPx - navBarBottomPx) - desiredBottom).coerceAtLeast(0f)
         val dockCardAtBottom = if (targetRect == null) true else (spaceBelowPx >= spaceAbovePx)
 
-        // Estimated coach-mark height (~270dp) to decide whether the pointer pill has unobstructed room
-        val estimatedCardHeightPx = with(density) { 274.dp.toPx() }
+        val ext = LocalTarazinoColors.current
+        val primaryAccent = MaterialTheme.colorScheme.primary
+        val secondaryAccent = MaterialTheme.colorScheme.secondary
+        val infoAccent = ext.info
+        val tourBg = ext.tourCardSurface
+        val tourTextPrimary = MaterialTheme.colorScheme.onSurface
+        val tourTextSecondary = MaterialTheme.colorScheme.onSurfaceVariant
+
+        // Measure the ACTUAL rendered Coach-Mark card height so pointer pill & card NEVER collide!
+        var measuredCardHeightPx by remember { mutableFloatStateOf(0f) }
+        val fallbackCardHeightPx = with(density) { 276.dp.toPx() }
+        val effectiveCardHeightPx = if (measuredCardHeightPx > 0f) measuredCardHeightPx else fallbackCardHeightPx
         val pointerPillHeightPx = with(density) { 32.dp.toPx() }
-        val minPointerGapPx = with(density) { 52.dp.toPx() }
+        val minPointerGapPx = with(density) { 56.dp.toPx() }
+        val cardOuterVerticalPadPx = with(density) { 24.dp.toPx() }
 
         val freeGapBetweenTargetAndCardPx = if (dockCardAtBottom) {
-            (screenHeightPx - navBarBottomPx - estimatedCardHeightPx) - animBottom
+            (screenHeightPx - navBarBottomPx - effectiveCardHeightPx - cardOuterVerticalPadPx) - animBottom
         } else {
-            animTop - (statusBarTopPx + estimatedCardHeightPx)
+            animTop - (statusBarTopPx + effectiveCardHeightPx + cardOuterVerticalPadPx)
         }
         val showPointerPill = targetRect != null && freeGapBetweenTargetAndCardPx >= minPointerGapPx
 
-        // 1. Full-Screen Gliding Spotlight Cutout Canvas + Luminous Halo
+        // 1. Full-Screen Gliding Spotlight Cutout Canvas + Theme-Synced Luminous Halo
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
         ) {
-            drawRect(color = Color(0xDC050A12))
+            drawRect(color = Color(0xD8050A12))
 
             if (targetRect != null) {
                 val spotWidth = (animRight - animLeft).coerceAtLeast(42f)
@@ -252,16 +269,16 @@ fun InteractiveOnboardingTourOverlay(
 
                 // Soft outer ambient aura ring
                 drawRoundRect(
-                    color = Color(0xFF10E5A5).copy(alpha = 0.22f),
+                    color = primaryAccent.copy(alpha = 0.24f),
                     topLeft = Offset(animLeft - pulseRadius, animTop - pulseRadius),
                     size = Size(spotWidth + pulseRadius * 2f, spotHeight + pulseRadius * 2f),
                     cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx()),
                     style = Stroke(width = 3.5.dp.toPx())
                 )
 
-                // Pulsing golden dashed radar halo
+                // Pulsing secondary dashed radar halo
                 drawRoundRect(
-                    color = Color(0xFFF5B742).copy(alpha = 0.65f),
+                    color = secondaryAccent.copy(alpha = 0.70f),
                     topLeft = Offset(animLeft - pulseRadius * 0.55f, animTop - pulseRadius * 0.55f),
                     size = Size(spotWidth + pulseRadius * 1.1f, spotHeight + pulseRadius * 1.1f),
                     cornerRadius = CornerRadius(21.dp.toPx(), 21.dp.toPx()),
@@ -271,10 +288,10 @@ fun InteractiveOnboardingTourOverlay(
                     )
                 )
 
-                // Crisp emerald-cyan specular rim
+                // Crisp theme-harmonized specular rim
                 drawRoundRect(
                     brush = Brush.linearGradient(
-                        listOf(Color(0xFF2FF0B5), Color(0xFF38BDF8), Color(0xFFF5B742))
+                        listOf(primaryAccent, infoAccent, secondaryAccent)
                     ),
                     topLeft = Offset(animLeft, animTop),
                     size = Size(spotWidth, spotHeight),
@@ -284,9 +301,11 @@ fun InteractiveOnboardingTourOverlay(
             }
         }
 
-        // 2. Physically-Positioned Bouncing Pointer Pill (uses absoluteOffset to prevent RTL X-mirroring!)
+        // 2. Physically-Positioned Bouncing Pointer Pill (AbsoluteAlignment.TopLeft + live measured width!)
         if (showPointerPill) {
-            val pointerWidthPx = with(density) { 156.dp.toPx() }
+            var measuredPointerWidthPx by remember { mutableFloatStateOf(0f) }
+            val fallbackPointerWidthPx = with(density) { 126.dp.toPx() }
+            val pointerWidthPx = if (measuredPointerWidthPx > 0f) measuredPointerWidthPx else fallbackPointerWidthPx
             val animCenterX = (animLeft + animRight) / 2f
             val pointerX = (animCenterX - pointerWidthPx / 2f)
                 .coerceIn(edgeMarginPx, (screenWidthPx - pointerWidthPx - edgeMarginPx).coerceAtLeast(edgeMarginPx))
@@ -295,13 +314,13 @@ fun InteractiveOnboardingTourOverlay(
                 (animBottom + with(density) { 10.dp.toPx() } + pointerBouncePx)
                     .coerceIn(
                         statusBarTopPx + edgeMarginPx,
-                        (screenHeightPx - navBarBottomPx - estimatedCardHeightPx - pointerPillHeightPx - 8f)
+                        (screenHeightPx - navBarBottomPx - effectiveCardHeightPx - cardOuterVerticalPadPx - pointerPillHeightPx - 8f)
                             .coerceAtLeast(statusBarTopPx + edgeMarginPx)
                     )
             } else {
                 (animTop - pointerPillHeightPx - with(density) { 10.dp.toPx() } + pointerBouncePx)
                     .coerceIn(
-                        statusBarTopPx + estimatedCardHeightPx + 8f,
+                        statusBarTopPx + effectiveCardHeightPx + cardOuterVerticalPadPx + 8f,
                         (screenHeightPx - navBarBottomPx - pointerPillHeightPx - edgeMarginPx)
                             .coerceAtLeast(statusBarTopPx + edgeMarginPx)
                     )
@@ -309,12 +328,13 @@ fun InteractiveOnboardingTourOverlay(
 
             Surface(
                 shape = RoundedCornerShape(50),
-                color = Color(0xFFF5B742),
+                color = secondaryAccent,
                 shadowElevation = 10.dp,
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
                 modifier = Modifier
-                    .align(Alignment.TopStart)
+                    .align(AbsoluteAlignment.TopLeft)
                     .absoluteOffset { IntOffset(pointerX.roundToInt(), pointerY.roundToInt()) }
+                    .onSizeChanged { measuredPointerWidthPx = it.width.toFloat() }
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -327,14 +347,14 @@ fun InteractiveOnboardingTourOverlay(
                             Icons.Default.KeyboardArrowDown
                         },
                         contentDescription = null,
-                        tint = Color(0xFF031915),
+                        tint = MaterialTheme.colorScheme.onSecondary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Icon(
                         imageVector = Icons.Default.TouchApp,
                         contentDescription = null,
-                        tint = Color(0xFF031915),
+                        tint = MaterialTheme.colorScheme.onSecondary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -342,14 +362,14 @@ fun InteractiveOnboardingTourOverlay(
                         text = "محل این بخش",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF031915),
+                        color = MaterialTheme.colorScheme.onSecondary,
                         maxLines = 1
                     )
                 }
             }
         }
 
-        // 3. Single Unified Glass Coach-Mark Card (Docked cleanly at Top or Bottom with full Safe Insets)
+        // 3. Single Unified Theme-Adaptive Coach-Mark Card (Dynamic height cap + safe insets)
         AnimatedContent(
             targetState = step,
             transitionSpec = {
@@ -375,19 +395,22 @@ fun InteractiveOnboardingTourOverlay(
         ) { currentStep ->
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color(0xFF101824).copy(alpha = 0.97f),
+                color = tourBg.copy(alpha = 0.98f),
                 shadowElevation = 18.dp,
                 border = BorderStroke(
-                    width = 1.15.dp,
+                    width = 1.2.dp,
                     brush = Brush.linearGradient(
                         listOf(
-                            Color(0xFF10E5A5).copy(alpha = 0.85f),
-                            Color(0xFF38BDF8).copy(alpha = 0.55f),
-                            Color(0xFFF5B742).copy(alpha = 0.75f)
+                            primaryAccent.copy(alpha = 0.85f),
+                            infoAccent.copy(alpha = 0.55f),
+                            secondaryAccent.copy(alpha = 0.75f)
                         )
                     )
                 ),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = maxHeight * 0.48f)
+                    .onSizeChanged { measuredCardHeightPx = it.height.toFloat() }
             ) {
                 Column(
                     modifier = Modifier
@@ -395,7 +418,7 @@ fun InteractiveOnboardingTourOverlay(
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    Color(0xFF10E5A5).copy(alpha = 0.08f),
+                                    primaryAccent.copy(alpha = if (ext.isDark) 0.10f else 0.06f),
                                     Color.Transparent
                                 )
                             )
@@ -416,19 +439,19 @@ fun InteractiveOnboardingTourOverlay(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = Color(0xFFF5B742),
+                                tint = secondaryAccent,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
                                 shape = RoundedCornerShape(9.dp),
-                                color = Color(0xFF064E3B).copy(alpha = 0.85f),
-                                border = BorderStroke(0.75.dp, Color(0xFF34D399).copy(alpha = 0.45f))
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f),
+                                border = BorderStroke(0.75.dp, primaryAccent.copy(alpha = 0.45f))
                             ) {
                                 Text(
                                     text = currentStep.badgeTitleFa,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF6EE7B7),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -441,8 +464,8 @@ fun InteractiveOnboardingTourOverlay(
 
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = Color.White.copy(alpha = 0.08f),
-                            border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.14f)),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            border = BorderStroke(0.75.dp, ext.cardBorderTop),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
                                 .clickable(onClick = onSkipOrFinish)
@@ -455,7 +478,7 @@ fun InteractiveOnboardingTourOverlay(
                                 Text(
                                     text = "بستن",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFCBD5E1),
+                                    color = tourTextSecondary,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1
                                 )
@@ -463,7 +486,7 @@ fun InteractiveOnboardingTourOverlay(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "بستن تور آموزشی",
-                                    tint = Color(0xFFCBD5E1),
+                                    tint = tourTextSecondary,
                                     modifier = Modifier.size(13.dp)
                                 )
                             }
@@ -472,7 +495,7 @@ fun InteractiveOnboardingTourOverlay(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Integrated Compact 4-Tab Location Breadcrumb Strip (Zero Extra Floating Bar!)
+                    // Integrated Compact 4-Tab Location Breadcrumb Strip
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -485,8 +508,8 @@ fun InteractiveOnboardingTourOverlay(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(
-                                        if (isTarget) Color(0xFF10E5A5)
-                                        else Color.White.copy(alpha = 0.06f)
+                                        if (isTarget) primaryAccent
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                                     )
                                     .padding(vertical = 4.dp, horizontal = 3.dp)
                             ) {
@@ -495,7 +518,7 @@ fun InteractiveOnboardingTourOverlay(
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     fontWeight = if (isTarget) FontWeight.ExtraBold else FontWeight.Medium,
-                                    color = if (isTarget) Color(0xFF031915) else Color(0xFF94A3B8),
+                                    color = if (isTarget) MaterialTheme.colorScheme.onPrimary else tourTextSecondary,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -508,8 +531,8 @@ fun InteractiveOnboardingTourOverlay(
                     // Slim Animated Step Progress Track
                     LinearProgressIndicator(
                         progress = { stepProgress },
-                        color = Color(0xFF10E5A5),
-                        trackColor = Color.White.copy(alpha = 0.10f),
+                        color = primaryAccent,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(3.5.dp)
@@ -522,7 +545,7 @@ fun InteractiveOnboardingTourOverlay(
                         text = currentStep.headlineFa,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
+                        color = tourTextPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -530,7 +553,7 @@ fun InteractiveOnboardingTourOverlay(
                     Text(
                         text = currentStep.descriptionFa,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFCBD5E1)
+                        color = tourTextSecondary
                     )
 
                     if (currentStep.highlightFeaturesFa.isNotEmpty()) {
@@ -543,7 +566,7 @@ fun InteractiveOnboardingTourOverlay(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = Color(0xFF2FF0B5),
+                                    tint = primaryAccent,
                                     modifier = Modifier
                                         .padding(top = 2.dp)
                                         .size(14.dp)
@@ -552,7 +575,7 @@ fun InteractiveOnboardingTourOverlay(
                                 Text(
                                     text = itemFa,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFF1F5F9),
+                                    color = tourTextPrimary,
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -561,7 +584,7 @@ fun InteractiveOnboardingTourOverlay(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Spacious Uncrowded Bottom Navigation Row (Zero Overflow on 360dp Screens)
+                    // Spacious Uncrowded Bottom Navigation Row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -571,23 +594,23 @@ fun InteractiveOnboardingTourOverlay(
                             OutlinedButton(
                                 onClick = onPreviousStep,
                                 shape = RoundedCornerShape(13.dp),
-                                border = BorderStroke(1.dp, Color(0xFF475569)),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                 modifier = Modifier
                                     .weight(0.85f)
                                     .testTag("tour_prev_btn")
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "قبلی",
-                                    tint = Color(0xFFE2E8F0),
+                                    tint = tourTextPrimary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "قبلی",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFFE2E8F0),
+                                    color = tourTextPrimary,
                                     maxLines = 1
                                 )
                             }
@@ -598,7 +621,8 @@ fun InteractiveOnboardingTourOverlay(
                             shape = RoundedCornerShape(13.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isLastStep) Color(0xFFF5B742) else Color(0xFF10E5A5)
+                                containerColor = if (isLastStep) secondaryAccent else primaryAccent,
+                                contentColor = if (isLastStep) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary
                             ),
                             modifier = Modifier
                                 .weight(1.35f)
@@ -611,7 +635,6 @@ fun InteractiveOnboardingTourOverlay(
                                     "مرحله بعد (${PersianCurrencyEngine.toPersianDigits((currentStepIndex + 2).toString())}/${PersianCurrencyEngine.toPersianDigits(steps.size.toString())})"
                                 },
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF031915),
                                 fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -619,9 +642,8 @@ fun InteractiveOnboardingTourOverlay(
                             if (!isLastStep) {
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                     contentDescription = "بعدی",
-                                    tint = Color(0xFF031915),
                                     modifier = Modifier.size(15.dp)
                                 )
                             }
