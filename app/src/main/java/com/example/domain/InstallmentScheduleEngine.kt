@@ -27,7 +27,11 @@ object InstallmentScheduleEngine {
         val baseAmount = safeTotal / safeCount
         val remainder = safeTotal % safeCount
 
-        val anchorDay = JalaliCalendarEngine.parseJalali(firstDueDateJalali).day
+        val dueDates = JalaliCalendarEngine.generateInstallmentDueDates(
+            firstDueDateJalali = firstDueDateJalali,
+            installmentCount = safeCount,
+            interval = interval
+        )
 
         return (0 until safeCount).map { index ->
             val instNumber = index + 1
@@ -37,18 +41,7 @@ object InstallmentScheduleEngine {
                 baseAmount
             }
 
-            val dueDate = when {
-                index == 0 -> JalaliCalendarEngine.parseJalali(firstDueDateJalali).formatCanonical()
-                interval.monthsStep > 0 -> JalaliCalendarEngine.addJalaliMonths(
-                    jalaliDateStr = firstDueDateJalali,
-                    monthsToAdd = index * interval.monthsStep,
-                    anchorDay = anchorDay
-                )
-                else -> JalaliCalendarEngine.addJalaliDays(
-                    jalaliDateStr = firstDueDateJalali,
-                    daysToAdd = index * interval.daysStep
-                )
-            }
+            val dueDate = dueDates[index]
 
             val daysFromToday = JalaliCalendarEngine.diffJalaliDays(todayJalali, dueDate)
             val initialStatus = if (daysFromToday < 0 && amount > 0L) {

@@ -177,13 +177,12 @@ object FinancialIntelligenceEngine {
         livingExpensePercent: Int = 50
     ): DtiHealthReport {
         val today = JalaliCalendarEngine.parseJalali(todayJalali)
-        val monthPrefix = "%04d/%02d".format(java.util.Locale.US, today.year, today.month)
-        val monthLabelFa = "${JalaliCalendarEngine.getMonthName(today.month)} ${
-            PersianCurrencyEngine.toPersianDigits(today.year.toString())
-        }"
+        val monthLabelFa = JalaliCalendarEngine.formatJalaliMonthYear(today.year, today.month)
 
         val obMap = obligations.associateBy { it.id }
-        val monthInstallments = installments.filter { it.dueDateJalali.startsWith(monthPrefix) }
+        val monthInstallments = installments.filter {
+            JalaliCalendarEngine.isInJalaliMonth(it.dueDateJalali, today.year, today.month)
+        }
 
         val debtInstallments = monthInstallments.filter { inst ->
             obMap[inst.obligationId]?.categoryEnum?.isReceivable == false
@@ -208,10 +207,10 @@ object FinancialIntelligenceEngine {
         val dtiPercent = ((totalMonthDebt.toDouble() / safeIncome.toDouble()) * 100.0).roundToInt()
         val freeCashflow = (monthlyIncomeToman - essentialLivingExpense - totalMonthDebt).coerceAtLeast(0L)
 
-        // Decade Crunch analysis (1..10, 11..20, 21..31)
-        val d1Items = debtInstallments.filter { JalaliCalendarEngine.parseJalali(it.dueDateJalali).day in 1..10 }
-        val d2Items = debtInstallments.filter { JalaliCalendarEngine.parseJalali(it.dueDateJalali).day in 11..20 }
-        val d3Items = debtInstallments.filter { JalaliCalendarEngine.parseJalali(it.dueDateJalali).day >= 21 }
+        // Decade Crunch analysis (1..10, 11..20, 21..31) via JalaliCalendarEngine
+        val d1Items = debtInstallments.filter { JalaliCalendarEngine.getDecadeOfMonth(it.dueDateJalali) == 1 }
+        val d2Items = debtInstallments.filter { JalaliCalendarEngine.getDecadeOfMonth(it.dueDateJalali) == 2 }
+        val d3Items = debtInstallments.filter { JalaliCalendarEngine.getDecadeOfMonth(it.dueDateJalali) == 3 }
 
         val d1Sum = d1Items.sumOf { it.effectiveTotalToman }
         val d2Sum = d2Items.sumOf { it.effectiveTotalToman }
@@ -476,28 +475,25 @@ object FinancialIntelligenceEngine {
         todayJalali: String = JalaliCalendarEngine.todayJalali()
     ): List<MonthlyForwardLoadBar> {
         val start = JalaliCalendarEngine.parseJalali(todayJalali)
-        val firstOfCurrentMonth = "%04d/%02d/01".format(java.util.Locale.US, start.year, start.month)
         val obMap = obligations.associateBy { it.id }
 
         return (0 until 12).map { offset ->
-            val targetStr = JalaliCalendarEngine.addJalaliMonths(firstOfCurrentMonth, offset)
-            val target = JalaliCalendarEngine.parseJalali(targetStr)
-            val prefix = "%04d/%02d".format(java.util.Locale.US, target.year, target.month)
+            val (targetYear, targetMonth) = JalaliCalendarEngine.shiftJalaliYearMonth(start.year, start.month, offset)
 
             val monthDebtInst = installments.filter { inst ->
-                inst.dueDateJalali.startsWith(prefix) &&
+                JalaliCalendarEngine.isInJalaliMonth(inst.dueDateJalali, targetYear, targetMonth) &&
                     obMap[inst.obligationId]?.categoryEnum?.isReceivable == false
             }
 
             val total = monthDebtInst.sumOf { it.effectiveTotalToman }
             val paid = monthDebtInst.sumOf { it.paidAmountToman }
             val unpaid = monthDebtInst.sumOf { it.remainingToman }
-            val shortYear = PersianCurrencyEngine.toPersianDigits((target.year % 100).toString())
+            val shortYear = PersianCurrencyEngine.toPersianDigits((targetYear % 100).toString())
 
             MonthlyForwardLoadBar(
-                year = target.year,
-                month = target.month,
-                monthLabelFa = "${JalaliCalendarEngine.getMonthName(target.month)} $shortYear",
+                year = targetYear,
+                month = targetMonth,
+                monthLabelFa = "${JalaliCalendarEngine.getMonthName(targetMonth)} $shortYear",
                 totalDebtToman = total,
                 paidToman = paid,
                 unpaidToman = unpaid,

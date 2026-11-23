@@ -157,19 +157,17 @@ object FinancialForecastMlEngine {
         val historicalWindow = 6
         val historicalMonthlyLoads = DoubleArray(historicalWindow) { i ->
             val offset = -(historicalWindow - 1 - i) // -5 .. 0
-            val (y, m) = shiftJalaliMonth(today.year, today.month, offset)
-            val prefix = "%04d/%02d".format(java.util.Locale.US, y, m)
+            val (y, m) = JalaliCalendarEngine.shiftJalaliYearMonth(today.year, today.month, offset)
             debtInstallments
-                .filter { it.dueDateJalali.startsWith(prefix) }
+                .filter { JalaliCalendarEngine.isInJalaliMonth(it.dueDateJalali, y, m) }
                 .sumOf { it.effectiveTotalToman }
                 .toDouble()
         }
 
         val forwardScheduledLoads = LongArray(horizonCount) { h ->
-            val (y, m) = shiftJalaliMonth(today.year, today.month, h)
-            val prefix = "%04d/%02d".format(java.util.Locale.US, y, m)
+            val (y, m) = JalaliCalendarEngine.shiftJalaliYearMonth(today.year, today.month, h)
             debtInstallments
-                .filter { it.dueDateJalali.startsWith(prefix) }
+                .filter { JalaliCalendarEngine.isInJalaliMonth(it.dueDateJalali, y, m) }
                 .sumOf { if (h == 0) it.remainingToman else it.effectiveTotalToman }
         }
 
@@ -189,19 +187,20 @@ object FinancialForecastMlEngine {
         // 3. Project each upcoming Jalali month with ML risk buffers, confidence intervals & logistic classifier
         val carryoverWeights = doubleArrayOf(0.65, 0.25, 0.10)
         val points = (0 until horizonCount).map { h ->
-            val (y, m) = shiftJalaliMonth(today.year, today.month, h)
-            val prefix = "%04d/%02d".format(java.util.Locale.US, y, m)
+            val (y, m) = JalaliCalendarEngine.shiftJalaliYearMonth(today.year, today.month, h)
             val monthShort = JalaliCalendarEngine.getMonthName(m)
-            val monthYearLabel = "$monthShort ${PersianCurrencyEngine.toPersianDigits(y.toString())}"
+            val monthYearLabel = JalaliCalendarEngine.formatJalaliMonthYear(y, m)
 
-            val monthDebtItems = debtInstallments.filter { it.dueDateJalali.startsWith(prefix) }
+            val monthDebtItems = debtInstallments.filter {
+                JalaliCalendarEngine.isInJalaliMonth(it.dueDateJalali, y, m)
+            }
             val scheduledDebt = monthDebtItems.sumOf {
                 if (h == 0) it.remainingToman else it.effectiveTotalToman
             }
             val unpaidCount = monthDebtItems.count { it.remainingToman > 0L || h > 0 }
 
             val scheduledRec = receivableInstallments
-                .filter { it.dueDateJalali.startsWith(prefix) && it.remainingToman > 0L }
+                .filter { JalaliCalendarEngine.isInJalaliMonth(it.dueDateJalali, y, m) && it.remainingToman > 0L }
                 .sumOf { it.remainingToman }
 
             // Behavioral ML risk buffer:
@@ -444,13 +443,6 @@ object FinancialForecastMlEngine {
     private fun sigmoid(z: Double): Double {
         val clamped = z.coerceIn(-20.0, 20.0)
         return 1.0 / (1.0 + exp(-clamped))
-    }
-
-    private fun shiftJalaliMonth(startYear: Int, startMonth: Int, deltaMonths: Int): Pair<Int, Int> {
-        val total = (startYear * 12 + (startMonth - 1)) + deltaMonths
-        val y = total / 12
-        val m = (total % 12) + 1
-        return y to m
     }
 
     private fun buildMonthlyDriverExplanation(
