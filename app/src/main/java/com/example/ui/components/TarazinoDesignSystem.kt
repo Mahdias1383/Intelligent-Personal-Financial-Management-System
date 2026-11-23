@@ -48,6 +48,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,6 +72,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -417,6 +419,7 @@ fun TarazinoMetalVaultCard(
     Surface(
         shape = shape,
         color = Color.Transparent,
+        contentColor = LocalTarazinoColors.current.heroOnSurface,
         shadowElevation = 10.dp,
         border = BorderStroke(
             width = 0.95.dp,
@@ -898,6 +901,7 @@ fun TarazinoMiniBrandCard(
     Surface(
         shape = shape,
         color = Color.Transparent,
+        contentColor = ext.miniCardOnSurface,
         shadowElevation = if (ext.isDark) 3.dp else 5.dp,
         border = BorderStroke(
             width = if (ext.isDark) 0.85.dp else 1.dp,
@@ -1207,6 +1211,7 @@ fun TarazinoGlassCard(
     Surface(
         shape = shape,
         color = if (useSculptedGlass) ext.cardGlassBottom else containerColor,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
         shadowElevation = if (ext.isDark) 0.dp else 2.5.dp,
         border = BorderStroke(0.85.dp, borderBrush),
@@ -1372,9 +1377,15 @@ fun TarazinoAutoSizeText(
             (fittedSp * 1.32f).sp
         }
 
+        val resolvedColor = color.takeOrElse {
+            style.color.takeOrElse {
+                LocalContentColor.current.takeOrElse { MaterialTheme.colorScheme.onSurface }
+            }
+        }
+
         Text(
             text = text,
-            color = color,
+            color = resolvedColor,
             style = style.copy(
                 fontFamily = resolvedFontFamily,
                 fontWeight = resolvedWeight,
@@ -1490,8 +1501,13 @@ fun TarazinoAutoSizeText(
             (fittedSp * 1.32f).sp
         }
 
+        val resolvedColor = style.color.takeOrElse {
+            LocalContentColor.current.takeOrElse { MaterialTheme.colorScheme.onSurface }
+        }
+
         Text(
             text = remember(text, finalRatio) { scaleAnnotated(text, finalRatio) },
+            color = resolvedColor,
             style = style.copy(
                 fontFamily = resolvedFontFamily,
                 fontSize = fittedSp.sp,

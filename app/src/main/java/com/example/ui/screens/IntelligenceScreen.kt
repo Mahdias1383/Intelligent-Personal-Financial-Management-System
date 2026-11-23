@@ -1268,13 +1268,16 @@ fun IntelligenceScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
-                        Text(
+                        TarazinoAutoSizeText(
                             text = PersianCurrencyEngine.formatAmount(
                                 (newIncome * newLivingPct.roundToInt()) / 100L,
                                 unit
                             ),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Slider(
                             value = newLivingPct,

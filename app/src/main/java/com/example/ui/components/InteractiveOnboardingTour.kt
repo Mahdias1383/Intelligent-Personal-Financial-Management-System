@@ -270,21 +270,21 @@ fun InteractiveOnboardingTourOverlay(
 
                 // Soft outer ambient aura ring
                 drawRoundRect(
-                    color = primaryAccent.copy(alpha = 0.24f),
+                    color = primaryAccent.copy(alpha = 0.26f),
                     topLeft = Offset(animLeft - pulseRadius, animTop - pulseRadius),
                     size = Size(spotWidth + pulseRadius * 2f, spotHeight + pulseRadius * 2f),
                     cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx()),
-                    style = Stroke(width = 3.5.dp.toPx())
+                    style = Stroke(width = 3.2.dp.toPx())
                 )
 
                 // Pulsing secondary dashed radar halo
                 drawRoundRect(
-                    color = secondaryAccent.copy(alpha = 0.70f),
+                    color = primaryAccent.copy(alpha = 0.65f),
                     topLeft = Offset(animLeft - pulseRadius * 0.55f, animTop - pulseRadius * 0.55f),
                     size = Size(spotWidth + pulseRadius * 1.1f, spotHeight + pulseRadius * 1.1f),
                     cornerRadius = CornerRadius(21.dp.toPx(), 21.dp.toPx()),
                     style = Stroke(
-                        width = 1.8.dp.toPx(),
+                        width = 1.6.dp.toPx(),
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 10f), 0f)
                     )
                 )
@@ -292,7 +292,7 @@ fun InteractiveOnboardingTourOverlay(
                 // Crisp theme-harmonized specular rim
                 drawRoundRect(
                     brush = Brush.linearGradient(
-                        listOf(primaryAccent, infoAccent, secondaryAccent)
+                        listOf(primaryAccent, infoAccent, primaryAccent)
                     ),
                     topLeft = Offset(animLeft, animTop),
                     size = Size(spotWidth, spotHeight),
@@ -329,7 +329,8 @@ fun InteractiveOnboardingTourOverlay(
 
             Surface(
                 shape = RoundedCornerShape(50),
-                color = secondaryAccent,
+                color = primaryAccent,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
                 shadowElevation = 10.dp,
                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
                 modifier = Modifier
@@ -348,14 +349,14 @@ fun InteractiveOnboardingTourOverlay(
                             Icons.Default.KeyboardArrowDown
                         },
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondary,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Icon(
                         imageVector = Icons.Default.TouchApp,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondary,
+                        tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -363,7 +364,7 @@ fun InteractiveOnboardingTourOverlay(
                         text = "محل این بخش",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSecondary,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         maxLines = 1
                     )
                 }

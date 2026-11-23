@@ -17,10 +17,10 @@ enum class AlertUrgencyBucket(
     val colorHex: Long,
     val sortRank: Int
 ) {
-    OVERDUE("معوقه (گذشته از سررسید)", "معوقه فوری", 0xFFEF4444, 0),
-    DUE_TODAY("سررسید امروز!", "امروز", 0xFFF97316, 1),
-    UPCOMING_SOON("نزدیک به سررسید", "نزدیک", 0xFFF59E0B, 2),
-    SCHEDULED("برنامه‌ریزی‌شده آینده", "آینده", 0xFF10B981, 3)
+    OVERDUE("معوقه (گذشته از سررسید)", "معوقه فوری", 0xFFF43F5E, 0),
+    DUE_TODAY("سررسید امروز!", "امروز", 0xFFFB923C, 1),
+    UPCOMING_SOON("نزدیک به سررسید", "نزدیک", 0xFFFBBF24, 2),
+    SCHEDULED("برنامه‌ریزی‌شده آینده", "آینده", 0xFF10D9A0, 3)
 }
 
 data class EnrichedInstallmentAlert(
@@ -258,9 +258,9 @@ object FinancialIntelligenceEngine {
         val coverageScore = rawHealth.coerceIn(10, 100)
 
         val (statusBadge, statusColor) = when {
-            dtiPercent <= maxDebtSharePct && overdueCount == 0 -> "تراز عالی و کم‌ریسک" to 0xFF10B981L
-            dtiPercent <= (maxDebtSharePct + 15) && overdueCount == 0 -> "تراز متعادل (نیازمند مدیریت)" to 0xFFF59E0BL
-            else -> "فشار نقدینگی بالا / هشدار تعهدات" to 0xFFEF4444L
+            dtiPercent <= maxDebtSharePct && overdueCount == 0 -> "تراز عالی و کم‌ریسک" to 0xFF10D9A0L
+            dtiPercent <= (maxDebtSharePct + 15) && overdueCount == 0 -> "تراز متعادل (نیازمند مدیریت)" to 0xFFFBBF24L
+            else -> "فشار نقدینگی بالا / هشدار تعهدات" to 0xFFF43F5EL
         }
 
         val advisories = mutableListOf<String>()

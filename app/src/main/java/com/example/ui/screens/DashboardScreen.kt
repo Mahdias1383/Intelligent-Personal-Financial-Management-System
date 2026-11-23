@@ -975,28 +975,42 @@ fun DashboardScreen(
                             }
                         }
 
-                        // Crisp Interactive Category Legend List (Generous width, zero cramping)
+                        // Crisp Interactive Category Legend List (Clean unified surfaces + jewel focal accents)
                         Column(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
                         ) {
                             categorySlices.forEach { slice ->
                                 val pct = (slice.shareRatio * 100).toInt()
                                 val isSel = selectedDonutCategory == slice.category
                                 val borderW by animateDpAsState(
-                                    targetValue = if (isSel) 1.4.dp else 0.75.dp,
+                                    targetValue = if (isSel) 1.4.dp else 0.85.dp,
                                     label = "SliceBorder_${slice.category.name}"
                                 )
+                                val rowSurfaceColor by animateColorAsState(
+                                    targetValue = if (isSel) {
+                                        slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.10f)
+                                    } else {
+                                        ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.85f)
+                                    },
+                                    label = "SliceBg_${slice.category.name}"
+                                )
+                                val rowBorderColor by animateColorAsState(
+                                    targetValue = if (isSel) {
+                                        slice.color.copy(alpha = 0.78f)
+                                    } else {
+                                        ext.cardBorderTop
+                                    },
+                                    label = "SliceBorderCol_${slice.category.name}"
+                                )
                                 Surface(
-                                    shape = RoundedCornerShape(13.dp),
-                                    color = slice.color.copy(alpha = if (isSel) 0.19f else 0.08f),
-                                    border = BorderStroke(
-                                        borderW,
-                                        slice.color.copy(alpha = if (isSel) 0.72f else 0.22f)
-                                    ),
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = rowSurfaceColor,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    border = BorderStroke(borderW, rowBorderColor),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(13.dp))
+                                        .clip(RoundedCornerShape(14.dp))
                                         .tarazinoPressScale(scaleDown = 0.96f) {
                                             if (isSel) {
                                                 onOpenCategoryInTree(slice.category)
@@ -1009,7 +1023,7 @@ fun DashboardScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 9.dp, vertical = 7.dp),
+                                            .padding(horizontal = 10.dp, vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -1018,17 +1032,26 @@ fun DashboardScreen(
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Box(
+                                                contentAlignment = Alignment.Center,
                                                 modifier = Modifier
-                                                    .size(8.dp)
+                                                    .size(16.dp)
                                                     .clip(CircleShape)
-                                                    .background(slice.color)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                                    .background(slice.color.copy(alpha = 0.20f))
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(slice.color)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Column(modifier = Modifier.weight(1f)) {
                                                 TarazinoAutoSizeText(
                                                     text = slice.category.badgeFa,
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.Bold,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     minFontSize = 9.5.sp
                                                 )
@@ -1041,21 +1064,30 @@ fun DashboardScreen(
                                                 )
                                             }
                                         }
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = slice.color,
-                                                maxLines = 1
-                                            )
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                contentDescription = null,
-                                                tint = slice.color,
-                                                modifier = Modifier.size(15.dp)
-                                            )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.12f),
+                                            border = BorderStroke(0.65.dp, slice.color.copy(alpha = 0.35f))
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = slice.color,
+                                                    maxLines = 1
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = slice.color,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -1627,6 +1659,7 @@ private fun SmartAlertRadarCard(
                             text = alert.installment.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             minFontSize = 10.5.sp
                         )

@@ -259,16 +259,18 @@ fun ReportsAndSettingsScreen(
                         Text(
                             text = "خروجی اختصاصی صورتحساب A4 به تفکیک هر زیرمجموعه / طرف‌حساب:",
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(10.dp))
 
                         uiState.counterparties.forEach { cp ->
-                            val accent = Color(cp.avatarColorHex)
+                            val accent = Color(cp.categoryEnum.defaultColorHex)
                             Surface(
-                                shape = RoundedCornerShape(15.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                border = BorderStroke(0.8.dp, accent.copy(alpha = 0.3f)),
+                                shape = RoundedCornerShape(16.dp),
+                                color = ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.68f else 0.88f),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                border = BorderStroke(0.85.dp, ext.cardBorderTop),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
@@ -287,14 +289,15 @@ fun ReportsAndSettingsScreen(
                                         CounterpartyMonogramAvatar(
                                             name = cp.name,
                                             color = accent,
-                                            size = 36.dp
+                                            size = 38.dp
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             TarazinoAutoSizeText(
                                                 text = cp.name,
                                                 style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = MaterialTheme.colorScheme.onSurface,
                                                 maxLines = 2,
                                                 minFontSize = 10.5.sp
                                             )
@@ -310,25 +313,35 @@ fun ReportsAndSettingsScreen(
 
                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    OutlinedButton(
-                                        onClick = { onOpenCounterpartyA4Report(cp) },
+                                    Surface(
                                         shape = RoundedCornerShape(11.dp),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                                        contentPadding = PaddingValues(horizontal = 11.dp, vertical = 6.dp)
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (ext.isDark) 0.15f else 0.10f),
+                                        border = BorderStroke(0.9.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(11.dp))
+                                            .tarazinoPressScale(scaleDown = 0.94f) {
+                                                onOpenCounterpartyA4Report(cp)
+                                            }
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PictureAsPdf,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(15.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "صورتحساب A4",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PictureAsPdf,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = "صورتحساب A4",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -484,11 +497,11 @@ fun ReportsAndSettingsScreen(
                                     titleFa = "زمرد شب",
                                     subtitleFa = "ابسیدین • زمرد عمیق",
                                     isLightTheme = false,
-                                    bgPreview = Color(0xFF0A0F14),
-                                    surfacePreview = Color(0xFF152029),
-                                    heroStartPreview = Color(0xFF0B2E28),
-                                    accentPreview = Color(0xFF24C696),
-                                    secondaryPreview = Color(0xFFE0BC6A),
+                                    bgPreview = Color(0xFF070B11),
+                                    surfacePreview = Color(0xFF152030),
+                                    heroStartPreview = Color(0xFF073B32),
+                                    accentPreview = Color(0xFF10D9A0),
+                                    secondaryPreview = Color(0xFFF2C97D),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.OBSIDIAN_EMERALD_DARK) },
                                     modifier = Modifier
@@ -500,11 +513,11 @@ fun ReportsAndSettingsScreen(
                                     titleFa = "مروارید صبح",
                                     subtitleFa = "روشن • زمرد بانکی",
                                     isLightTheme = true,
-                                    bgPreview = Color(0xFFF5F4F0),
+                                    bgPreview = Color(0xFFF4F6F9),
                                     surfacePreview = Color(0xFFFFFFFF),
-                                    heroStartPreview = Color(0xFF064635),
-                                    accentPreview = Color(0xFF065F46),
-                                    secondaryPreview = Color(0xFF9A4D06),
+                                    heroStartPreview = Color(0xFF054A37),
+                                    accentPreview = Color(0xFF046C4E),
+                                    secondaryPreview = Color(0xFFB45309),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.ALABASTER_LIGHT) },
                                     modifier = Modifier
@@ -521,11 +534,11 @@ fun ReportsAndSettingsScreen(
                                     titleFa = "فیروزه بهار",
                                     subtitleFa = "روشن • فیروزه عمیق",
                                     isLightTheme = true,
-                                    bgPreview = Color(0xFFF1F5F8),
+                                    bgPreview = Color(0xFFF0F6FA),
                                     surfacePreview = Color(0xFFFFFFFF),
-                                    heroStartPreview = Color(0xFF06445C),
-                                    accentPreview = Color(0xFF075975),
-                                    secondaryPreview = Color(0xFF9A5208),
+                                    heroStartPreview = Color(0xFF064E6E),
+                                    accentPreview = Color(0xFF026AA2),
+                                    secondaryPreview = Color(0xFFB45309),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT) },
                                     modifier = Modifier
@@ -537,11 +550,11 @@ fun ReportsAndSettingsScreen(
                                     titleFa = "اقیانوس کبود",
                                     subtitleFa = "سرمه‌ای • لاجوردی",
                                     isLightTheme = false,
-                                    bgPreview = Color(0xFF080D1B),
-                                    surfacePreview = Color(0xFF141F3D),
-                                    heroStartPreview = Color(0xFF142857),
-                                    accentPreview = Color(0xFF4DA6F0),
-                                    secondaryPreview = Color(0xFFA794E8),
+                                    bgPreview = Color(0xFF060A17),
+                                    surfacePreview = Color(0xFF142142),
+                                    heroStartPreview = Color(0xFF102A63),
+                                    accentPreview = Color(0xFF38BDF8),
+                                    secondaryPreview = Color(0xFF818CF8),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.DEEP_SAPPHIRE,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.DEEP_SAPPHIRE) },
                                     modifier = Modifier
@@ -556,13 +569,13 @@ fun ReportsAndSettingsScreen(
                                 ThemePreviewSwatchCard(
                                     mode = TarazinoThemeMode.MIDNIGHT_GOLD,
                                     titleFa = "شبِ طلایی",
-                                    subtitleFa = "خزانه • طلای مات",
+                                    subtitleFa = "اونیکس • طلای ۲۴ عیار",
                                     isLightTheme = false,
-                                    bgPreview = Color(0xFF0C0B09),
-                                    surfacePreview = Color(0xFF201C17),
-                                    heroStartPreview = Color(0xFF2E2315),
-                                    accentPreview = Color(0xFFDEB14B),
-                                    secondaryPreview = Color(0xFFD9884B),
+                                    bgPreview = Color(0xFF09090B),
+                                    surfacePreview = Color(0xFF1C1C24),
+                                    heroStartPreview = Color(0xFF2B2112),
+                                    accentPreview = Color(0xFFF3C663),
+                                    secondaryPreview = Color(0xFFE59866),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.MIDNIGHT_GOLD,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.MIDNIGHT_GOLD) },
                                     modifier = Modifier
@@ -574,11 +587,11 @@ fun ReportsAndSettingsScreen(
                                     titleFa = "ارغوان مخملی",
                                     subtitleFa = "تیره • یاسی و رز",
                                     isLightTheme = false,
-                                    bgPreview = Color(0xFF0C0A12),
-                                    surfacePreview = Color(0xFF211B30),
-                                    heroStartPreview = Color(0xFF2F1D45),
-                                    accentPreview = Color(0xFFC58DF0),
-                                    secondaryPreview = Color(0xFFD884A8),
+                                    bgPreview = Color(0xFF090712),
+                                    surfacePreview = Color(0xFF1D1734),
+                                    heroStartPreview = Color(0xFF2E1A4D),
+                                    accentPreview = Color(0xFFC084FC),
+                                    secondaryPreview = Color(0xFFF472B6),
                                     selected = uiState.preferences.themeMode == TarazinoThemeMode.VELVET_AMETHYST,
                                     onClick = { onSetThemeMode(TarazinoThemeMode.VELVET_AMETHYST) },
                                     modifier = Modifier
@@ -1349,15 +1362,17 @@ private fun ExportFormatTileCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val ext = LocalTarazinoColors.current
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = accentColor.copy(alpha = 0.09f),
+        color = ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.78f else 0.92f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(
-            1.dp,
+            0.9.dp,
             Brush.verticalGradient(
                 listOf(
-                    accentColor.copy(alpha = 0.5f),
-                    accentColor.copy(alpha = 0.2f)
+                    ext.cardBorderTop,
+                    ext.cardBorderBottom
                 )
             )
         ),
@@ -1375,9 +1390,10 @@ private fun ExportFormatTileCard(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(accentColor.copy(alpha = 0.2f))
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(accentColor.copy(alpha = if (ext.isDark) 0.18f else 0.14f))
+                    .border(0.8.dp, accentColor.copy(alpha = 0.38f), RoundedCornerShape(11.dp))
             ) {
                 Icon(
                     imageVector = icon,
@@ -1390,7 +1406,7 @@ private fun ExportFormatTileCard(
             TarazinoAutoSizeText(
                 text = titleFa,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,

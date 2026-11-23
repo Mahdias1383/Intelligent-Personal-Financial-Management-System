@@ -1000,8 +1000,7 @@ fun TreePortfolioScreen(
                         val catAccent = Color(cat.defaultColorHex)
                         TarazinoGlassCard(
                             cornerRadius = 22.dp,
-                            accentBorderColor = catAccent,
-                            containerColor = catAccent.copy(alpha = 0.09f)
+                            accentBorderColor = catAccent.copy(alpha = 0.45f)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1026,7 +1025,7 @@ fun TreePortfolioScreen(
                                             text = cat.labelFa,
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = catAccent,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
                                             minFontSize = 11.sp,
                                             modifier = Modifier.fillMaxWidth()
@@ -1495,21 +1494,11 @@ private fun CategoryBentoTile(
 
     TarazinoGlassCard(
         cornerRadius = 22.dp,
-        accentBorderColor = accent.copy(alpha = 0.55f),
         onClick = onOpenCategoryFolder,
         modifier = modifier.testTag("parent_category_card_${category.name}")
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            accent.copy(alpha = 0.10f),
-                            Color.Transparent
-                        )
-                    )
-                )
+            modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Row(
@@ -1537,6 +1526,7 @@ private fun CategoryBentoTile(
                     text = category.badgeFa,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     minFontSize = 10.sp,
                     modifier = Modifier.fillMaxWidth()

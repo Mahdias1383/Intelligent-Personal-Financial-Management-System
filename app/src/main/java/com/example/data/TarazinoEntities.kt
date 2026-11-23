@@ -8,10 +8,10 @@ enum class EntityCategory(
     val badgeFa: String,
     val defaultColorHex: Long
 ) {
-    BANK("بانک‌های عامل", "بانک", 0xFF10B981),
-    BNPL_PLATFORM("پلتفرم خرید اقساطی (BNPL)", "اقساطی / BNPL", 0xFF3B82F6),
-    INSTITUTION("صندوق قرض‌الحسنه / موسسه", "صندوق و موسسه", 0xFF8B5CF6),
-    PERSON("اشخاص حقیقی (دوست، خانواده، صاحب‌خانه)", "شخص حقیقی", 0xFFF59E0B)
+    BANK("بانک‌های عامل", "بانک", 0xFF10D9A0),
+    BNPL_PLATFORM("پلتفرم خرید اقساطی (BNPL)", "اقساطی / BNPL", 0xFF38BDF8),
+    INSTITUTION("صندوق قرض‌الحسنه / موسسه", "صندوق و موسسه", 0xFF818CF8),
+    PERSON("اشخاص حقیقی (دوست، خانواده، صاحب‌خانه)", "شخص حقیقی", 0xFFFBBF24)
 }
 
 enum class TrustPriority(
@@ -19,9 +19,9 @@ enum class TrustPriority(
     val weight: Int,
     val badgeColorHex: Long
 ) {
-    CRITICAL("حیاتی / قول شرف و چک صیادی", 3, 0xFFEF4444),
-    HIGH("اولویت بالا / خوش‌حسابی بانکی", 2, 0xFFF59E0B),
-    NORMAL("عادی / برنامه‌ریزی‌شده", 1, 0xFF10B981)
+    CRITICAL("حیاتی / قول شرف و چک صیادی", 3, 0xFFF43F5E),
+    HIGH("اولویت بالا / خوش‌حسابی بانکی", 2, 0xFFFBBF24),
+    NORMAL("عادی / برنامه‌ریزی‌شده", 1, 0xFF10D9A0)
 }
 
 enum class ObligationCategory(
@@ -30,11 +30,11 @@ enum class ObligationCategory(
     val isReceivable: Boolean,
     val colorHex: Long
 ) {
-    INSTALLMENT_LOAN("وام و تسهیلات اقساطی بانکی/صندوقی", "وام اقساطی", false, 0xFF10B981),
-    BNPL_PURCHASE("خرید اقساطی کالا و خدمات (BNPL)", "خرید اقساطی", false, 0xFF3B82F6),
-    PERSONAL_DEBT("بدهی و قرض دریافتی از اشخاص/موسسات", "قرض و بدهی", false, 0xFFF59E0B),
-    PERSONAL_RECEIVABLE("طلب و قرض داده‌شده به دیگران", "طلب از دیگران", true, 0xFF06B6D4),
-    CHECK_OR_BILL("چک صیادی، اجاره‌بها یا تعهدات دوره‌ای", "چک صیادی / اجاره", false, 0xFFEC4899)
+    INSTALLMENT_LOAN("وام و تسهیلات اقساطی بانکی/صندوقی", "وام اقساطی", false, 0xFF10D9A0),
+    BNPL_PURCHASE("خرید اقساطی کالا و خدمات (BNPL)", "خرید اقساطی", false, 0xFF38BDF8),
+    PERSONAL_DEBT("بدهی و قرض دریافتی از اشخاص/موسسات", "قرض و بدهی", false, 0xFFFBBF24),
+    PERSONAL_RECEIVABLE("طلب و قرض داده‌شده به دیگران", "طلب از دیگران", true, 0xFF2DD4BF),
+    CHECK_OR_BILL("چک صیادی، اجاره‌بها یا تعهدات دوره‌ای", "چک صیادی / اجاره", false, 0xFFF472B6)
 }
 
 enum class ScheduleMode(val labelFa: String) {
@@ -55,10 +55,10 @@ enum class PaymentInterval(
 }
 
 enum class InstallmentStatus(val labelFa: String, val colorHex: Long) {
-    PAID("پرداخت‌شده", 0xFF10B981),
-    PARTIAL("پرداخت جزئی", 0xFF3B82F6),
-    PENDING("در انتظار پرداخت", 0xFFF59E0B),
-    OVERDUE("معوقه (گذشته از سررسید)", 0xFFEF4444)
+    PAID("پرداخت‌شده", 0xFF10D9A0),
+    PARTIAL("پرداخت جزئی", 0xFF38BDF8),
+    PENDING("در انتظار پرداخت", 0xFFFBBF24),
+    OVERDUE("معوقه (گذشته از سررسید)", 0xFFF43F5E)
 }
 
 enum class SubRecordType(val labelFa: String) {

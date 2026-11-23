@@ -21,7 +21,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "اسنپ‌پی (SnappPay)",
                 category = EntityCategory.BNPL_PLATFORM.name,
-                avatarColorHex = 0xFF3B82F6,
+                avatarColorHex = 0xFF38BDF8,
                 cardNumber = "6219861045127890",
                 shebaNumber = "IR820560081180005544332211",
                 phoneNumber = "021-96612000",
@@ -35,7 +35,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "دیجی‌پی (DigiPay)",
                 category = EntityCategory.BNPL_PLATFORM.name,
-                avatarColorHex = 0xFF2563EB,
+                avatarColorHex = 0xFF60A5FA,
                 cardNumber = "6221061987654321",
                 shebaNumber = "IR540540102580009876543210",
                 phoneNumber = "021-61930400",
@@ -50,7 +50,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "بانک قرض‌الحسنه مهر ایران",
                 category = EntityCategory.BANK.name,
-                avatarColorHex = 0xFF10B981,
+                avatarColorHex = 0xFF10D9A0,
                 cardNumber = "6063731099884412",
                 shebaNumber = "IR450600000001009988776655",
                 phoneNumber = "021-85201000",
@@ -64,7 +64,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "بلوبانک (بانک سامان)",
                 category = EntityCategory.BANK.name,
-                avatarColorHex = 0xFF06B6D4,
+                avatarColorHex = 0xFF2DD4BF,
                 cardNumber = "6219861911223344",
                 shebaNumber = "IR120560611828001122334455",
                 phoneNumber = "021-87641",
@@ -79,7 +79,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "صندوق قرض‌الحسنه امید خانواده",
                 category = EntityCategory.INSTITUTION.name,
-                avatarColorHex = 0xFF8B5CF6,
+                avatarColorHex = 0xFF818CF8,
                 cardNumber = "5892101144556677",
                 shebaNumber = "IR630150000000112233445566",
                 phoneNumber = "09121112233",
@@ -93,7 +93,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "شرکت فناوری پارس (کارفرما)",
                 category = EntityCategory.INSTITUTION.name,
-                avatarColorHex = 0xFF0EA5E9,
+                avatarColorHex = 0xFF38BDF8,
                 cardNumber = "6274121190807060",
                 shebaNumber = "IR340550011280004455667788",
                 phoneNumber = "021-44228800",
@@ -108,7 +108,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "رضا محمدی (دوست و همکار)",
                 category = EntityCategory.PERSON.name,
-                avatarColorHex = 0xFFF59E0B,
+                avatarColorHex = 0xFFFBBF24,
                 cardNumber = "6221061233448899",
                 shebaNumber = "IR190540102580001234567890",
                 phoneNumber = "09123456789",
@@ -122,7 +122,7 @@ object SeedDataEngine {
             CounterpartyEntity(
                 name = "حاج‌آقا کریمی (صاحب‌خانه)",
                 category = EntityCategory.PERSON.name,
-                avatarColorHex = 0xFFEC4899,
+                avatarColorHex = 0xFFF472B6,
                 cardNumber = "6104337811229900",
                 shebaNumber = "IR910120000000009988771122",
                 phoneNumber = "09129988776",
