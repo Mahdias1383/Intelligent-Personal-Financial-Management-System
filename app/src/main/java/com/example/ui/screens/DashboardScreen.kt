@@ -682,8 +682,8 @@ fun DashboardScreen(
                                 unit = unit,
                                 privacyMasked = masked,
                                 style = MaterialTheme.typography.labelLarge,
-                                numberColor = Color(0xFF38BDF8),
-                                unitColor = Color(0xFFBAE6FD),
+                                numberColor = Color(0xFFDAB978),
+                                unitColor = Color(0xFFF7E7C4),
                                 minFontSize = 9.sp,
                                 textAlign = TextAlign.End,
                                 modifier = Modifier.fillMaxWidth()
@@ -692,6 +692,22 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
+        }
+
+        // =========================================================================
+        // 1.5. SHAMSI QUICK DEBT & UPCOMING INSTALLMENT DEADLINES SUMMARY CARD
+        // =========================================================================
+        item {
+            TarazinoStaggeredReveal(index = 1) {
+                ShamsiQuickDebtAndDeadlineSummaryCard(
+                    uiState = uiState,
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    onQuickPay = onQuickPay,
+                    onOpenAllAlerts = { showAllAlertsModal = true },
+                    onOpenObligationInTree = onOpenObligationInTree
+                )
             }
         }
 
@@ -740,7 +756,7 @@ fun DashboardScreen(
                 TarazinoQuickActionTile(
                     label = "گزارش A4",
                     icon = Icons.Default.PictureAsPdf,
-                    accentColor = Color(0xFF8B5CF6),
+                    accentColor = MaterialTheme.colorScheme.secondary,
                     onClick = onOpenFullA4Report,
                     modifier = Modifier
                         .weight(1f)
@@ -1352,7 +1368,7 @@ fun DashboardScreen(
         }
     }
 
-    // Modal Sheet for Viewing All Alerts & Filtering by Bucket
+        // Modal Sheet for Viewing All Alerts & Filtering by Bucket
     if (showAllAlertsModal) {
         AllAlertsModalDialog(
             alerts = uiState.smartAlertQueue,
@@ -1366,6 +1382,349 @@ fun DashboardScreen(
                 onOpenObligationInTree(alert.obligation, alert.counterparty?.categoryEnum)
             }
         )
+    }
+}
+
+@Composable
+fun ShamsiQuickDebtAndDeadlineSummaryCard(
+    uiState: TarazinoUiState,
+    currencyUnit: CurrencyUnit,
+    privacyMasked: Boolean,
+    onQuickPay: (InstallmentEntity) -> Unit,
+    onOpenAllAlerts: () -> Unit,
+    onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val ext = LocalTarazinoColors.current
+    val todayJalali = remember { JalaliCalendarEngine.todayJalali() }
+    val parsedToday = remember(todayJalali) { JalaliCalendarEngine.parseJalali(todayJalali) }
+    val todayVerboseFa = remember(todayJalali) { JalaliCalendarEngine.formatJalaliVerbose(todayJalali) }
+    val seasonNameFa = remember(parsedToday) { JalaliCalendarEngine.getSeasonName(parsedToday.month) }
+    val monthLength = remember(parsedToday) {
+        JalaliCalendarEngine.getJalaliMonthLength(parsedToday.year, parsedToday.month)
+    }
+    val daysRemainingInMonth = (monthLength - parsedToday.day).coerceAtLeast(0)
+    val decadeLabelFa = when (parsedToday.decadeOfMonth) {
+        1 -> "دهه اول ${parsedToday.monthNameFa}"
+        2 -> "دهه دوم ${parsedToday.monthNameFa}"
+        else -> "دهه سوم ${parsedToday.monthNameFa}"
+    }
+
+    val activeDebtObligationsCount = remember(uiState.obligations, uiState.installments) {
+        val unpaidObIds = uiState.installments
+            .filter { it.remainingToman > 0L && it.statusEnum != InstallmentStatus.PAID }
+            .map { it.obligationId }
+            .toSet()
+        uiState.obligations.count { !it.categoryEnum.isReceivable && it.id in unpaidObIds }
+    }
+
+    val currentMonthRemainingCount = remember(uiState.installments, uiState.obligations, parsedToday) {
+        val debtObIds = uiState.obligations.filter { !it.categoryEnum.isReceivable }.map { it.id }.toSet()
+        uiState.installments.count { inst ->
+            inst.obligationId in debtObIds &&
+                inst.remainingToman > 0L &&
+                inst.statusEnum != InstallmentStatus.PAID &&
+                JalaliCalendarEngine.isInJalaliMonth(inst.dueDateJalali, parsedToday.year, parsedToday.month)
+        }
+    }
+
+    val upcomingDeadlines = remember(uiState.smartAlertQueue) {
+        uiState.smartAlertQueue
+            .filter { !it.obligation.categoryEnum.isReceivable }
+            .take(3)
+    }
+
+    TarazinoGlassCard(
+        cornerRadius = 24.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("dashboard_shamsi_quick_summary_card")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 15.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 1. Shamsi Calendar Header Bar with Today's Date, Decade & Remaining Month Days
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    TarazinoIconBadge(
+                        icon = Icons.Default.Alarm,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        size = 38.dp,
+                        iconSize = 19.dp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        TarazinoAutoSizeText(
+                            text = "خلاصه بدهی‌های فعال و سررسیدهای شمسی",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            minFontSize = 10.5.sp
+                        )
+                        TarazinoAutoSizeText(
+                            text = "$todayVerboseFa • $seasonNameFa ($decadeLabelFa)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            minFontSize = 8.5.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = if (ext.isDark) 0.16f else 0.12f),
+                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f))
+                ) {
+                    Text(
+                        text = "${PersianCurrencyEngine.toPersianDigits(daysRemainingInMonth.toString())} روز تا پایان ماه",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // 2. Quick View Twin KPI Tiles: Total Active Debts & Current Shamsi Month Remaining Installments
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.88f),
+                    border = BorderStroke(0.8.dp, ext.cardBorderTop),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("shamsi_summary_total_active_debt_tile")
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TarazinoAutoSizeText(
+                                text = "کل بدهی‌های فعال",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${PersianCurrencyEngine.toPersianDigits(activeDebtObligationsCount.toString())} پرونده",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FormattedMoneyText(
+                            amountToman = uiState.totalDebtRemainingToman,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
+                            style = MaterialTheme.typography.titleSmall,
+                            numberColor = MaterialTheme.colorScheme.onSurface,
+                            unitColor = MaterialTheme.colorScheme.primary,
+                            minFontSize = 9.5.sp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.88f),
+                    border = BorderStroke(0.8.dp, ext.cardBorderTop),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("shamsi_summary_current_month_tile")
+                ) {
+                    val monthRemainingToman = uiState.dtiHealthReport?.currentMonthRemainingDueToman ?: 0L
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TarazinoAutoSizeText(
+                                text = "مانده اقساط ${parsedToday.monthNameFa}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${PersianCurrencyEngine.toPersianDigits(currentMonthRemainingCount.toString())} قسط",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FormattedMoneyText(
+                            amountToman = monthRemainingToman,
+                            unit = currencyUnit,
+                            privacyMasked = privacyMasked,
+                            style = MaterialTheme.typography.titleSmall,
+                            numberColor = MaterialTheme.colorScheme.onSurface,
+                            unitColor = MaterialTheme.colorScheme.secondary,
+                            minFontSize = 9.5.sp,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
+            // 3. Upcoming Installment Deadlines Timeline (Powered by JalaliCalendarEngine)
+            if (upcomingDeadlines.isNotEmpty()) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                    thickness = 0.75.dp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "نزدیک‌ترین سررسیدهای تقویم شمسی:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "مشاهده همه ‹",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .tarazinoPressScale(onClick = onOpenAllAlerts)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .testTag("shamsi_summary_view_all_deadlines_btn")
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    upcomingDeadlines.forEach { item ->
+                        val dueDateFormatted = JalaliCalendarEngine.formatJalaliShortText(item.installment.dueDateJalali)
+                        val relativeStatusFa = JalaliCalendarEngine.formatRelativeDueStatusFa(
+                            todayJalali = todayJalali,
+                            targetDateJalali = item.installment.dueDateJalali
+                        )
+                        val statusColor = Color(item.bucket.colorHex)
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.58f else 0.76f),
+                            border = BorderStroke(0.75.dp, statusColor.copy(alpha = 0.35f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .tarazinoPressScale(scaleDown = 0.97f) {
+                                    onOpenObligationInTree(item.obligation, item.counterparty?.categoryEnum)
+                                }
+                                .testTag("shamsi_deadline_row_${item.installment.id}")
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(statusColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        TarazinoAutoSizeText(
+                                            text = item.installment.title,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            minFontSize = 9.sp
+                                        )
+                                        TarazinoAutoSizeText(
+                                            text = "$dueDateFormatted • $relativeStatusFa",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = statusColor,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            minFontSize = 8.5.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    FormattedMoneyText(
+                                        amountToman = item.installment.remainingToman,
+                                        unit = currencyUnit,
+                                        privacyMasked = privacyMasked,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        numberColor = MaterialTheme.colorScheme.onSurface,
+                                        minFontSize = 8.5.sp,
+                                        textAlign = TextAlign.End,
+                                        modifier = Modifier.widthIn(max = 120.dp)
+                                    )
+
+                                    Surface(
+                                        shape = RoundedCornerShape(9.dp),
+                                        color = ext.positive.copy(alpha = if (ext.isDark) 0.20f else 0.14f),
+                                        border = BorderStroke(0.7.dp, ext.positive.copy(alpha = 0.45f)),
+                                        modifier = Modifier.tarazinoPressScale(scaleDown = 0.92f) {
+                                            onQuickPay(item.installment)
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "تسویه",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = ext.positive,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
