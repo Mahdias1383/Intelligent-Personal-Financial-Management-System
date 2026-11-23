@@ -92,6 +92,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -448,13 +449,13 @@ fun InteractiveOnboardingTourOverlay(
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.90f),
                                 border = BorderStroke(0.75.dp, primaryAccent.copy(alpha = 0.45f))
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = currentStep.badgeTitleFa,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    minFontSize = 8.5.sp,
                                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                 )
                             }
@@ -513,14 +514,16 @@ fun InteractiveOnboardingTourOverlay(
                                     )
                                     .padding(vertical = 4.dp, horizontal = 3.dp)
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = tab.titleFa,
                                     style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
+                                    maxFontSize = 10.sp,
+                                    minFontSize = 7.5.sp,
                                     fontWeight = if (isTarget) FontWeight.ExtraBold else FontWeight.Medium,
                                     color = if (isTarget) MaterialTheme.colorScheme.onPrimary else tourTextSecondary,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
@@ -541,13 +544,14 @@ fun InteractiveOnboardingTourOverlay(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
+                    TarazinoAutoSizeText(
                         text = currentStep.headlineFa,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = tourTextPrimary,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 11.sp,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -607,11 +611,13 @@ fun InteractiveOnboardingTourOverlay(
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "قبلی",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = tourTextPrimary,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
                             }
                         }
@@ -628,7 +634,7 @@ fun InteractiveOnboardingTourOverlay(
                                 .weight(1.35f)
                                 .testTag("tour_next_or_finish_btn")
                         ) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = if (isLastStep) {
                                     "شروع کار با ترازینو"
                                 } else {
@@ -637,7 +643,8 @@ fun InteractiveOnboardingTourOverlay(
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 9.5.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                             if (!isLastStep) {
                                 Spacer(modifier = Modifier.width(5.dp))

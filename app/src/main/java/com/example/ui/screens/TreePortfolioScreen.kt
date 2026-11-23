@@ -84,8 +84,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.core.JalaliCalendarEngine
@@ -111,6 +113,7 @@ import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.JalaliDateSelectorField
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MoneyInputField
+import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
 import com.example.ui.components.TarazinoLuminousProgressBar
@@ -119,6 +122,7 @@ import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.formatCompactPersianToman
+import com.example.ui.components.ltrIsolateDigits
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
 import com.example.ui.theme.LocalTarazinoColors
@@ -564,20 +568,22 @@ fun TreePortfolioScreen(
                                                 cornerRadius = 11.dp
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text(
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                TarazinoAutoSizeText(
                                                     text = "تسویه گروهی چند قسط",
                                                     style = MaterialTheme.typography.labelLarge,
                                                     fontWeight = FontWeight.Bold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    minFontSize = 10.sp,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
-                                                Text(
+                                                TarazinoAutoSizeText(
                                                     text = "اقساط دلخواه را انتخاب و یکجا تسویه کنید",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    minFontSize = 8.5.sp,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
@@ -688,12 +694,13 @@ fun TreePortfolioScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(
+                                                TarazinoAutoSizeText(
                                                     text = sr.title,
                                                     style = MaterialTheme.typography.bodySmall,
                                                     fontWeight = FontWeight.SemiBold,
                                                     maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
+                                                    minFontSize = 9.5.sp,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                                 Text(
                                                     text = PersianCurrencyEngine.toPersianDigits(sr.dateJalali),
@@ -702,18 +709,23 @@ fun TreePortfolioScreen(
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = "${if (isCharge) "+" else "-"} ${
-                                                    PersianCurrencyEngine.formatAmount(
-                                                        sr.amountToman,
-                                                        unit,
-                                                        privacyMasked = masked
-                                                    )
-                                                }",
+                                            TarazinoAutoSizeText(
+                                                text = ltrIsolateDigits(
+                                                    "${if (isCharge) "+" else "-"} ${
+                                                        PersianCurrencyEngine.formatAmount(
+                                                            sr.amountToman,
+                                                            unit,
+                                                            privacyMasked = masked
+                                                        )
+                                                    }"
+                                                ),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (isCharge) extLedger.warning else extLedger.positive,
-                                                maxLines = 1
+                                                maxLines = 1,
+                                                minFontSize = 8.5.sp,
+                                                textAlign = TextAlign.End,
+                                                modifier = Modifier.widthIn(max = 152.dp)
                                             )
                                         }
                                     }
@@ -734,12 +746,12 @@ fun TreePortfolioScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "جدول اقساط (${PersianCurrencyEngine.toPersianDigits(filteredAndSortedInstallments.size.toString())})",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.ExtraBold,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    minFontSize = 10.sp,
                                     modifier = Modifier.weight(1f)
                                 )
 
@@ -894,12 +906,12 @@ fun TreePortfolioScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "پرونده‌های «${cp.name}»",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    minFontSize = 10.sp,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -950,7 +962,14 @@ fun TreePortfolioScreen(
                                     ) {
                                         Icon(imageVector = Icons.Default.AddCircle, contentDescription = null)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("ثبت اولین خرید / قسط برای ${cp.name}", maxLines = 1)
+                                        TarazinoAutoSizeText(
+                                            text = "ثبت اولین خرید / قسط برای ${cp.name}",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            minFontSize = 9.5.sp,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
                                     }
                                 }
                             }
@@ -1003,20 +1022,22 @@ fun TreePortfolioScreen(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = cat.labelFa,
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = catAccent,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 11.sp,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "${PersianCurrencyEngine.toPersianDigits(subProviders.size.toString())} زیرمجموعه / طرف پرداخت",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 8.5.sp,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                     }
                                 }
@@ -1095,17 +1116,24 @@ fun TreePortfolioScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = PersianCurrencyEngine.toPersianDigits(totalObligationsCount.toString()),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        minFontSize = 11.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "پرونده فعال",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        minFontSize = 8.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -1120,17 +1148,24 @@ fun TreePortfolioScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = PersianCurrencyEngine.toPersianDigits(unpaidInstCount.toString()),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = ext.warning
+                                        color = ext.warning,
+                                        maxLines = 1,
+                                        minFontSize = 11.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "قسط در انتظار",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        minFontSize = 8.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -1145,17 +1180,24 @@ fun TreePortfolioScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = PersianCurrencyEngine.toPersianDigits(uiState.counterparties.size.toString()),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Black,
-                                        color = MaterialTheme.colorScheme.secondary
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        maxLines = 1,
+                                        minFontSize = 11.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "طرف پرداخت",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        minFontSize = 8.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -1401,7 +1443,7 @@ private fun BreadcrumbPill(
         },
         modifier = Modifier.clickable(onClick = onClick)
     ) {
-        Text(
+        TarazinoAutoSizeText(
             text = text,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
@@ -1411,7 +1453,7 @@ private fun BreadcrumbPill(
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            minFontSize = 9.5.sp,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
@@ -1491,44 +1533,38 @@ private fun CategoryBentoTile(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
+                TarazinoAutoSizeText(
                     text = category.badgeFa,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    minFontSize = 10.sp,
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Text(
+                TarazinoAutoSizeText(
                     text = categoryShortHintFa(category),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    minFontSize = 8.5.sp,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Text(
-                        text = formatCompactPersianToman(displayAmount, privacyMasked),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = accent,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (!privacyMasked) {
-                        Text(
-                            text = currencyUnit.labelFa,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
+                TarazinoAutoSizeText(
+                    text = if (privacyMasked) {
+                        formatCompactPersianToman(displayAmount, true)
+                    } else {
+                        "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    color = accent,
+                    maxLines = 1,
+                    minFontSize = 10.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -1545,12 +1581,15 @@ private fun CategoryBentoTile(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "${PersianCurrencyEngine.toPersianDigits(subProvidersCount.toString())} زیرمجموعه",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        minFontSize = 8.5.sp,
+                        modifier = Modifier.weight(1f)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${PersianCurrencyEngine.toPersianDigits((progress * 100).toInt().toString())}٪",
                         style = MaterialTheme.typography.labelSmall,
@@ -1608,41 +1647,36 @@ private fun CounterpartyQuickDeckCard(
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = counterparty.name,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 9.5.sp,
+                modifier = Modifier.fillMaxWidth()
             )
-            Text(
+            TarazinoAutoSizeText(
                 text = counterparty.categoryEnum.badgeFa,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.5.sp,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = formatCompactPersianToman(displayAmount, privacyMasked),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Black,
-                    color = accent,
-                    maxLines = 1
-                )
-                if (!privacyMasked) {
-                    Text(
-                        text = currencyUnit.labelFa,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-            }
+            TarazinoAutoSizeText(
+                text = if (privacyMasked) {
+                    formatCompactPersianToman(displayAmount, true)
+                } else {
+                    "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
+                },
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Black,
+                color = accent,
+                maxLines = 1,
+                minFontSize = 9.5.sp,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -1689,37 +1723,46 @@ private fun SubProviderFolderCard(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = counterparty.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            maxLines = 2,
+                            minFontSize = 11.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "${counterparty.categoryEnum.badgeFa} • ${PersianCurrencyEngine.toPersianDigits(obligations.size.toString())} پرونده (${PersianCurrencyEngine.toPersianDigits(pendingInstCount.toString())} باز)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.widthIn(max = 148.dp)
+                ) {
                     FormattedMoneyText(
                         amountToman = totalRem,
                         unit = currencyUnit,
                         privacyMasked = privacyMasked,
                         style = MaterialTheme.typography.titleSmall,
-                        numberColor = accent
+                        numberColor = accent,
+                        textAlign = TextAlign.End
                     )
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "مانده این زیرمجموعه",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        minFontSize = 8.sp,
+                        textAlign = TextAlign.End
                     )
                 }
             }
@@ -1778,11 +1821,12 @@ private fun SubProviderFolderCard(
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "ثبت قسط",
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 9.sp,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                 }
                 OutlinedButton(
@@ -1858,20 +1902,22 @@ private fun SubProviderDetailHubHeaderCard(
                         size = 48.dp
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
+                    Column(modifier = Modifier.weight(1f)) {
+                        TarazinoAutoSizeText(
                             text = counterparty.name,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 13.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "${counterparty.categoryEnum.labelFa} • ${counterparty.priorityEnum.labelFa}",
                             style = MaterialTheme.typography.labelMedium,
                             color = accent,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 9.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -1917,12 +1963,13 @@ private fun SubProviderDetailHubHeaderCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "مانده بدهی در ${counterparty.name}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         FormattedMoneyText(
@@ -1941,11 +1988,13 @@ private fun SubProviderDetailHubHeaderCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "پرداخت‌شده تا امروز",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                            maxLines = 1,
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         FormattedMoneyText(
@@ -2072,7 +2121,14 @@ private fun SubProviderDetailHubHeaderCard(
                 ) {
                     Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("ثبت خرید / قسط", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    TarazinoAutoSizeText(
+                        text = "ثبت خرید / قسط",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        minFontSize = 9.5.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
                 OutlinedButton(
                     onClick = onExportA4,
@@ -2082,7 +2138,13 @@ private fun SubProviderDetailHubHeaderCard(
                 ) {
                     Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("گزارش A4", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    TarazinoAutoSizeText(
+                        text = "گزارش A4",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        minFontSize = 9.5.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
             }
         }
@@ -2135,31 +2197,39 @@ private fun ObligationSummaryRowCard(
                         size = 40.dp
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
+                    Column(modifier = Modifier.weight(1f)) {
+                        TarazinoAutoSizeText(
                             text = obligation.title,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            maxLines = 2,
+                            minFontSize = 11.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "${counterparty?.name ?: "طرف‌حساب"} • ${PersianCurrencyEngine.toPersianDigits(paidCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(totalCount.toString())} قسط تسویه",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.widthIn(max = 148.dp)
+                ) {
                     FormattedMoneyText(
                         amountToman = totalRem,
                         unit = currencyUnit,
                         privacyMasked = privacyMasked,
                         style = MaterialTheme.typography.titleSmall,
-                        numberColor = MaterialTheme.colorScheme.primary
+                        numberColor = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.End
                     )
                     Text(
                         text = "مانده تعهد",
@@ -2185,19 +2255,21 @@ private fun ObligationSummaryRowCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (nextUnpaid != null) {
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "قسط بعدی: ${PersianCurrencyEngine.toPersianDigits(nextUnpaid.dueDateJalali)} (${
-                            PersianCurrencyEngine.formatAmount(
-                                nextUnpaid.remainingToman,
-                                currencyUnit,
-                                privacyMasked = privacyMasked
+                            ltrIsolateDigits(
+                                PersianCurrencyEngine.formatAmount(
+                                    nextUnpaid.remainingToman,
+                                    currencyUnit,
+                                    privacyMasked = privacyMasked
+                                )
                             )
                         })",
                         style = MaterialTheme.typography.labelSmall,
                         color = ext.warning,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        minFontSize = 8.5.sp,
                         modifier = Modifier.weight(1f)
                     )
                 } else {
@@ -2280,18 +2352,22 @@ private fun ObligationGranularHeaderCard(
                         size = 44.dp
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
+                    Column(modifier = Modifier.weight(1f)) {
+                        TarazinoAutoSizeText(
                             text = obligation.title,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 13.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "${counterparty?.name ?: "طرف‌حساب"} • ${obligation.categoryEnum.shortLabelFa}",
                             style = MaterialTheme.typography.labelMedium,
-                            color = cpAccent
+                            color = cpAccent,
+                            maxLines = 1,
+                            minFontSize = 9.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -2348,10 +2424,13 @@ private fun ObligationGranularHeaderCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "مانده این پرونده",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         FormattedMoneyText(
@@ -2370,10 +2449,13 @@ private fun ObligationGranularHeaderCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "پرداخت‌شده (${PersianCurrencyEngine.toPersianDigits(paidCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(installments.size.toString())})",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(3.dp))
                         FormattedMoneyText(
@@ -2414,7 +2496,13 @@ private fun ObligationGranularHeaderCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("افزودن ردیف قسط", maxLines = 1)
+                    TarazinoAutoSizeText(
+                        text = "افزودن ردیف قسط",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        minFontSize = 9.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
 
                 OutlinedButton(
@@ -2429,7 +2517,13 @@ private fun ObligationGranularHeaderCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("ریزتراکنش دفتری", maxLines = 1)
+                    TarazinoAutoSizeText(
+                        text = "ریزتراکنش دفتری",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        minFontSize = 9.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
             }
         }
@@ -2516,19 +2610,21 @@ private fun GranularInstallmentItemCard(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = installment.title,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                maxLines = 2,
+                                minFontSize = 10.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "سررسید: ${PersianCurrencyEngine.toPersianDigits(installment.dueDateJalali)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -2557,29 +2653,39 @@ private fun GranularInstallmentItemCard(
                             numberColor = MaterialTheme.colorScheme.onSurface
                         )
                         if (installment.paidAmountToman > 0L && !isPaid) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "پرداخت جزئی: ${
-                                    PersianCurrencyEngine.formatAmount(
-                                        installment.paidAmountToman,
-                                        currencyUnit,
-                                        privacyMasked = privacyMasked
+                                    ltrIsolateDigits(
+                                        PersianCurrencyEngine.formatAmount(
+                                            installment.paidAmountToman,
+                                            currencyUnit,
+                                            privacyMasked = privacyMasked
+                                        )
                                     )
                                 } • مانده: ${
-                                    PersianCurrencyEngine.formatAmount(
-                                        installment.remainingToman,
-                                        currencyUnit,
-                                        privacyMasked = privacyMasked
+                                    ltrIsolateDigits(
+                                        PersianCurrencyEngine.formatAmount(
+                                            installment.remainingToman,
+                                            currencyUnit,
+                                            privacyMasked = privacyMasked
+                                        )
                                     )
                                 }",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = ext.info
+                                color = ext.info,
+                                maxLines = 2,
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                         if (installment.trackingCode.isNotBlank()) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "کد رهگیری: ${PersianCurrencyEngine.toPersianDigits(installment.trackingCode)}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -2773,7 +2879,13 @@ private fun EditObligationDetailsModal(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.3f)
                     ) {
-                        Text("ذخیره تغییرات پرونده", fontWeight = FontWeight.Bold, maxLines = 1)
+                        TarazinoAutoSizeText(
+                            text = "ذخیره تغییرات پرونده",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            minFontSize = 9.5.sp
+                        )
                     }
                 }
             }
@@ -2975,7 +3087,13 @@ private fun GranularInstallmentEditModal(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.3f)
                     ) {
-                        Text("ذخیره تغییرات قسط", fontWeight = FontWeight.Bold, maxLines = 1)
+                        TarazinoAutoSizeText(
+                            text = "ذخیره تغییرات قسط",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            minFontSize = 9.5.sp
+                        )
                     }
                 }
             }
@@ -3085,7 +3203,13 @@ private fun AddSingleCustomInstallmentModal(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("افزودن به جدول اقساط", fontWeight = FontWeight.Bold, maxLines = 1)
+                        TarazinoAutoSizeText(
+                            text = "افزودن به جدول اقساط",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            minFontSize = 9.5.sp
+                        )
                     }
                 }
             }
@@ -3222,7 +3346,13 @@ private fun SubProviderFormDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1.2f)
                     ) {
-                        Text("ذخیره زیرمجموعه", fontWeight = FontWeight.Bold, maxLines = 1)
+                        TarazinoAutoSizeText(
+                            text = "ذخیره زیرمجموعه",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            minFontSize = 9.5.sp
+                        )
                     }
                 }
             }

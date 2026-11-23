@@ -86,8 +86,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 import com.example.data.CounterpartyEntity
@@ -95,6 +97,7 @@ import com.example.data.FontScalePreset
 import com.example.data.TarazinoThemeMode
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.CounterpartyMonogramAvatar
+import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
@@ -200,12 +203,13 @@ fun ReportsAndSettingsScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "پیش‌نمایش زنده و چاپ گزارش جامع A4 رنگی",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 10.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
 
@@ -286,19 +290,20 @@ fun ReportsAndSettingsScreen(
                                             size = 36.dp
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            TarazinoAutoSizeText(
                                                 text = cp.name,
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                maxLines = 2,
+                                                minFontSize = 10.5.sp
                                             )
-                                            Text(
+                                            TarazinoAutoSizeText(
                                                 text = cp.categoryEnum.badgeFa,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1
+                                                maxLines = 1,
+                                                minFontSize = 8.5.sp
                                             )
                                         }
                                     }
@@ -393,12 +398,14 @@ fun ReportsAndSettingsScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            Text(
+                                            TarazinoAutoSizeText(
                                                 text = uiState.preferences.themeMode.labelFa,
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = ext.heroOnSurface,
-                                                maxLines = 1
+                                                maxLines = 1,
+                                                minFontSize = 10.5.sp,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
                                             Surface(
                                                 shape = RoundedCornerShape(999.dp),
@@ -624,11 +631,13 @@ fun ReportsAndSettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "اجرای مجدد تور آموزشی المان‌به‌المان برنامه",
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 9.5.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
                     }
@@ -784,11 +793,13 @@ fun ReportsAndSettingsScreen(
                                     .weight(1.35f)
                                     .testTag("save_security_pin_btn")
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "ذخیره و فعال‌سازی قفل",
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    minFontSize = 9.5.sp
                                 )
                             }
                             if (isPinActive) {
@@ -799,7 +810,14 @@ fun ReportsAndSettingsScreen(
                                     border = BorderStroke(1.dp, ext.danger.copy(alpha = 0.55f)),
                                     modifier = Modifier.weight(0.95f)
                                 ) {
-                                    Text("حذف قفل", color = ext.danger, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    TarazinoAutoSizeText(
+                                        text = "حذف قفل",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = ext.danger,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        minFontSize = 9.5.sp
+                                    )
                                 }
                             }
                         }
@@ -845,11 +863,13 @@ fun ReportsAndSettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "پاکسازی داده‌های نمونه (شروع از صفر)",
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 9.5.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
 
@@ -864,10 +884,12 @@ fun ReportsAndSettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Restore, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "بازگردانی مجدد داده‌های نمونه آزمایشی",
+                                style = MaterialTheme.typography.labelLarge,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 9.5.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                         }
 
@@ -891,7 +913,12 @@ fun ReportsAndSettingsScreen(
                                     .weight(1f)
                                     .testTag("export_backup_json_btn")
                             ) {
-                                Text("خروجی JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                TarazinoAutoSizeText(
+                                    text = "خروجی JSON",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
+                                )
                             }
                             OutlinedButton(
                                 onClick = { showImportJsonDialog = true },
@@ -901,7 +928,12 @@ fun ReportsAndSettingsScreen(
                                     .weight(1f)
                                     .testTag("import_backup_json_btn")
                             ) {
-                                Text("بازیابی JSON", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                TarazinoAutoSizeText(
+                                    text = "بازیابی JSON",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
+                                )
                             }
                         }
                     }
@@ -1279,20 +1311,20 @@ private fun ThemePreviewSwatchCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
+                    TarazinoAutoSizeText(
                         text = titleFa,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Bold,
                         color = if (selected) accentPreview else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 9.5.sp
                     )
-                    Text(
+                    TarazinoAutoSizeText(
                         text = subtitleFa,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 8.sp
                     )
                 }
                 if (selected) {
@@ -1336,7 +1368,7 @@ private fun ExportFormatTileCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp, vertical = 10.dp),
+                .padding(horizontal = 6.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -1355,20 +1387,24 @@ private fun ExportFormatTileCard(
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = titleFa,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 9.5.sp,
+                modifier = Modifier.fillMaxWidth()
             )
-            Text(
+            TarazinoAutoSizeText(
                 text = subtitleFa,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.sp,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

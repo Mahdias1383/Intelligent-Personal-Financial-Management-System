@@ -81,16 +81,21 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -678,21 +683,29 @@ fun LiquidWaveHealthOrb(
             )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp)
+        ) {
+            TarazinoAutoSizeText(
                 text = centerPrimaryText,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
-                maxLines = 1
+                maxLines = 1,
+                minFontSize = 8.5.sp,
+                textAlign = TextAlign.Center
             )
             if (!centerSubText.isNullOrBlank()) {
-                Text(
+                TarazinoAutoSizeText(
                     text = centerSubText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 8.5.sp,
-                    color = Color.White.copy(alpha = 0.82f),
-                    maxLines = 1
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp),
+                    color = Color.White.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    minFontSize = 7.sp,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -782,15 +795,17 @@ fun TarazinoSlideToSettleBar(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 42.dp, end = 10.dp)
+                .padding(start = 44.dp, end = 10.dp)
         ) {
-            Text(
+            TarazinoAutoSizeText(
                 text = if (animFraction > 0.65f) "رها کنید برای تسویه ✓" else labelFa,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = accentColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 9.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f, fill = false)
             )
             if (animFraction <= 0.65f) {
                 Spacer(modifier = Modifier.width(3.dp))
@@ -944,15 +959,17 @@ fun TarazinoMiniBrandCard(
                             size = 28.dp
                         )
                         Spacer(modifier = Modifier.width(7.dp))
-                        Text(
+                        TarazinoAutoSizeText(
                             text = name.substringBefore(" ("),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = ext.miniCardOnSurface,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 9.5.sp,
+                            modifier = Modifier.weight(1f)
                         )
                     }
+                    Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.Contactless,
                         contentDescription = null,
@@ -968,40 +985,30 @@ fun TarazinoMiniBrandCard(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = if (!lastFourDigits.isNullOrBlank()) {
                                     "•••• ${PersianCurrencyEngine.toPersianDigits(lastFourDigits)}"
                                 } else {
                                     categoryBadgeFa
                                 },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = ext.miniCardOnSurfaceMuted,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 8.sp
                             )
-                            Row(
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(3.dp)
-                            ) {
-                                Text(
-                                    text = formatCompactPersianToman(displayAmount, privacyMasked),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = ext.miniCardOnSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (!privacyMasked) {
-                                    Text(
-                                        text = currencyUnit.labelFa,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontSize = 10.sp,
-                                        color = accentColor,
-                                        maxLines = 1
-                                    )
-                                }
+                            val compactCombined = if (privacyMasked) {
+                                formatCompactPersianToman(displayAmount, true)
+                            } else {
+                                "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
                             }
+                            TarazinoAutoSizeText(
+                                text = compactCombined,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = ext.miniCardOnSurface,
+                                maxLines = 1,
+                                minFontSize = 10.sp
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(4.dp))
@@ -1011,17 +1018,17 @@ fun TarazinoMiniBrandCard(
                             color = accentColor.copy(alpha = if (ext.isDark) 0.18f else 0.12f),
                             border = BorderStroke(0.7.dp, accentColor.copy(alpha = 0.42f))
                         ) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = if (pendingCount > 0) {
                                     "${PersianCurrencyEngine.toPersianDigits(pendingCount.toString())} قسط"
                                 } else {
                                     "تسویه"
                                 },
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.5.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
                                 fontWeight = FontWeight.Bold,
                                 color = accentColor,
                                 maxLines = 1,
+                                minFontSize = 8.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -1233,9 +1240,276 @@ fun TarazinoGlassCard(
 }
 
 /**
+ * Pure deterministic binary-search solver that computes the largest font size in [minFontSizeSp, maxFontSizeSp]
+ * satisfying [fits]. Executes in at most 10 evaluations with 0.25sp precision and zero UI flicker.
+ */
+fun findFittingFontSizeSp(
+    maxFontSizeSp: Float,
+    minFontSizeSp: Float,
+    precisionSp: Float = 0.25f,
+    fits: (Float) -> Boolean
+): Float {
+    val safeMax = maxFontSizeSp.coerceAtLeast(1f)
+    val safeMin = minFontSizeSp.coerceIn(1f, safeMax)
+    if (safeMax - safeMin <= precisionSp) {
+        return if (fits(safeMax)) safeMax else safeMin
+    }
+    // Fast-path: common case where text already fits at maximum size (single measurement!)
+    if (fits(safeMax)) return safeMax
+    // Floor guard: never drop below minimum readable size
+    if (!fits(safeMin)) return safeMin
+
+    var low = safeMin
+    var high = safeMax
+    var best = safeMin
+    var iterations = 0
+    while (high - low > precisionSp && iterations < 10) {
+        val mid = (low + high) * 0.5f
+        if (fits(mid)) {
+            best = mid
+            low = mid
+        } else {
+            high = mid
+        }
+        iterations++
+    }
+    return best
+}
+
+/**
+ * Isolates a numeric run (digits, commas, decimal points, minus/plus sign) in LTR bidi context
+ * so thousands separators and negative signs never invert inside RTL Persian layouts.
+ */
+fun ltrIsolateDigits(raw: String): String = "\u2066$raw\u2069"
+
+/**
+ * Zero-flicker, container-aware auto-sizing Persian Text renderer.
+ * Uses [BoxWithConstraints] + [rememberTextMeasurer] binary search with [EstedadFontFamily]
+ * before the first draw so long sentences, headers, badges, and financial figures adapt cleanly
+ * on every screen width (320dp mini -> 600dp+ foldable) and every system/app font scale.
+ */
+@Composable
+fun TarazinoAutoSizeText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = null,
+    maxLines: Int = 1,
+    minFontSize: TextUnit = 9.sp,
+    maxFontSize: TextUnit = style.fontSize,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    softWrap: Boolean = maxLines > 1
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
+    val resolvedWeight = fontWeight ?: style.fontWeight
+    val baseMaxSp = if (maxFontSize.isSpecified) maxFontSize.value else 14f
+    val safeMinSp = if (minFontSize.isSpecified) minFontSize.value.coerceAtMost(baseMaxSp) else 9f
+    val boxAlignment = when (textAlign) {
+        TextAlign.Center -> Alignment.Center
+        TextAlign.End -> Alignment.CenterEnd
+        else -> Alignment.CenterStart
+    }
+
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = boxAlignment
+    ) {
+        val maxWidthPx = if (constraints.hasBoundedWidth && constraints.maxWidth > 0 && constraints.maxWidth < Constraints.Infinity) {
+            constraints.maxWidth
+        } else {
+            -1
+        }
+
+        val fittedSp = remember(
+            text,
+            maxWidthPx,
+            density.density,
+            density.fontScale,
+            baseMaxSp,
+            safeMinSp,
+            maxLines,
+            resolvedWeight,
+            resolvedFontFamily,
+            softWrap
+        ) {
+            if (maxWidthPx <= 0 || text.isEmpty()) {
+                baseMaxSp
+            } else {
+                findFittingFontSizeSp(
+                    maxFontSizeSp = baseMaxSp,
+                    minFontSizeSp = safeMinSp
+                ) { candidateSp ->
+                    val scaledLineHeight = if (style.lineHeight.isSpecified && baseMaxSp > 0f) {
+                        (style.lineHeight.value * (candidateSp / baseMaxSp)).coerceAtLeast(candidateSp * 1.28f).sp
+                    } else {
+                        (candidateSp * 1.32f).sp
+                    }
+                    val result = textMeasurer.measure(
+                        text = text,
+                        style = style.copy(
+                            fontFamily = resolvedFontFamily,
+                            fontWeight = resolvedWeight,
+                            fontSize = candidateSp.sp,
+                            lineHeight = scaledLineHeight
+                        ),
+                        maxLines = maxLines,
+                        softWrap = softWrap,
+                        overflow = TextOverflow.Clip,
+                        constraints = Constraints(maxWidth = maxWidthPx)
+                    )
+                    !result.hasVisualOverflow && result.lineCount <= maxLines
+                }
+            }
+        }
+
+        val finalLineHeight = if (style.lineHeight.isSpecified && baseMaxSp > 0f) {
+            (style.lineHeight.value * (fittedSp / baseMaxSp)).coerceAtLeast(fittedSp * 1.28f).sp
+        } else {
+            (fittedSp * 1.32f).sp
+        }
+
+        Text(
+            text = text,
+            color = color,
+            style = style.copy(
+                fontFamily = resolvedFontFamily,
+                fontWeight = resolvedWeight,
+                fontSize = fittedSp.sp,
+                lineHeight = finalLineHeight
+            ),
+            textAlign = textAlign,
+            maxLines = maxLines,
+            softWrap = softWrap,
+            overflow = overflow
+        )
+    }
+}
+
+/**
+ * Container-aware auto-sizing renderer for styled [AnnotatedString] (e.g. mixed-size numbers & labels).
+ */
+@Composable
+fun TarazinoAutoSizeText(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    textAlign: TextAlign? = null,
+    maxLines: Int = 1,
+    minFontSize: TextUnit = 9.sp,
+    maxFontSize: TextUnit = style.fontSize,
+    overflow: TextOverflow = TextOverflow.Ellipsis,
+    softWrap: Boolean = maxLines > 1
+) {
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
+    val baseMaxSp = if (maxFontSize.isSpecified) maxFontSize.value else 14f
+    val safeMinSp = if (minFontSize.isSpecified) minFontSize.value.coerceAtMost(baseMaxSp) else 9f
+    val boxAlignment = when (textAlign) {
+        TextAlign.Center -> Alignment.Center
+        TextAlign.End -> Alignment.CenterEnd
+        else -> Alignment.CenterStart
+    }
+
+    fun scaleAnnotated(source: AnnotatedString, ratio: Float): AnnotatedString {
+        if (ratio >= 0.999f) return source
+        return AnnotatedString(
+            text = source.text,
+            spanStyles = source.spanStyles.map { range ->
+                val item = range.item
+                val scaledItem = if (item.fontSize.isSpecified) {
+                    item.copy(fontSize = (item.fontSize.value * ratio).coerceAtLeast(7.5f).sp)
+                } else {
+                    item
+                }
+                AnnotatedString.Range(scaledItem, range.start, range.end, range.tag)
+            },
+            paragraphStyles = source.paragraphStyles
+        )
+    }
+
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = boxAlignment
+    ) {
+        val maxWidthPx = if (constraints.hasBoundedWidth && constraints.maxWidth > 0 && constraints.maxWidth < Constraints.Infinity) {
+            constraints.maxWidth
+        } else {
+            -1
+        }
+
+        val fittedSp = remember(
+            text,
+            maxWidthPx,
+            density.density,
+            density.fontScale,
+            baseMaxSp,
+            safeMinSp,
+            maxLines,
+            resolvedFontFamily,
+            softWrap
+        ) {
+            if (maxWidthPx <= 0 || text.isEmpty()) {
+                baseMaxSp
+            } else {
+                findFittingFontSizeSp(
+                    maxFontSizeSp = baseMaxSp,
+                    minFontSizeSp = safeMinSp
+                ) { candidateSp ->
+                    val ratio = if (baseMaxSp > 0f) candidateSp / baseMaxSp else 1f
+                    val scaledLineHeight = if (style.lineHeight.isSpecified && baseMaxSp > 0f) {
+                        (style.lineHeight.value * ratio).coerceAtLeast(candidateSp * 1.28f).sp
+                    } else {
+                        (candidateSp * 1.32f).sp
+                    }
+                    val result = textMeasurer.measure(
+                        text = scaleAnnotated(text, ratio),
+                        style = style.copy(
+                            fontFamily = resolvedFontFamily,
+                            fontSize = candidateSp.sp,
+                            lineHeight = scaledLineHeight
+                        ),
+                        maxLines = maxLines,
+                        softWrap = softWrap,
+                        overflow = TextOverflow.Clip,
+                        constraints = Constraints(maxWidth = maxWidthPx)
+                    )
+                    !result.hasVisualOverflow && result.lineCount <= maxLines
+                }
+            }
+        }
+
+        val finalRatio = if (baseMaxSp > 0f) fittedSp / baseMaxSp else 1f
+        val finalLineHeight = if (style.lineHeight.isSpecified && baseMaxSp > 0f) {
+            (style.lineHeight.value * finalRatio).coerceAtLeast(fittedSp * 1.28f).sp
+        } else {
+            (fittedSp * 1.32f).sp
+        }
+
+        Text(
+            text = remember(text, finalRatio) { scaleAnnotated(text, finalRatio) },
+            style = style.copy(
+                fontFamily = resolvedFontFamily,
+                fontSize = fittedSp.sp,
+                lineHeight = finalLineHeight
+            ),
+            textAlign = textAlign,
+            maxLines = maxLines,
+            softWrap = softWrap,
+            overflow = overflow
+        )
+    }
+}
+
+/**
  * Apple Stocks / Revolut Style Rolling-Digit Odometer Money Display:
  * Animates each Persian digit slot vertically with spring deceleration whenever the balance,
- * currency unit (تومان / ریال), or privacy mask changes!
+ * currency unit (تومان / ریال), or privacy mask changes, while measuring exact container width
+ * so 12–15 digit Rial values NEVER overflow or clip on compact 320dp phones!
  */
 @Composable
 fun AnimatedOdometerMoneyText(
@@ -1245,6 +1519,7 @@ fun AnimatedOdometerMoneyText(
     style: TextStyle = MaterialTheme.typography.displayLarge,
     numberColor: Color = MaterialTheme.colorScheme.onSurface,
     unitColor: Color = numberColor.copy(alpha = 0.80f),
+    minFontSize: TextUnit = 15.sp,
     modifier: Modifier = Modifier
 ) {
     val formattedDigits = remember(amountToman, unit, privacyMasked) {
@@ -1261,72 +1536,140 @@ fun AnimatedOdometerMoneyText(
         previousAmount = amountToman
     }
 
-    val adaptiveScale = when {
-        formattedDigits.length >= 13 -> 0.68f
-        formattedDigits.length >= 11 -> 0.78f
-        formattedDigits.length >= 9 -> 0.88f
-        else -> 1f
-    }
-    val adaptiveStyle = style.copy(
-        fontSize = (style.fontSize.value * adaptiveScale).sp,
-        lineHeight = (style.lineHeight.value * adaptiveScale).sp
-    )
-    val unitFontSize = (adaptiveStyle.fontSize.value * 0.50f).coerceAtLeast(11f).sp
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
+    val baseFontSizeSp = if (style.fontSize.isSpecified) style.fontSize.value else 32f
+    val minFontSizeSp = minFontSize.value.coerceAtMost(baseFontSizeSp)
 
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-        modifier = modifier
-    ) {
-        // Keep numeric character order strictly LTR so thousands separators never flip in RTL
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                formattedDigits.forEachIndexed { idx, ch ->
-                    val slotKey = formattedDigits.length - idx
-                    androidx.compose.runtime.key(slotKey) {
-                        AnimatedContent(
-                            targetState = ch,
-                            transitionSpec = {
-                                val dir = if (rollingUp) 1 else -1
-                                (slideInVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = 0.78f,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    )
-                                ) { h -> dir * (h * 0.65f).roundToInt() } + fadeIn(tween(180))) togetherWith
-                                    (slideOutVertically(
-                                        animationSpec = tween(150, easing = FastOutSlowInEasing)
-                                    ) { h -> -dir * (h * 0.55f).roundToInt() } + fadeOut(tween(130)))
-                            },
-                            label = "OdometerDigit_$slotKey"
-                        ) { charState ->
-                            Text(
-                                text = charState.toString(),
-                                style = adaptiveStyle,
+    BoxWithConstraints(modifier = modifier) {
+        val maxWidthPx = if (constraints.hasBoundedWidth && constraints.maxWidth > 0 && constraints.maxWidth < Constraints.Infinity) {
+            // Reserve 10.dp safety buffer for digit-slot kerning & spacer between digits and unit
+            (constraints.maxWidth - with(density) { 10.dp.roundToPx() }).coerceAtLeast(48)
+        } else {
+            -1
+        }
+
+        val fittedSp = remember(
+            formattedDigits,
+            unit,
+            maxWidthPx,
+            density.density,
+            density.fontScale,
+            baseFontSizeSp,
+            minFontSizeSp
+        ) {
+            if (maxWidthPx <= 0) {
+                baseFontSizeSp
+            } else {
+                findFittingFontSizeSp(
+                    maxFontSizeSp = baseFontSizeSp,
+                    minFontSizeSp = minFontSizeSp
+                ) { candidateSp ->
+                    val candidateUnitSp = (candidateSp * 0.48f).coerceAtLeast(10f)
+                    val probe = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = resolvedFontFamily,
                                 fontWeight = FontWeight.Black,
-                                color = numberColor,
-                                maxLines = 1
+                                fontSize = candidateSp.sp
                             )
+                        ) {
+                            append(formattedDigits)
+                        }
+                        append(" ")
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = resolvedFontFamily,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = candidateUnitSp.sp
+                            )
+                        ) {
+                            append(unit.labelFa)
+                        }
+                    }
+                    val res = textMeasurer.measure(
+                        text = probe,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                        constraints = Constraints(maxWidth = maxWidthPx)
+                    )
+                    !res.hasVisualOverflow
+                }
+            }
+        }
+
+        val ratio = if (baseFontSizeSp > 0f) fittedSp / baseFontSizeSp else 1f
+        val adaptiveStyle = style.copy(
+            fontFamily = resolvedFontFamily,
+            fontSize = fittedSp.sp,
+            lineHeight = if (style.lineHeight.isSpecified) {
+                (style.lineHeight.value * ratio).coerceAtLeast(fittedSp * 1.24f).sp
+            } else {
+                (fittedSp * 1.28f).sp
+            }
+        )
+        val unitFontSize = (fittedSp * 0.48f).coerceAtLeast(10f).sp
+
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            // Keep numeric character order strictly LTR so thousands separators never flip in RTL
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    formattedDigits.forEachIndexed { idx, ch ->
+                        val slotKey = formattedDigits.length - idx
+                        androidx.compose.runtime.key(slotKey) {
+                            AnimatedContent(
+                                targetState = ch,
+                                transitionSpec = {
+                                    val dir = if (rollingUp) 1 else -1
+                                    (slideInVertically(
+                                        animationSpec = spring(
+                                            dampingRatio = 0.78f,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ) { h -> dir * (h * 0.65f).roundToInt() } + fadeIn(tween(180))) togetherWith
+                                        (slideOutVertically(
+                                            animationSpec = tween(150, easing = FastOutSlowInEasing)
+                                        ) { h -> -dir * (h * 0.55f).roundToInt() } + fadeOut(tween(130)))
+                                },
+                                label = "OdometerDigit_$slotKey"
+                            ) { charState ->
+                                Text(
+                                    text = charState.toString(),
+                                    style = adaptiveStyle,
+                                    fontWeight = FontWeight.Black,
+                                    color = numberColor,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }
             }
+            Text(
+                text = unit.labelFa,
+                style = adaptiveStyle.copy(
+                    fontSize = unitFontSize,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = unitColor,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(bottom = 3.dp)
+            )
         }
-        Text(
-            text = unit.labelFa,
-            style = adaptiveStyle.copy(
-                fontSize = unitFontSize,
-                fontWeight = FontWeight.Medium
-            ),
-            color = unitColor,
-            maxLines = 1,
-            modifier = Modifier.padding(bottom = 3.dp)
-        )
     }
 }
 
 /**
- * High-scannability Persian financial figure renderer.
+ * High-scannability Persian financial figure renderer with zero-flicker container-aware dynamic auto-sizing.
+ * Automatically shrinks both digits and unit proportionally down to [minFontSize] so figures NEVER chop off
+ * digits with `...` even in 14-digit Rial mode or on compact 320dp screens!
  */
 @Composable
 fun FormattedMoneyText(
@@ -1337,47 +1680,54 @@ fun FormattedMoneyText(
     numberColor: Color = MaterialTheme.colorScheme.onSurface,
     unitColor: Color = numberColor.copy(alpha = 0.72f),
     modifier: Modifier = Modifier,
-    maxLines: Int = 1
+    maxLines: Int = 1,
+    minFontSize: TextUnit = 9.sp,
+    textAlign: TextAlign? = null
 ) {
     val digitsPart = if (privacyMasked) {
         "•••,•••"
     } else {
         val displayVal = amountToman * unit.multiplierFromToman
-        PersianCurrencyEngine.formatNumberWithCommas(displayVal, usePersianDigits = true)
+        ltrIsolateDigits(PersianCurrencyEngine.formatNumberWithCommas(displayVal, usePersianDigits = true))
     }
 
-    val unitFontSize = (style.fontSize.value * 0.62f).coerceAtLeast(10f).sp
-
+    val baseFontSizeSp = if (style.fontSize.isSpecified) style.fontSize.value else 15f
+    val unitFontSize = (baseFontSizeSp * 0.62f).coerceAtLeast(9.5f).sp
     val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
-    val annotated = buildAnnotatedString {
-        withStyle(
-            SpanStyle(
-                color = numberColor,
-                fontFamily = resolvedFontFamily,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = style.fontSize
-            )
-        ) {
-            append(digitsPart)
-        }
-        append(" ")
-        withStyle(
-            SpanStyle(
-                color = unitColor,
-                fontFamily = resolvedFontFamily,
-                fontWeight = FontWeight.Medium,
-                fontSize = unitFontSize
-            )
-        ) {
-            append(unit.labelFa)
+
+    val annotated = remember(digitsPart, unit, numberColor, unitColor, baseFontSizeSp, resolvedFontFamily) {
+        buildAnnotatedString {
+            withStyle(
+                SpanStyle(
+                    color = numberColor,
+                    fontFamily = resolvedFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = baseFontSizeSp.sp
+                )
+            ) {
+                append(digitsPart)
+            }
+            append(" ")
+            withStyle(
+                SpanStyle(
+                    color = unitColor,
+                    fontFamily = resolvedFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = unitFontSize
+                )
+            ) {
+                append(unit.labelFa)
+            }
         }
     }
 
-    Text(
+    TarazinoAutoSizeText(
         text = annotated,
-        style = style,
+        style = style.copy(fontFamily = resolvedFontFamily, fontSize = baseFontSizeSp.sp),
+        textAlign = textAlign,
         maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
+        minFontSize = minFontSize,
+        maxFontSize = baseFontSizeSp.sp,
         modifier = modifier
     )
 }
@@ -1387,8 +1737,13 @@ fun FormattedMoneyText(
  */
 fun formatCompactPersianToman(amountToman: Long, privacyMasked: Boolean): String {
     if (privacyMasked) return "•••"
+    val isNeg = amountToman < 0L
     val absVal = kotlin.math.abs(amountToman)
     val raw = when {
+        absVal >= 1_000_000_000_000L -> {
+            val t = absVal / 1_000_000_000_000.0
+            String.format(java.util.Locale.US, "%.1f", t).removeSuffix(".0") + " همت"
+        }
         absVal >= 1_000_000_000L -> {
             val b = absVal / 1_000_000_000.0
             String.format(java.util.Locale.US, "%.1f", b).removeSuffix(".0") + " م‌د"
@@ -1402,11 +1757,12 @@ fun formatCompactPersianToman(amountToman: Long, privacyMasked: Boolean): String
         }
         else -> absVal.toString()
     }
-    return PersianCurrencyEngine.toPersianDigits(raw)
+    val signed = if (isNeg && absVal > 0L) "−$raw" else raw
+    return PersianCurrencyEngine.toPersianDigits(signed)
 }
 
 /**
- * Editorial fintech section header with tinted rounded icon badge, bold title, optional subtitle, and optional trailing action.
+ * Editorial fintech section header with tinted rounded icon badge, auto-fitting title/subtitle, and optional trailing action.
  */
 @Composable
 fun TarazinoSectionHeader(
@@ -1433,22 +1789,22 @@ fun TarazinoSectionHeader(
                 iconSize = 19.dp
             )
             Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
+            Column(modifier = Modifier.weight(1f)) {
+                TarazinoAutoSizeText(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2,
+                    minFontSize = 11.5.sp
                 )
                 if (!subtitle.isNullOrBlank()) {
-                    Text(
+                    TarazinoAutoSizeText(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        maxLines = 2,
+                        minFontSize = 9.5.sp
                     )
                 }
             }
@@ -1501,7 +1857,7 @@ fun TarazinoIconBadge(
 }
 
 /**
- * BluBank / Revolut style Quick Action Squircle Tile.
+ * BluBank / Revolut style Quick Action Squircle Tile with dynamic auto-fitting Persian label.
  */
 @Composable
 fun TarazinoQuickActionTile(
@@ -1518,7 +1874,7 @@ fun TarazinoQuickActionTile(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .tarazinoPressScale(scaleDown = 0.91f, onClick = onClick)
-            .padding(vertical = 4.dp)
+            .padding(vertical = 4.dp, horizontal = 2.dp)
     ) {
         Box(contentAlignment = Alignment.TopEnd) {
             Box(
@@ -1572,20 +1928,21 @@ fun TarazinoQuickActionTile(
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
-        Text(
+        TarazinoAutoSizeText(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            minFontSize = 8.5.sp,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 /**
- * Compact status pill badge with subtle tinted background & crisp hairline ring.
+ * Compact status pill badge with subtle tinted background, crisp hairline ring, and auto-sizing label.
  */
 @Composable
 fun TarazinoStatusPill(
@@ -1613,20 +1970,20 @@ fun TarazinoStatusPill(
                     modifier = Modifier.size(13.dp)
                 )
             }
-            Text(
+            TarazinoAutoSizeText(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = accentColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.5.sp
             )
         }
     }
 }
 
 /**
- * Unified sliding-thumb segmented pill control with spring physics and native haptic tick.
+ * Unified sliding-thumb segmented pill control with spring physics, haptic tick, and auto-sizing labels.
  */
 @Composable
 fun TarazinoSegmentedControl(
@@ -1716,15 +2073,18 @@ fun TarazinoSegmentedControl(
                                     onSelectIndex(idx)
                                 }
                             }
+                            .padding(horizontal = 4.dp)
                             .then(if (testTagPrefix != null) Modifier.testTag("${testTagPrefix}_$idx") else Modifier)
                     ) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = label,
                             style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
                             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
                             color = fg,
+                            textAlign = TextAlign.Center,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            minFontSize = 8.5.sp,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

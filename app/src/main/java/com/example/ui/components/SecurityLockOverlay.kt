@@ -56,9 +56,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.core.PersianCurrencyEngine
 import com.example.ui.theme.LocalTarazinoColors
 import kotlinx.coroutines.launch
@@ -168,17 +170,25 @@ fun SecurityLockOverlay(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
+            TarazinoAutoSizeText(
                 text = "خزانه امنیتی ترازینو قفل است",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = lockOnSurface
+                color = lockOnSurface,
+                maxLines = 1,
+                minFontSize = 14.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = "لطفاً رمز پین ${PersianCurrencyEngine.toPersianDigits(pinLength.toString())} رقمی خود را وارد نمایید",
                 style = MaterialTheme.typography.bodyMedium,
-                color = lockOnMuted
+                color = lockOnMuted,
+                maxLines = 2,
+                minFontSize = 10.5.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(22.dp))
@@ -322,13 +332,28 @@ fun SecurityLockOverlay(
                 ) {
                     Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = primaryAccent)
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("لمس سنسور اثر انگشت / تشخیص چهره", color = primaryAccent, fontWeight = FontWeight.SemiBold)
+                    TarazinoAutoSizeText(
+                        text = "لمس سنسور اثر انگشت / تشخیص چهره",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = primaryAccent,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        minFontSize = 9.5.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                 }
             }
 
             if (hasRecoveryConfigured) {
                 TextButton(onClick = { showRecoveryModal = true }) {
-                    Text("رمز پین را فراموش کرده‌اید؟ بازیابی با سوال امنیتی", color = ext.warning)
+                    TarazinoAutoSizeText(
+                        text = "رمز پین را فراموش کرده‌اید؟ بازیابی با سوال امنیتی",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = ext.warning,
+                        maxLines = 1,
+                        minFontSize = 9.5.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -361,18 +386,21 @@ fun SecurityLockOverlay(
                         cornerRadius = 18.dp
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "احراز هویت بیومتریک ترازینو",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 11.5.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "برای باز کردن قفل خزانه مالی، حسگر زیر را لمس نمایید:",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(18.dp))
                     Surface(
@@ -419,7 +447,13 @@ fun SecurityLockOverlay(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Text("تایید اثر انگشت", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            TarazinoAutoSizeText(
+                                text = "تایید اثر انگشت",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                minFontSize = 9.5.sp
+                            )
                         }
                     }
                 }
@@ -446,12 +480,13 @@ fun SecurityLockOverlay(
                         .verticalScroll(rememberScrollState())
                         .padding(18.dp)
                 ) {
-                    Text(
+                    TarazinoAutoSizeText(
                         text = "بازیابی امنیتی رمز عبور",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minFontSize = 11.5.sp,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -479,7 +514,12 @@ fun SecurityLockOverlay(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("انصراف", maxLines = 1)
+                            TarazinoAutoSizeText(
+                                text = "انصراف",
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                minFontSize = 9.5.sp
+                            )
                         }
                         Button(
                             onClick = {
@@ -493,7 +533,13 @@ fun SecurityLockOverlay(
                             shape = RoundedCornerShape(13.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Text("بازگشایی قفل", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            TarazinoAutoSizeText(
+                                text = "بازگشایی قفل",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                minFontSize = 9.5.sp
+                            )
                         }
                     }
                 }

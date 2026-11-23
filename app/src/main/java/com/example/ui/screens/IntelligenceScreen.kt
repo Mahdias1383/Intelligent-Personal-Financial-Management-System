@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -86,6 +87,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.core.CurrencyUnit
@@ -97,6 +99,7 @@ import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MlFinancialForecastSection
 import com.example.ui.components.MoneyInputField
+import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
 import com.example.ui.components.TarazinoLuminousProgressBar
@@ -235,12 +238,12 @@ fun IntelligenceScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "سقف امن قسط جدید",
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            minFontSize = 10.sp,
                                             modifier = Modifier.weight(1f, fill = false)
                                         )
                                         TarazinoStatusPill(
@@ -255,19 +258,22 @@ fun IntelligenceScreen(
                                         privacyMasked = masked,
                                         style = MaterialTheme.typography.headlineMedium,
                                         numberColor = capAccent,
-                                        unitColor = capAccent.copy(alpha = 0.8f)
+                                        unitColor = capAccent.copy(alpha = 0.8f),
+                                        minFontSize = 13.sp,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     if (!masked && dti.safeNewInstallmentCapacityToman > 0L) {
                                         Spacer(modifier = Modifier.height(3.dp))
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = PersianCurrencyEngine.amountToPersianWords(
                                                 dti.safeNewInstallmentCapacityToman,
                                                 unit
                                             ),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            maxLines = 2,
+                                            minFontSize = 8.5.sp,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                     }
                                 }
@@ -393,13 +399,13 @@ fun IntelligenceScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "${slice.labelFa} (${slice.rangeLabelFa})",
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = if (isPeak) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isPeak) ext.warning else MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            minFontSize = 9.sp,
                                             modifier = Modifier.weight(1f, fill = false)
                                         )
                                         if (isPeak) {
@@ -411,14 +417,16 @@ fun IntelligenceScreen(
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "${PersianCurrencyEngine.formatAmount(slice.amountToman, unit, privacyMasked = masked)} (${
                                             PersianCurrencyEngine.toPersianDigits(slice.sharePercent.toString())
                                         }٪)",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.End,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        minFontSize = 8.5.sp,
+                                        modifier = Modifier.widthIn(max = 160.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(5.dp))
@@ -699,12 +707,12 @@ fun IntelligenceScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
+                                            TarazinoAutoSizeText(
                                                 text = "${alert.installment.title} (${alert.counterparty?.name ?: ""})",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
+                                                maxLines = 2,
+                                                minFontSize = 9.5.sp,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
@@ -713,7 +721,10 @@ fun IntelligenceScreen(
                                                 unit = unit,
                                                 privacyMasked = masked,
                                                 style = MaterialTheme.typography.labelLarge,
-                                                numberColor = MaterialTheme.colorScheme.primary
+                                                numberColor = MaterialTheme.colorScheme.primary,
+                                                minFontSize = 9.sp,
+                                                textAlign = TextAlign.End,
+                                                modifier = Modifier.widthIn(max = 148.dp)
                                             )
                                         }
                                     }
@@ -767,21 +778,21 @@ fun IntelligenceScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "ماه ${focusedBar.monthLabelFa}",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.primary,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        minFontSize = 10.sp
                                     )
                                     val focusedDisplayTotal = if (unit == CurrencyUnit.RIAL) focusedBar.totalDebtToman * 10L else focusedBar.totalDebtToman
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = "کل بار ماه: ${formatCompactPersianToman(focusedDisplayTotal, masked)} ${if (masked) "" else unit.labelFa}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        minFontSize = 8.5.sp
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -793,7 +804,7 @@ fun IntelligenceScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1
                                         )
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = formatCompactPersianToman(
                                                 if (unit == CurrencyUnit.RIAL) focusedBar.unpaidToman * 10L else focusedBar.unpaidToman,
                                                 masked
@@ -801,7 +812,8 @@ fun IntelligenceScreen(
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = ext.warning,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            minFontSize = 9.5.sp
                                         )
                                     }
                                     Column(horizontalAlignment = Alignment.End) {
@@ -811,7 +823,7 @@ fun IntelligenceScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1
                                         )
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = formatCompactPersianToman(
                                                 if (unit == CurrencyUnit.RIAL) focusedBar.paidToman * 10L else focusedBar.paidToman,
                                                 masked
@@ -819,7 +831,8 @@ fun IntelligenceScreen(
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = ext.positive,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            minFontSize = 9.5.sp
                                         )
                                     }
                                 }
@@ -1146,22 +1159,22 @@ fun IntelligenceScreen(
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            TarazinoAutoSizeText(
                                                 text = step.title,
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                maxLines = 2,
+                                                minFontSize = 10.sp
                                             )
-                                            Text(
+                                            TarazinoAutoSizeText(
                                                 text = "${step.counterpartyName} • تسویه کامل در ماه ${
                                                     PersianCurrencyEngine.toPersianDigits(step.estimatedClearMonthIndex.toString())
                                                 }",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                minFontSize = 8.5.sp
                                             )
                                         }
                                     }
@@ -1171,7 +1184,10 @@ fun IntelligenceScreen(
                                         unit = unit,
                                         privacyMasked = masked,
                                         style = MaterialTheme.typography.labelLarge,
-                                        numberColor = MaterialTheme.colorScheme.onSurface
+                                        numberColor = MaterialTheme.colorScheme.onSurface,
+                                        minFontSize = 9.sp,
+                                        textAlign = TextAlign.End,
+                                        modifier = Modifier.widthIn(max = 148.dp)
                                     )
                                 }
                             }
@@ -1531,22 +1547,26 @@ private fun StrategySegmentButton(
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(5.dp))
-                Text(
+                TarazinoAutoSizeText(
                     text = titleFa,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (selected) accentColor else MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    minFontSize = 9.5.sp,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
             }
             Spacer(modifier = Modifier.height(3.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = subtitleFa,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.5.sp,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -1567,7 +1587,10 @@ private fun MetricMiniCard(
             .border(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(13.dp))
             .padding(horizontal = 9.dp, vertical = 10.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             if (dotColor != null) {
                 Box(
                     modifier = Modifier
@@ -1577,22 +1600,24 @@ private fun MetricMiniCard(
                 )
                 Spacer(modifier = Modifier.width(5.dp))
             }
-            Text(
+            TarazinoAutoSizeText(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.sp,
+                modifier = Modifier.weight(1f)
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(
+        TarazinoAutoSizeText(
             text = value,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = color,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            minFontSize = 8.sp,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

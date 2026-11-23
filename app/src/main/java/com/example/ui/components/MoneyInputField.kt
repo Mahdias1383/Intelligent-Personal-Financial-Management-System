@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 
@@ -151,11 +152,14 @@ fun MoneyInputField(
                     amountToman = amountToman,
                     unit = currencyUnit
                 )
-                Text(
-                    text = "$formattedNumeric — $wordified",
+                TarazinoAutoSizeText(
+                    text = "${ltrIsolateDigits(formattedNumeric)} — $wordified",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 2,
+                    minFontSize = 9.5.sp,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -234,18 +238,24 @@ fun JalaliDateSelectorField(
                     cornerRadius = 11.dp
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
+                Column(modifier = Modifier.weight(1f)) {
+                    TarazinoAutoSizeText(
                         text = labelFa,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        minFontSize = 8.5.sp,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
+                    TarazinoAutoSizeText(
                         text = JalaliCalendarEngineSafeVerbose(dateJalali),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        minFontSize = 10.sp,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

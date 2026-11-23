@@ -46,6 +46,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.core.JalaliCalendarEngine
@@ -136,18 +137,24 @@ fun JalaliDatePickerModal(
                             size = 42.dp,
                             iconSize = 21.dp
                         )
-                        Column {
-                            Text(
+                        Column(modifier = Modifier.weight(1f)) {
+                            TarazinoAutoSizeText(
                                 text = "انتخاب تاریخ تقویم شمسی (جلالی)",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                minFontSize = 9.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = JalaliCalendarEngine.formatJalaliVerbose(currentPreviewStr),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1,
+                                minFontSize = 11.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -216,11 +223,15 @@ fun JalaliDatePickerModal(
                                     contentDescription = "سال قبل"
                                 )
                             }
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "سال ${PersianCurrencyEngine.toPersianDigits(selectedYear.toString())}" +
                                     if (JalaliCalendarEngine.isJalaliLeapYear(selectedYear)) " (کبیسه)" else "",
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                minFontSize = 10.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f)
                             )
                             IconButton(onClick = { if (selectedYear < 1420) selectedYear++ }) {
                                 Icon(
@@ -251,11 +262,15 @@ fun JalaliDatePickerModal(
                                     contentDescription = "ماه قبل"
                                 )
                             }
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = JalaliCalendarEngine.getMonthName(selectedMonth),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                minFontSize = 11.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f)
                             )
                             IconButton(
                                 onClick = {
@@ -338,7 +353,7 @@ fun JalaliDatePickerModal(
                                         )
                                         .clickable { selectedDay = dayNum }
                                 ) {
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = PersianCurrencyEngine.toPersianDigits(dayNum.toString()),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected || isTodayCell) FontWeight.Bold else FontWeight.Normal,
@@ -347,7 +362,10 @@ fun JalaliDatePickerModal(
                                             isTodayCell -> MaterialTheme.colorScheme.onSecondaryContainer
                                             colIdx == 6 -> MaterialTheme.colorScheme.error
                                             else -> MaterialTheme.colorScheme.onSurface
-                                        }
+                                        },
+                                        maxLines = 1,
+                                        minFontSize = 9.sp,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             } else {
@@ -378,10 +396,12 @@ fun JalaliDatePickerModal(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.testTag("confirm_jalali_date_btn")
                     ) {
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "تایید (${PersianCurrencyEngine.toPersianDigits(currentPreviewStr)})",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            maxLines = 1,
+                            minFontSize = 9.5.sp
                         )
                     }
                 }

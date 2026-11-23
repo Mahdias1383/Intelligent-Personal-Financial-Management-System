@@ -86,6 +86,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,6 +110,7 @@ import com.example.ui.components.LocalSpotlightRegistry
 import com.example.ui.components.SecurityLockOverlay
 import com.example.ui.components.SpotlightTargetRegistry
 import com.example.ui.components.StepByStepObligationWizardModal
+import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoCelebrationConfettiBurst
 import com.example.ui.components.tarazinoAmbientBackdrop
 import com.example.ui.components.tarazinoPressScale
@@ -249,13 +251,14 @@ fun TarazinoAppRoot(
                                         )
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
+                                Column(modifier = Modifier.weight(1f, fill = false)) {
+                                    TarazinoAutoSizeText(
                                         text = "ترازینو",
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        minFontSize = 15.sp
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         val livePulse = rememberInfiniteTransition(label = "LiveVaultPulse")
@@ -275,12 +278,12 @@ fun TarazinoAppRoot(
                                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = dotAlpha))
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "خزانه • $todayShortHeader",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 8.5.sp
                                         )
                                     }
                                 }
@@ -959,14 +962,15 @@ private fun DockTabItem(
                 }
         )
         Spacer(modifier = Modifier.height(2.dp))
-        Text(
+        TarazinoAutoSizeText(
             text = dest.labelFa,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
             color = contentColor,
+            textAlign = TextAlign.Center,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            minFontSize = 8.sp,
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(2.dp))
         Box(

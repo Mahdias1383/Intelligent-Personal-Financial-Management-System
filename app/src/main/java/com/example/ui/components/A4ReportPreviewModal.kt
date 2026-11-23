@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.core.PersianCurrencyEngine
@@ -102,19 +103,22 @@ fun A4ReportPreviewModal(
                             iconSize = 20.dp
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
+                        Column(modifier = Modifier.weight(1f)) {
+                            TarazinoAutoSizeText(
                                 text = "پیش‌نمایش رسمی برگه A4",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
-                                maxLines = 1
+                                maxLines = 1,
+                                minFontSize = 11.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "استاندارد ۲۱۰×۲۹۷ میلی‌متر • چاپ و PDF فارسی",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 8.5.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
@@ -145,12 +149,14 @@ fun A4ReportPreviewModal(
                             modifier = Modifier.size(17.dp)
                         )
                         Spacer(modifier = Modifier.width(5.dp))
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "چاپ PDF A4",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            maxLines = 1
+                            maxLines = 1,
+                            minFontSize = 9.sp,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
 
@@ -168,11 +174,13 @@ fun A4ReportPreviewModal(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "اکسل",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
+                            maxLines = 1,
+                            minFontSize = 9.sp,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
 
@@ -190,11 +198,13 @@ fun A4ReportPreviewModal(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
+                        TarazinoAutoSizeText(
                             text = "CSV",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
+                            maxLines = 1,
+                            minFontSize = 9.sp,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                     }
                 }
@@ -235,31 +245,33 @@ fun A4ReportPreviewModal(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "ترازینو — سامانه مدیریت اقساط",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = Color(0xFF34D399),
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            minFontSize = 8.5.sp,
                                             modifier = Modifier.weight(1f)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "سند: ${payload.trackingId}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color(0xFFFDE68A),
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            minFontSize = 8.sp
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = payload.reportTitleFa,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
+                                        minFontSize = 11.sp,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Row(
@@ -267,20 +279,21 @@ fun A4ReportPreviewModal(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = payload.subtitleFa,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = Color(0xFFCBD5E1),
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                            minFontSize = 8.5.sp,
                                             modifier = Modifier.weight(1f)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "صدور: ${payload.issueDateJalali}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color.White,
-                                            maxLines = 1
+                                            maxLines = 1,
+                                            minFontSize = 8.sp
                                         )
                                     }
                                 }
@@ -358,39 +371,42 @@ fun A4ReportPreviewModal(
                                     modifier = Modifier.width(22.dp),
                                     textAlign = TextAlign.Center
                                 )
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "عنوان و طرف‌حساب",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                    minFontSize = 8.sp,
                                     modifier = Modifier.weight(1.45f)
                                 )
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "سررسید",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
+                                    minFontSize = 8.sp,
                                     modifier = Modifier.weight(0.85f),
                                     textAlign = TextAlign.Center
                                 )
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "مبلغ",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
+                                    minFontSize = 8.sp,
                                     modifier = Modifier.weight(1f),
                                     textAlign = TextAlign.Center
                                 )
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "وضعیت",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
+                                    minFontSize = 8.sp,
                                     modifier = Modifier.weight(0.72f),
                                     textAlign = TextAlign.Center
                                 )
@@ -425,52 +441,56 @@ fun A4ReportPreviewModal(
                                         textAlign = TextAlign.Center
                                     )
                                     Column(modifier = Modifier.weight(1.45f)) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = row.title,
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.SemiBold,
                                             color = Color(0xFF0F172A),
                                             maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 8.5.sp,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "${row.counterpartyName} • ${row.trackingOrNote}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Color(0xFF64748B),
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 7.5.sp,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                     }
-                                    Text(
-                                        text = row.dueDateJalali,
+                                    TarazinoAutoSizeText(
+                                        text = ltrIsolateDigits(row.dueDateJalali),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color(0xFF1E293B),
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        minFontSize = 7.5.sp,
                                         modifier = Modifier.weight(0.85f),
                                         textAlign = TextAlign.Center
                                     )
-                                    Text(
-                                        text = PersianCurrencyEngine.formatAmount(
-                                            row.totalAmountToman,
-                                            payload.currencyUnit,
-                                            includeUnit = false
+                                    TarazinoAutoSizeText(
+                                        text = ltrIsolateDigits(
+                                            PersianCurrencyEngine.formatAmount(
+                                                row.totalAmountToman,
+                                                payload.currencyUnit,
+                                                includeUnit = false
+                                            )
                                         ),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF0F172A),
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        minFontSize = 7.5.sp,
                                         modifier = Modifier.weight(1f),
                                         textAlign = TextAlign.Center
                                     )
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = row.statusLabelFa,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = statusColor,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
+                                        minFontSize = 7.5.sp,
                                         modifier = Modifier.weight(0.72f),
                                         textAlign = TextAlign.Center
                                     )
@@ -546,17 +566,25 @@ private fun A4KpiMiniBox(
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(vertical = 8.dp, horizontal = 6.dp)
     ) {
-        Text(
+        TarazinoAutoSizeText(
             text = title,
             style = MaterialTheme.typography.labelSmall,
-            color = Color(0xFF475569)
+            color = Color(0xFF475569),
+            maxLines = 1,
+            minFontSize = 8.5.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = value,
+        TarazinoAutoSizeText(
+            text = ltrIsolateDigits(value),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = borderColor
+            color = borderColor,
+            maxLines = 1,
+            minFontSize = 8.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

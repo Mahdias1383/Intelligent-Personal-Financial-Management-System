@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 import com.example.data.InstallmentEntity
@@ -203,7 +204,7 @@ fun MlFinancialForecastSection(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = when {
                                     hasDeficits -> "هشدار زودهنگام کسری بودجه"
                                     report.tightMonths.isNotEmpty() -> "هشدار ماه‌های با نقدینگی محدود"
@@ -212,8 +213,9 @@ fun MlFinancialForecastSection(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = alertColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                maxLines = 2,
+                                minFontSize = 11.sp,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                         Spacer(modifier = Modifier.width(6.dp))
@@ -225,12 +227,13 @@ fun MlFinancialForecastSection(
                                 modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = report.trendDirection.labelFa,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = trendColor,
-                                maxLines = 1
+                                maxLines = 1,
+                                minFontSize = 8.5.sp
                             )
                         }
                     }
@@ -317,12 +320,13 @@ fun MlFinancialForecastSection(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = "ذخیره احتیاطی ماهانه برای رفع کسری:",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            maxLines = 2,
+                                            minFontSize = 9.5.sp,
+                                            modifier = Modifier.weight(1f)
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -331,7 +335,8 @@ fun MlFinancialForecastSection(
                                         unit = unit,
                                         privacyMasked = privacyMasked,
                                         style = MaterialTheme.typography.labelLarge,
-                                        numberColor = MaterialTheme.colorScheme.primary
+                                        numberColor = MaterialTheme.colorScheme.primary,
+                                        minFontSize = 9.5.sp
                                     )
                                 }
                             }
@@ -421,19 +426,20 @@ fun MlFinancialForecastSection(
                             isSel -> MaterialTheme.colorScheme.primary
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         }
-                        Text(
+                        TarazinoAutoSizeText(
                             text = if (visiblePoints.size > 6) pt.monthShortFa.take(3) else pt.monthShortFa,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = if (isSel || pt.riskTier == ForecastRiskTier.DEFICIT) FontWeight.ExtraBold else FontWeight.Normal,
                             color = labelColor,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
+                            minFontSize = 7.5.sp,
                             overflow = TextOverflow.Clip,
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(6.dp))
                                 .clickable { selectedIdx = idx }
-                                .padding(vertical = 2.dp)
+                                .padding(vertical = 2.dp, horizontal = 1.dp)
                         )
                     }
                 }
@@ -464,12 +470,16 @@ fun MlFinancialForecastSection(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "تحلیل مدل برای ${m.monthYearLabelFa}",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    minFontSize = 10.sp,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                Spacer(modifier = Modifier.width(6.dp))
                                 TarazinoStatusPill(
                                     text = m.riskTier.labelFa,
                                     accentColor = tierColor
@@ -484,21 +494,27 @@ fun MlFinancialForecastSection(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = "امتیاز سلامت پیش‌بینی‌شده: ${
                                         PersianCurrencyEngine.toPersianDigits(m.projectedHealthScore.toString())
                                     } از ۱۰۰",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = tierColor
+                                    color = tierColor,
+                                    maxLines = 1,
+                                    minFontSize = 8.5.sp,
+                                    modifier = Modifier.weight(1f)
                                 )
-                                Text(
+                                Spacer(modifier = Modifier.width(8.dp))
+                                TarazinoAutoSizeText(
                                     text = "احتمال کسری: ${
                                         PersianCurrencyEngine.toPersianDigits((m.deficitProbability * 100f).roundToInt().toString())
                                     }٪",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (m.deficitProbability >= 0.5f) ext.danger else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (m.deficitProbability >= 0.5f) ext.danger else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    minFontSize = 8.5.sp
                                 )
                             }
 
@@ -610,24 +626,28 @@ private fun MlMiniMetricCell(
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 7.dp, vertical = 7.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
+            TarazinoAutoSizeText(
                 text = labelFa,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.sp,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(3.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = valueText,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = valueColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.sp,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

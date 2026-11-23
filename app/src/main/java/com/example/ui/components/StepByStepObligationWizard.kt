@@ -77,8 +77,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.core.CurrencyUnit
@@ -272,13 +274,16 @@ fun StepByStepObligationWizardModal(
                                     cornerRadius = 14.dp
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
+                                Column(modifier = Modifier.weight(1f)) {
+                                    TarazinoAutoSizeText(
                                         text = "ثبت هوشمند قسط، خرید یا وام",
                                         style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontWeight = FontWeight.ExtraBold,
+                                        maxLines = 1,
+                                        minFontSize = 11.sp,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    Text(
+                                    TarazinoAutoSizeText(
                                         text = when (currentStep) {
                                             1 -> "گام ۱ از ۳: انتخاب دسته اصلی و طرف پرداخت"
                                             2 -> "گام ۲ از ۳: تعیین مبلغ کل، تعداد و سررسید"
@@ -286,7 +291,10 @@ fun StepByStepObligationWizardModal(
                                         },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        minFontSize = 8.5.sp,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -343,7 +351,7 @@ fun StepByStepObligationWizardModal(
                                             .background(pillBg)
                                             .padding(vertical = 8.dp, horizontal = 4.dp)
                                     ) {
-                                        Text(
+                                        TarazinoAutoSizeText(
                                             text = stepTitle,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = if (isActive || isCompleted) FontWeight.Bold else FontWeight.Medium,
@@ -353,7 +361,9 @@ fun StepByStepObligationWizardModal(
                                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                                             },
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            minFontSize = 8.sp,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
                                         )
                                     }
                                 }
@@ -520,7 +530,13 @@ fun StepByStepObligationWizardModal(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
-                                Text("مرحله قبل", fontWeight = FontWeight.SemiBold, maxLines = 1)
+                                TarazinoAutoSizeText(
+                                    text = "مرحله قبل",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
+                                )
                             }
                         } else {
                             TextButton(onClick = onDismiss) {
@@ -613,16 +629,18 @@ fun StepByStepObligationWizardModal(
                             ),
                             modifier = Modifier.testTag("wizard_next_or_save_btn")
                         ) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = when (currentStep) {
                                     1 -> "ادامه به تنظیم مبلغ"
                                     2 -> "مشاهده جدول اقساط"
                                     else -> "ثبت نهایی (${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط)"
                                 },
+                                style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (currentStep == 3) ext.onPositive else MaterialTheme.colorScheme.onPrimary,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                minFontSize = 9.5.sp,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
@@ -1096,21 +1114,23 @@ private fun ParentCategoryChoiceCard(
                     cornerRadius = 11.dp
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
+                TarazinoAutoSizeText(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    minFontSize = 9.sp,
+                    modifier = Modifier.weight(1f)
                 )
             }
             Spacer(modifier = Modifier.height(7.dp))
-            Text(
+            TarazinoAutoSizeText(
                 text = subtitle,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                minFontSize = 8.sp,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -1352,10 +1372,13 @@ private fun WizardStep3GranularInstallmentTable(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
+                            TarazinoAutoSizeText(
                                 text = "مجموع ${PersianCurrencyEngine.toPersianDigits(draftRows.size.toString())} قسط جدول:",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                minFontSize = 9.sp,
+                                modifier = Modifier.fillMaxWidth()
                             )
                             FormattedMoneyText(
                                 amountToman = currentSumToman,
@@ -1370,7 +1393,7 @@ private fun WizardStep3GranularInstallmentTable(
 
                         if (diffToman != 0L) {
                             TarazinoStatusPill(
-                                text = "اختلاف: ${PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit)}",
+                                text = "اختلاف: ${ltrIsolateDigits(PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit))}",
                                 accentColor = ext.warning
                             )
                         } else {
@@ -1394,7 +1417,13 @@ private fun WizardStep3GranularInstallmentTable(
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("افزودن ردیف", maxLines = 1)
+                            TarazinoAutoSizeText(
+                                text = "افزودن ردیف",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                minFontSize = 9.sp,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
                         }
                         OutlinedButton(
                             onClick = onRedistributeEqually,
@@ -1403,7 +1432,13 @@ private fun WizardStep3GranularInstallmentTable(
                         ) {
                             Icon(imageVector = Icons.Default.Balance, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("توزیع مساوی", maxLines = 1)
+                            TarazinoAutoSizeText(
+                                text = "توزیع مساوی",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                minFontSize = 9.sp,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
                         }
                     }
                 }
@@ -1444,20 +1479,22 @@ private fun WizardStep3GranularInstallmentTable(
                                 )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
+                            Column(modifier = Modifier.weight(1f)) {
+                                TarazinoAutoSizeText(
                                     text = row.title,
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    maxLines = 2,
+                                    minFontSize = 10.sp,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                                Text(
+                                TarazinoAutoSizeText(
                                     text = PersianCurrencyEngine.amountToPersianWords(row.amountToman, currencyUnit),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    maxLines = 2,
+                                    minFontSize = 8.5.sp,
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
@@ -1528,11 +1565,13 @@ private fun WizardStep3GranularInstallmentTable(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Text(
-                                    text = PersianCurrencyEngine.formatAmount(row.amountToman, currencyUnit),
+                                TarazinoAutoSizeText(
+                                    text = ltrIsolateDigits(PersianCurrencyEngine.formatAmount(row.amountToman, currencyUnit)),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Icon(
