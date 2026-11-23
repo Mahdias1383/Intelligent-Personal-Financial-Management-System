@@ -104,6 +104,7 @@ import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
+import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MetallicSmartChipEmblem
@@ -707,6 +708,32 @@ fun DashboardScreen(
                     onQuickPay = onQuickPay,
                     onOpenAllAlerts = { showAllAlertsModal = true },
                     onOpenObligationInTree = onOpenObligationInTree
+                )
+            }
+        }
+
+        // =========================================================================
+        // 1.7. PAID VS. OUTSTANDING DEBT PROGRESS RING CHART
+        // =========================================================================
+        item {
+            val debtObIds = remember(uiState.obligations) {
+                uiState.obligations.filter { !it.categoryEnum.isReceivable }.map { it.id }.toSet()
+            }
+            val paidDebtInstCount = remember(uiState.installments, debtObIds) {
+                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum == InstallmentStatus.PAID }
+            }
+            val outstandingDebtInstCount = remember(uiState.installments, debtObIds) {
+                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum != InstallmentStatus.PAID }
+            }
+
+            TarazinoStaggeredReveal(index = 2) {
+                DebtPaidVsOutstandingRingCard(
+                    paidDebtToman = totalPaid,
+                    outstandingDebtToman = totalRem,
+                    paidInstallmentsCount = paidDebtInstCount,
+                    outstandingInstallmentsCount = outstandingDebtInstCount,
+                    currencyUnit = unit,
+                    privacyMasked = masked
                 )
             }
         }
