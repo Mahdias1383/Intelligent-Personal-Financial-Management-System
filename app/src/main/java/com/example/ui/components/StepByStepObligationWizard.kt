@@ -847,7 +847,7 @@ private fun WizardStep1CategoryAndProvider(
                     title = "صندوق و موسسات",
                     subtitle = "صندوق خانگی، شرکت...",
                     icon = Icons.Default.Groups,
-                    color = Color(0xFF8B5CF6),
+                    color = Color(EntityCategory.INSTITUTION.defaultColorHex),
                     isSelected = selectedCategory == EntityCategory.INSTITUTION,
                     onClick = { onSelectCategory(EntityCategory.INSTITUTION) },
                     modifier = Modifier.weight(1f)

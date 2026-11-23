@@ -118,28 +118,27 @@ class TarazinoRepository(
             SeedDataEngine.populateRealisticIranianSeedData(dao)
             prefs.edit()
                 .putBoolean("is_initial_seed_v2_done", true)
-                .putBoolean("is_palette_v3_migrated", true)
+                .putBoolean("is_palette_v4_teal_gold_migrated", true)
                 .apply()
             updatePreferences { it.copy(isInitialSeedDone = true) }
-        } else if (!prefs.getBoolean("is_palette_v3_migrated", false)) {
+        } else if (!prefs.getBoolean("is_palette_v4_teal_gold_migrated", false)) {
             val existing = dao.getAllCounterpartiesOnce()
             existing.forEach { cp ->
                 val upgradedHex = when (cp.avatarColorHex) {
-                    0xFF3B82F6L -> 0xFF38BDF8L
-                    0xFF2563EBL -> 0xFF60A5FAL
-                    0xFF10B981L -> 0xFF10D9A0L
-                    0xFF06B6D4L -> 0xFF2DD4BFL
-                    0xFF8B5CF6L -> 0xFF818CF8L
-                    0xFF0EA5E9L -> 0xFF38BDF8L
-                    0xFFF59E0BL -> 0xFFFBBF24L
-                    0xFFEC4899L -> 0xFFF472B6L
+                    0xFF3B82F6L, 0xFF38BDF8L, 0xFF0EA5E9L -> 0xFF4DA3B8L
+                    0xFF2563EBL, 0xFF60A5FAL -> 0xFF5E96AEL
+                    0xFF10B981L, 0xFF10D9A0L -> 0xFF35B8ABL
+                    0xFF06B6D4L, 0xFF2DD4BFL -> 0xFF47B0C4L
+                    0xFF8B5CF6L, 0xFF818CF8L -> 0xFF689EB8L
+                    0xFFF59E0BL, 0xFFFBBF24L -> 0xFFDAB978L
+                    0xFFEC4899L, 0xFFF472B6L -> 0xFFC99B68L
                     else -> cp.categoryEnum.defaultColorHex
                 }
                 if (upgradedHex != cp.avatarColorHex) {
                     dao.updateCounterparty(cp.copy(avatarColorHex = upgradedHex))
                 }
             }
-            prefs.edit().putBoolean("is_palette_v3_migrated", true).apply()
+            prefs.edit().putBoolean("is_palette_v4_teal_gold_migrated", true).apply()
         }
     }
 

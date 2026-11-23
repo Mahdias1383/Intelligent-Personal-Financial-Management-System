@@ -1139,12 +1139,12 @@ fun TarazinoCelebrationConfettiBurst(
 
     val particles = remember(triggerKey) {
         val palette = listOf(
-            Color(0xFF00E5A0),
-            Color(0xFF34D399),
-            Color(0xFFE8C67D),
-            Color(0xFF38BDF8),
-            Color(0xFFA78BFA),
-            Color(0xFFF472B6)
+            Color(0xFF35B8AB),
+            Color(0xFF53C9BD),
+            Color(0xFFDAB978),
+            Color(0xFFE8CB90),
+            Color(0xFF4DA3B8),
+            Color(0xFFC99B68)
         )
         List(32) { idx ->
             val angleDeg = -165f + (idx * (150f / 31f))
