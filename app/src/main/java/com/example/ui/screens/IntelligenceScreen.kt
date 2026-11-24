@@ -96,6 +96,7 @@ import com.example.core.PersianCurrencyEngine
 import com.example.domain.CalendarHeatmapDay
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.DebtAmortizationCalculatorSection
+import com.example.ui.components.DebtSnowballCalculatorSection
 import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
@@ -1233,6 +1234,20 @@ fun IntelligenceScreen(
                     }
                 }
             }
+        }
+
+        // =========================================================================
+        // 5. DEDICATED DEBT SNOWBALL CALCULATOR MODULE (ماشین‌حساب استراتژی گلوله برفی)
+        // =========================================================================
+        item {
+            DebtSnowballCalculatorSection(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                initialExtraBudgetToman = uiState.extraPayoffBudgetToman,
+                currencyUnit = unit,
+                privacyMasked = masked
+            )
         }
 
         // =========================================================================
