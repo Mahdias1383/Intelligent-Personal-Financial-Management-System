@@ -28,6 +28,8 @@ import com.example.domain.FinancialForecastReport
 import com.example.domain.FinancialIntelligenceEngine
 import com.example.domain.InstallmentScheduleEngine
 import com.example.domain.MonthlyForwardLoadBar
+import com.example.domain.MonthlySavingsGoalEngine
+import com.example.domain.MonthlySavingsGoalSummary
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,6 +81,7 @@ data class TarazinoUiState(
     val subRecords: List<LedgerSubRecordEntity> = emptyList(),
     val smartAlertQueue: List<EnrichedInstallmentAlert> = emptyList(),
     val dtiHealthReport: DtiHealthReport? = null,
+    val monthlySavingsSummary: MonthlySavingsGoalSummary? = null,
     val mlForecastReport: FinancialForecastReport? = null,
     val payoffSimulation: EarlyPayoffSimulationResult? = null,
     val forward12MonthBars: List<MonthlyForwardLoadBar> = emptyList(),
@@ -325,6 +328,15 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             todayJalali = today,
             livingExpensePercent = core.preferences.livingExpensePercent
         )
+        val savingsSummary = MonthlySavingsGoalEngine.evaluateMonthlySavingsGoal(
+            goalTitleFa = core.preferences.monthlySavingsGoalTitle,
+            targetAmountToman = core.preferences.monthlySavingsTargetToman,
+            savedAmountToman = core.preferences.monthlySavingsSavedToman,
+            monthlyIncomeToman = core.preferences.monthlyIncomeToman,
+            livingExpensePercent = core.preferences.livingExpensePercent,
+            currentMonthDebtDueToman = dtiReport.currentMonthDebtDueToman,
+            todayJalali = today
+        )
         val mlForecast = FinancialForecastMlEngine.generateForecast(
             installments = core.installments,
             obligations = core.obligations,
@@ -365,6 +377,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             subRecords = core.subRecords,
             smartAlertQueue = alerts,
             dtiHealthReport = dtiReport,
+            monthlySavingsSummary = savingsSummary,
             mlForecastReport = mlForecast,
             payoffSimulation = simResult,
             forward12MonthBars = forwardBars,
@@ -754,6 +767,48 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             )
         }
         showToast("برنامه بودجه ماهانه و سقف مجاز اقساط به‌روزرسانی شد.")
+    }
+
+    fun updateMonthlySavingsGoal(
+        titleFa: String,
+        targetAmountToman: Long,
+        savedAmountToman: Long
+    ) {
+        val cleanTitle = titleFa.trim().ifBlank { "پس‌انداز و ذخیره طلایی ماه" }
+        val safeTarget = targetAmountToman.coerceAtLeast(0L)
+        val safeSaved = savedAmountToman.coerceAtLeast(0L)
+        repository.updatePreferences {
+            it.copy(
+                monthlySavingsGoalTitle = cleanTitle,
+                monthlySavingsTargetToman = safeTarget,
+                monthlySavingsSavedToman = safeSaved
+            )
+        }
+        if (safeTarget > 0L && safeSaved >= safeTarget) {
+            _celebrationMessage.value = "تبریک! هدف پس‌انداز ماهانه «$cleanTitle» به طور کامل محقق شد ✨"
+        } else {
+            showToast("هدف پس‌انداز ماهانه «$cleanTitle» ذخیره و به‌روزرسانی شد.")
+        }
+    }
+
+    fun recordMonthlySavingsDeposit(deltaAmountToman: Long) {
+        val currentPrefs = repository.preferencesState.value
+        val newSaved = (currentPrefs.monthlySavingsSavedToman + deltaAmountToman).coerceAtLeast(0L)
+        val target = currentPrefs.monthlySavingsTargetToman
+        repository.updatePreferences {
+            it.copy(monthlySavingsSavedToman = newSaved)
+        }
+        val formattedDelta = PersianCurrencyEngine.formatAmount(
+            amountToman = kotlin.math.abs(deltaAmountToman),
+            unit = currentPrefs.currencyUnit
+        )
+        if (deltaAmountToman > 0L && target > 0L && newSaved >= target && currentPrefs.monthlySavingsSavedToman < target) {
+            _celebrationMessage.value = "تبریک! با افزودن $formattedDelta به هدف پس‌انداز ماهانه رسیدید ✨"
+        } else if (deltaAmountToman >= 0L) {
+            showToast("مبلغ $formattedDelta به پس‌انداز ماه جاری اضافه شد.")
+        } else {
+            showToast("مبلغ $formattedDelta از اندوخته ماه جاری کسر شد.")
+        }
     }
 
     // A4 Report & Excel Export Studio Controls

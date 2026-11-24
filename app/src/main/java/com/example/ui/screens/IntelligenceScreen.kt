@@ -100,6 +100,7 @@ import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MlFinancialForecastSection
 import com.example.ui.components.MoneyInputField
+import com.example.ui.components.OfflineCurrencyDebtConverterSection
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
@@ -1205,6 +1206,17 @@ fun IntelligenceScreen(
             DebtAmortizationCalculatorSection(
                 currencyUnit = unit,
                 privacyMasked = masked
+            )
+        }
+
+        // =========================================================================
+        // 7. OFFLINE MULTI-CURRENCY DEBT CONVERTER & TRACKER (مبدل آفلاین ارز و بدهی چندارزی)
+        // =========================================================================
+        item {
+            OfflineCurrencyDebtConverterSection(
+                currencyUnit = unit,
+                privacyMasked = masked,
+                domesticRemainingDebtToman = uiState.totalDebtRemainingToman
             )
         }
     }

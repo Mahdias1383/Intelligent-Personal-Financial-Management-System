@@ -32,6 +32,9 @@ data class UserPreferencesState(
     val monthlyIncomeToman: Long = 58_000_000L,
     val livingExpensePercent: Int = 50,
     val alertAdvanceDays: Int = 7,
+    val monthlySavingsGoalTitle: String = "پس‌انداز و ذخیره طلایی ماه",
+    val monthlySavingsTargetToman: Long = 8_000_000L,
+    val monthlySavingsSavedToman: Long = 5_200_000L,
     val privacyMaskEnabled: Boolean = false,
     val pinHash: String = "",
     val pinLength: Int = 4,
@@ -75,6 +78,12 @@ class TarazinoRepository(
             monthlyIncomeToman = prefs.getLong("monthly_income_toman", 58_000_000L),
             livingExpensePercent = prefs.getInt("living_expense_percent", 50),
             alertAdvanceDays = prefs.getInt("alert_advance_days", 7),
+            monthlySavingsGoalTitle = prefs.getString(
+                "monthly_savings_goal_title",
+                "پس‌انداز و ذخیره طلایی ماه"
+            ) ?: "پس‌انداز و ذخیره طلایی ماه",
+            monthlySavingsTargetToman = prefs.getLong("monthly_savings_target_toman", 8_000_000L),
+            monthlySavingsSavedToman = prefs.getLong("monthly_savings_saved_toman", 5_200_000L),
             privacyMaskEnabled = prefs.getBoolean("privacy_mask_enabled", false),
             pinHash = prefs.getString("pin_hash", "") ?: "",
             pinLength = prefs.getInt("pin_length", 4),
@@ -99,6 +108,9 @@ class TarazinoRepository(
             .putLong("monthly_income_toman", updated.monthlyIncomeToman)
             .putInt("living_expense_percent", updated.livingExpensePercent)
             .putInt("alert_advance_days", updated.alertAdvanceDays)
+            .putString("monthly_savings_goal_title", updated.monthlySavingsGoalTitle)
+            .putLong("monthly_savings_target_toman", updated.monthlySavingsTargetToman)
+            .putLong("monthly_savings_saved_toman", updated.monthlySavingsSavedToman)
             .putBoolean("privacy_mask_enabled", updated.privacyMaskEnabled)
             .putString("pin_hash", updated.pinHash)
             .putInt("pin_length", updated.pinLength)

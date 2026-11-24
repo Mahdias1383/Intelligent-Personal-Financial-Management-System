@@ -726,7 +726,11 @@ fun TarazinoAppRoot(
                                     onOpenCounterpartyInTree = { cp -> viewModel.selectTreeCounterparty(cp) },
                                     onOpenObligationInTree = { ob, cat -> viewModel.selectTreeObligation(ob, cat) },
                                     onOpenIntelligenceTab = { viewModel.selectTab(TarazinoNavTab.INTELLIGENCE) },
-                                    onOpenFullA4Report = { viewModel.openA4ReportPreview() }
+                                    onOpenFullA4Report = { viewModel.openA4ReportPreview() },
+                                    onQuickSavingsDepositDelta = { delta -> viewModel.recordMonthlySavingsDeposit(delta) },
+                                    onUpdateMonthlySavingsGoal = { title, target, saved ->
+                                        viewModel.updateMonthlySavingsGoal(title, target, saved)
+                                    }
                                 )
 
                                 TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(

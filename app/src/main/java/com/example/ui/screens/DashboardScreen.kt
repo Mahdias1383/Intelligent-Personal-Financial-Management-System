@@ -102,12 +102,14 @@ import com.example.data.TrustPriority
 import com.example.domain.AlertUrgencyBucket
 import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
+import com.example.domain.MonthlySavingsGoalEngine
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MetallicSmartChipEmblem
+import com.example.ui.components.MonthlySavingsGoalDashboardSummarySection
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
@@ -146,6 +148,8 @@ fun DashboardScreen(
     onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
     onOpenIntelligenceTab: () -> Unit,
     onOpenFullA4Report: () -> Unit,
+    onQuickSavingsDepositDelta: (Long) -> Unit = {},
+    onUpdateMonthlySavingsGoal: (String, Long, Long) -> Unit = { _, _, _ -> },
     tourScrollIndex: Int? = null
 ) {
     val ext = LocalTarazinoColors.current
@@ -697,7 +701,7 @@ fun DashboardScreen(
         }
 
         // =========================================================================
-        // 1.5. SHAMSI QUICK DEBT & UPCOMING INSTALLMENT DEADLINES SUMMARY CARD
+        // 1.5. SHAMSI QUICK DEBT, MONTHLY SAVINGS GOAL & UPCOMING DEADLINES SUMMARY CARD
         // =========================================================================
         item {
             TarazinoStaggeredReveal(index = 1) {
@@ -707,7 +711,9 @@ fun DashboardScreen(
                     privacyMasked = masked,
                     onQuickPay = onQuickPay,
                     onOpenAllAlerts = { showAllAlertsModal = true },
-                    onOpenObligationInTree = onOpenObligationInTree
+                    onOpenObligationInTree = onOpenObligationInTree,
+                    onQuickSavingsDepositDelta = onQuickSavingsDepositDelta,
+                    onUpdateMonthlySavingsGoal = onUpdateMonthlySavingsGoal
                 )
             }
         }
@@ -1420,6 +1426,8 @@ fun ShamsiQuickDebtAndDeadlineSummaryCard(
     onQuickPay: (InstallmentEntity) -> Unit,
     onOpenAllAlerts: () -> Unit,
     onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
+    onQuickSavingsDepositDelta: (Long) -> Unit = {},
+    onUpdateMonthlySavingsGoal: (String, Long, Long) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val ext = LocalTarazinoColors.current
@@ -1621,6 +1629,36 @@ fun ShamsiQuickDebtAndDeadlineSummaryCard(
                     }
                 }
             }
+
+            // 2.5. Monthly Savings Goal Tracker & Progress within the Dashboard Summary
+            val savingsSummary = remember(
+                uiState.monthlySavingsSummary,
+                uiState.preferences.monthlySavingsGoalTitle,
+                uiState.preferences.monthlySavingsTargetToman,
+                uiState.preferences.monthlySavingsSavedToman,
+                uiState.preferences.monthlyIncomeToman,
+                uiState.preferences.livingExpensePercent,
+                uiState.dtiHealthReport?.currentMonthDebtDueToman,
+                todayJalali
+            ) {
+                uiState.monthlySavingsSummary ?: MonthlySavingsGoalEngine.evaluateMonthlySavingsGoal(
+                    goalTitleFa = uiState.preferences.monthlySavingsGoalTitle,
+                    targetAmountToman = uiState.preferences.monthlySavingsTargetToman,
+                    savedAmountToman = uiState.preferences.monthlySavingsSavedToman,
+                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                    livingExpensePercent = uiState.preferences.livingExpensePercent,
+                    currentMonthDebtDueToman = uiState.dtiHealthReport?.currentMonthDebtDueToman ?: 0L,
+                    todayJalali = todayJalali
+                )
+            }
+
+            MonthlySavingsGoalDashboardSummarySection(
+                summary = savingsSummary,
+                currencyUnit = currencyUnit,
+                privacyMasked = privacyMasked,
+                onQuickDepositDelta = onQuickSavingsDepositDelta,
+                onUpdateSavingsGoal = onUpdateMonthlySavingsGoal
+            )
 
             // 3. Upcoming Installment Deadlines Timeline (Powered by JalaliCalendarEngine)
             if (upcomingDeadlines.isNotEmpty()) {
