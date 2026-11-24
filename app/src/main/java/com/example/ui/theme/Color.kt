@@ -112,6 +112,25 @@ val AmethystOnBg = Color(0xFFF5F8FA)
 val AmethystOnSurfaceVariant = Color(0xFFB4C5D4)
 
 // =========================================================================
+// 7. تاریک پُرکنتراست شبانه — High-Contrast OLED Night Vault (Late-Night Finance)
+//    True OLED obsidian black + crisp borders + WCAG AAA luminous teal & warm gold
+// =========================================================================
+val HighContrastNightBg = Color(0xFF020506)
+val HighContrastNightSurfaceLowest = Color(0xFF050A0C)
+val HighContrastNightSurface = Color(0xFF0A1114)
+val HighContrastNightSurfaceHigh = Color(0xFF101A1F)
+val HighContrastNightSurfaceHighest = Color(0xFF17252B)
+val HighContrastNightSurfaceVariant = Color(0xFF0E171B)
+val HighContrastNightOutline = Color(0xFF6B9BA8)
+val HighContrastNightOutlineVariant = Color(0xFF3E616D)
+val HighContrastNightPrimary = Color(0xFF45E6D5)
+val HighContrastNightSecondary = Color(0xFFF5D28A)
+val HighContrastNightTertiary = Color(0xFF70D3EE)
+val HighContrastNightOnBg = Color(0xFFFFFFFF)
+val HighContrastNightOnSurfaceVariant = Color(0xFFCBE0E6)
+val HighContrastNightDanger = Color(0xFFFF7B7B)
+
+// =========================================================================
 // Cohesive Soothing Deep Teal & Soft Gold Semantic Financial Accents
 // =========================================================================
 val StatusOverdueRed = Color(0xFFD96B6B)

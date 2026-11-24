@@ -13,7 +13,8 @@ import org.json.JSONObject
 
 enum class TarazinoThemeMode(val labelFa: String) {
     OBSIDIAN_EMERALD_DARK("زمرد شب"),
-    ALABASTER_LIGHT("مروارید صبح"),
+    HIGH_CONTRAST_NIGHT_DARK("تاریک پُرکنتراست شبانه"),
+    ALABASTER_LIGHT("مروارید صبح (فیروزه تیره)"),
     PERSIAN_TURQUOISE_LIGHT("فیروزه بهار"),
     DEEP_SAPPHIRE("اقیانوس کبود"),
     MIDNIGHT_GOLD("شبِ طلایی"),

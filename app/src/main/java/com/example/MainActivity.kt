@@ -48,8 +48,10 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Visibility
@@ -118,6 +120,7 @@ import com.example.ui.components.tourSpotlightTarget
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.IntelligenceScreen
 import com.example.ui.screens.ReportsAndSettingsScreen
+import com.example.ui.theme.ThemeSwitcherEngine
 import com.example.ui.screens.TreePortfolioScreen
 import com.example.ui.theme.LocalTarazinoColors
 import com.example.ui.theme.TarazinoTheme
@@ -361,6 +364,46 @@ fun TarazinoAppRoot(
                                             maxLines = 1,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                                         )
+                                    }
+
+                                    // Quick 1-Tap Theme Switcher (Deep Teal Light <-> High-Contrast Late-Night Dark)
+                                    val isDarkNow = ThemeSwitcherEngine.isDarkThemeMode(uiState.preferences.themeMode)
+                                    val themeActionLabel = ThemeSwitcherEngine.nextToggleActionLabelFa(uiState.preferences.themeMode)
+                                    IconButton(
+                                        onClick = {
+                                            viewModel.setThemeMode(
+                                                ThemeSwitcherEngine.toggleDeepTealLightAndHighContrastDark(
+                                                    uiState.preferences.themeMode
+                                                )
+                                            )
+                                        },
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .testTag("top_bar_theme_switcher_btn")
+                                    ) {
+                                        AnimatedContent(
+                                            targetState = isDarkNow,
+                                            transitionSpec = {
+                                                (fadeIn(tween(220)) + scaleIn(initialScale = 0.72f, animationSpec = tween(220))) togetherWith
+                                                    fadeOut(tween(150))
+                                            },
+                                            label = "TopBarThemeSwitchIcon"
+                                        ) { darkActive ->
+                                            Icon(
+                                                imageVector = if (darkActive) {
+                                                    Icons.Default.LightMode
+                                                } else {
+                                                    Icons.Default.DarkMode
+                                                },
+                                                contentDescription = themeActionLabel,
+                                                tint = if (darkActive) {
+                                                    MaterialTheme.colorScheme.secondary
+                                                } else {
+                                                    MaterialTheme.colorScheme.primary
+                                                },
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                        }
                                     }
 
                                     // Privacy Mask Toggle Button

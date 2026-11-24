@@ -304,6 +304,45 @@ private val VelvetAmethystExtendedColors = TarazinoExtendedColors(
     tourCardSurface = Color(0xFF182230)
 )
 
+private val HighContrastNightExtendedColors = TarazinoExtendedColors(
+    themeMode = TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK,
+    isDark = true,
+    moodTagFa = "کنتراست بالای شبانه OLED — خوانایی حداکثری اعداد مالی در تاریکی شب",
+    auroraPrimary = Color(0x1445E6D5),
+    auroraSecondary = Color(0x10F5D28A),
+    auroraTertiary = Color(0x0A70D3EE),
+    cardBorderTop = Color(0x6645E6D5),
+    cardBorderBottom = Color(0x3DF5D28A),
+    cardGlassTop = Color(0xFF0D161A),
+    cardGlassBottom = Color(0xFF070C0E),
+    glassSurface = Color(0xFA0A1114),
+    dockSurface = Color(0xFA060B0D),
+    elevatedSurface = HighContrastNightSurfaceHigh,
+    shimmerHighlight = Color(0x3345E6D5),
+    positive = HighContrastNightPrimary,
+    onPositive = Color(0xFF021412),
+    warning = HighContrastNightSecondary,
+    danger = HighContrastNightDanger,
+    info = HighContrastNightTertiary,
+    heroStart = Color(0xFF082728),
+    heroMid = Color(0xFF05181B),
+    heroEnd = Color(0xFF02090B),
+    heroAccent = HighContrastNightSecondary,
+    heroOnSurface = HighContrastNightOnBg,
+    heroOnSurfaceMuted = HighContrastNightOnSurfaceVariant,
+    miniCardStart = Color(0xFF0E1A1F),
+    miniCardEnd = Color(0xFF081014),
+    miniCardOnSurface = HighContrastNightOnBg,
+    miniCardOnSurfaceMuted = HighContrastNightOnSurfaceVariant,
+    fabStart = Color(0xFF6CF2E4),
+    fabMid = HighContrastNightPrimary,
+    fabEnd = Color(0xFF1FA89A),
+    fabOnContent = Color(0xFF021412),
+    lockBackdropStart = Color(0xFF050D10),
+    lockBackdropEnd = HighContrastNightBg,
+    tourCardSurface = Color(0xFF0C1519)
+)
+
 // compositionLocalOf enables silky 60fps liquid color morphing across theme switches
 val LocalTarazinoColors = compositionLocalOf { ObsidianExtendedColors }
 
@@ -341,6 +380,42 @@ private val ObsidianEmeraldScheme = darkColorScheme(
     errorContainer = Color(0xFF4D1818),
     onErrorContainer = Color(0xFFFADCDC),
     scrim = Color(0xB8030A0D)
+)
+
+private val HighContrastNightDarkScheme = darkColorScheme(
+    primary = HighContrastNightPrimary,
+    onPrimary = Color(0xFF021412),
+    primaryContainer = Color(0xFF0B3D39),
+    onPrimaryContainer = Color(0xFFE0FFF9),
+    secondary = HighContrastNightSecondary,
+    onSecondary = Color(0xFF1A1202),
+    secondaryContainer = Color(0xFF3E300F),
+    onSecondaryContainer = Color(0xFFFFF4D6),
+    tertiary = HighContrastNightTertiary,
+    onTertiary = Color(0xFF021820),
+    tertiaryContainer = Color(0xFF0C3847),
+    onTertiaryContainer = Color(0xFFE2F8FF),
+    background = HighContrastNightBg,
+    onBackground = HighContrastNightOnBg,
+    surface = HighContrastNightSurface,
+    onSurface = HighContrastNightOnBg,
+    surfaceVariant = HighContrastNightSurfaceVariant,
+    onSurfaceVariant = HighContrastNightOnSurfaceVariant,
+    surfaceContainerLowest = HighContrastNightSurfaceLowest,
+    surfaceContainerLow = HighContrastNightSurface,
+    surfaceContainer = HighContrastNightSurface,
+    surfaceContainerHigh = HighContrastNightSurfaceHigh,
+    surfaceContainerHighest = HighContrastNightSurfaceHighest,
+    inverseSurface = Color(0xFFF4F8F9),
+    inverseOnSurface = Color(0xFF040B0D),
+    inversePrimary = Color(0xFF0B5C57),
+    outline = HighContrastNightOutline,
+    outlineVariant = HighContrastNightOutlineVariant,
+    error = HighContrastNightDanger,
+    onError = Color(0xFF210404),
+    errorContainer = Color(0xFF5C1515),
+    onErrorContainer = Color(0xFFFFE5E5),
+    scrim = Color(0xD9000000)
 )
 
 private val AlabasterLightScheme = lightColorScheme(
@@ -617,6 +692,7 @@ fun TarazinoTheme(
 ) {
     val targetColorScheme = when (themeMode) {
         TarazinoThemeMode.OBSIDIAN_EMERALD_DARK -> ObsidianEmeraldScheme
+        TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK -> HighContrastNightDarkScheme
         TarazinoThemeMode.ALABASTER_LIGHT -> AlabasterLightScheme
         TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT -> PersianTurquoiseLightScheme
         TarazinoThemeMode.DEEP_SAPPHIRE -> DeepSapphireScheme
@@ -626,6 +702,7 @@ fun TarazinoTheme(
 
     val targetExtendedColors = when (themeMode) {
         TarazinoThemeMode.OBSIDIAN_EMERALD_DARK -> ObsidianExtendedColors
+        TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK -> HighContrastNightExtendedColors
         TarazinoThemeMode.ALABASTER_LIGHT -> AlabasterExtendedColors
         TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT -> TurquoiseLightExtendedColors
         TarazinoThemeMode.DEEP_SAPPHIRE -> SapphireExtendedColors

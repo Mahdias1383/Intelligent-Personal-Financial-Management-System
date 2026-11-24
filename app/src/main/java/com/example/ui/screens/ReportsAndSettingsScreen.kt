@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,8 +53,11 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
@@ -118,6 +122,7 @@ import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
+import com.example.ui.theme.ThemeSwitcherEngine
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
@@ -460,8 +465,282 @@ fun ReportsAndSettingsScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        // Dedicated Quick Theme Switcher: Deep Teal Light <-> High-Contrast Late-Night Dark
+                        val isDeepTealLightSelected =
+                            uiState.preferences.themeMode == ThemeSwitcherEngine.DEEP_TEAL_LIGHT_MODE
+                        val isHighContrastNightSelected =
+                            ThemeSwitcherEngine.isHighContrastNightMode(uiState.preferences.themeMode)
+
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (ext.isDark) 0.55f else 0.72f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isHighContrastNightSelected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Contrast,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "تغییر سریع حالت روز و شبانه پُرکنتراست",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(999.dp),
+                                        color = if (isHighContrastNightSelected) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                        } else {
+                                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)
+                                        },
+                                        border = BorderStroke(
+                                            0.75.dp,
+                                            if (isHighContrastNightSelected) {
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                                            } else {
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)
+                                            }
+                                        )
+                                    ) {
+                                        Text(
+                                            text = if (isHighContrastNightSelected) "WCAG AAA" else "روزانه",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isHighContrastNightSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.secondary
+                                            },
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = if (isHighContrastNightSelected) {
+                                        "حالت تاریک پُرکنتراست OLED فعال است؛ بهینه‌شده برای مدیریت مالی در شب با کنتراست حداکثری و محافظت از چشم."
+                                    } else {
+                                        "جابه‌جایی آنی بین پوسته روشن فیروزه تیره و حالت تاریک پُرکنتراست شبانه (همچنین از نوار بالای صفحه در دسترس است)."
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val lightCardBg by animateColorAsState(
+                                        targetValue = if (isDeepTealLightSelected) {
+                                            Color(0xFF0F6B66)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                        animationSpec = tween(260),
+                                        label = "QuickSwitchLightBg"
+                                    )
+                                    val darkCardBg by animateColorAsState(
+                                        targetValue = if (isHighContrastNightSelected) {
+                                            Color(0xFF020506)
+                                        } else {
+                                            MaterialTheme.colorScheme.surface
+                                        },
+                                        animationSpec = tween(260),
+                                        label = "QuickSwitchDarkBg"
+                                    )
+
+                                    // Deep Teal Light Mode Option
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = lightCardBg,
+                                        border = BorderStroke(
+                                            width = if (isDeepTealLightSelected) 1.6.dp else 1.dp,
+                                            color = if (isDeepTealLightSelected) {
+                                                Color(0xFF35B8AB)
+                                            } else {
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                            }
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 56.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable {
+                                                onSetThemeMode(ThemeSwitcherEngine.DEEP_TEAL_LIGHT_MODE)
+                                            }
+                                            .testTag("settings_theme_switch_light")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isDeepTealLightSelected) {
+                                                            Color.White.copy(alpha = 0.18f)
+                                                        } else {
+                                                            Color(0xFF0F6B66).copy(alpha = 0.14f)
+                                                        }
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.LightMode,
+                                                    contentDescription = "حالت روشن فیروزه تیره",
+                                                    tint = if (isDeepTealLightSelected) {
+                                                        Color(0xFFF5D28A)
+                                                    } else {
+                                                        Color(0xFF0F6B66)
+                                                    },
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                TarazinoAutoSizeText(
+                                                    text = "فیروزه تیره (روشن)",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = if (isDeepTealLightSelected) {
+                                                        Color.White
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurface
+                                                    },
+                                                    maxLines = 1,
+                                                    minFontSize = 9.5.sp
+                                                )
+                                                Text(
+                                                    text = "روشنایی متعادل روز",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (isDeepTealLightSelected) {
+                                                        Color(0xFFE0F2F1)
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                    },
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // High-Contrast Late-Night Dark Mode Option
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = darkCardBg,
+                                        border = BorderStroke(
+                                            width = if (isHighContrastNightSelected) 1.8.dp else 1.dp,
+                                            color = if (isHighContrastNightSelected) {
+                                                Color(0xFF45E6D5)
+                                            } else {
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                            }
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 56.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable {
+                                                onSetThemeMode(ThemeSwitcherEngine.HIGH_CONTRAST_DARK_MODE)
+                                            }
+                                            .testTag("settings_theme_switch_high_contrast_dark")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isHighContrastNightSelected) {
+                                                            Color(0xFF45E6D5).copy(alpha = 0.22f)
+                                                        } else {
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                                        }
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.DarkMode,
+                                                    contentDescription = "حالت تاریک پُرکنتراست شبانه",
+                                                    tint = if (isHighContrastNightSelected) {
+                                                        Color(0xFF45E6D5)
+                                                    } else {
+                                                        MaterialTheme.colorScheme.primary
+                                                    },
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                TarazinoAutoSizeText(
+                                                    text = "تاریک پُرکنتراست",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = if (isHighContrastNightSelected) {
+                                                        Color.White
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurface
+                                                    },
+                                                    maxLines = 1,
+                                                    minFontSize = 9.5.sp
+                                                )
+                                                Text(
+                                                    text = "شبانه • OLED کنتراست بالا",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (isHighContrastNightSelected) {
+                                                        Color(0xFFF5D28A)
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                    },
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Text(
-                            text = "استودیوی پوسته‌های ظاهری (۴ تم تیره + ۲ تم روشن):",
+                            text = "استودیوی پوسته‌های ظاهری (۵ تم تیره + ۲ تم روشن):",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -579,8 +858,45 @@ fun ReportsAndSettingsScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // 2×3 Curated Emotional Fintech Theme Gallery (6 Distinct Atmospheres)
+                        // Curated Emotional Fintech Theme Gallery (7 Distinct Atmospheres including High-Contrast Night)
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.ALABASTER_LIGHT,
+                                    titleFa = "مروارید صبح (فیروزه تیره)",
+                                    subtitleFa = "روشن • فیروزه و طلا",
+                                    isLightTheme = true,
+                                    bgPreview = Color(0xFFF4F7F6),
+                                    surfacePreview = Color(0xFFFFFFFF),
+                                    heroStartPreview = Color(0xFF0D4F4C),
+                                    accentPreview = Color(0xFF0F6B66),
+                                    secondaryPreview = Color(0xFFB58538),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.ALABASTER_LIGHT) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.ALABASTER_LIGHT.name}")
+                                )
+                                ThemePreviewSwatchCard(
+                                    mode = TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK,
+                                    titleFa = "تاریک پُرکنتراست شبانه",
+                                    subtitleFa = "OLED • کنتراست WCAG AAA",
+                                    isLightTheme = false,
+                                    bgPreview = Color(0xFF020506),
+                                    surfacePreview = Color(0xFF0A1114),
+                                    heroStartPreview = Color(0xFF041C1E),
+                                    accentPreview = Color(0xFF45E6D5),
+                                    secondaryPreview = Color(0xFFF5D28A),
+                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK,
+                                    onClick = { onSetThemeMode(TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("theme_chip_${TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK.name}")
+                                )
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -602,27 +918,6 @@ fun ReportsAndSettingsScreen(
                                         .testTag("theme_chip_${TarazinoThemeMode.OBSIDIAN_EMERALD_DARK.name}")
                                 )
                                 ThemePreviewSwatchCard(
-                                    mode = TarazinoThemeMode.ALABASTER_LIGHT,
-                                    titleFa = "مروارید صبح",
-                                    subtitleFa = "روشن • فیروزه و طلا",
-                                    isLightTheme = true,
-                                    bgPreview = Color(0xFFF4F7F6),
-                                    surfacePreview = Color(0xFFFFFFFF),
-                                    heroStartPreview = Color(0xFF0D4F4C),
-                                    accentPreview = Color(0xFF0F6B66),
-                                    secondaryPreview = Color(0xFFB58538),
-                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.ALABASTER_LIGHT,
-                                    onClick = { onSetThemeMode(TarazinoThemeMode.ALABASTER_LIGHT) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .testTag("theme_chip_${TarazinoThemeMode.ALABASTER_LIGHT.name}")
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                ThemePreviewSwatchCard(
                                     mode = TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT,
                                     titleFa = "فیروزه بهار",
                                     subtitleFa = "روشن • فیروزه نیشابور",
@@ -638,6 +933,11 @@ fun ReportsAndSettingsScreen(
                                         .weight(1f)
                                         .testTag("theme_chip_${TarazinoThemeMode.PERSIAN_TURQUOISE_LIGHT.name}")
                                 )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
                                 ThemePreviewSwatchCard(
                                     mode = TarazinoThemeMode.DEEP_SAPPHIRE,
                                     titleFa = "اقیانوس کبود",
@@ -654,11 +954,6 @@ fun ReportsAndSettingsScreen(
                                         .weight(1f)
                                         .testTag("theme_chip_${TarazinoThemeMode.DEEP_SAPPHIRE.name}")
                                 )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
                                 ThemePreviewSwatchCard(
                                     mode = TarazinoThemeMode.MIDNIGHT_GOLD,
                                     titleFa = "شبِ طلایی",
@@ -675,23 +970,23 @@ fun ReportsAndSettingsScreen(
                                         .weight(1f)
                                         .testTag("theme_chip_${TarazinoThemeMode.MIDNIGHT_GOLD.name}")
                                 )
-                                ThemePreviewSwatchCard(
-                                    mode = TarazinoThemeMode.VELVET_AMETHYST,
-                                    titleFa = "ارغوان مخملی",
-                                    subtitleFa = "شفق تیره • فیروزه و طلا",
-                                    isLightTheme = false,
-                                    bgPreview = Color(0xFF0B1017),
-                                    surfacePreview = Color(0xFF1C2636),
-                                    heroStartPreview = Color(0xFF173642),
-                                    accentPreview = Color(0xFF5AC2B8),
-                                    secondaryPreview = Color(0xFFDAB978),
-                                    selected = uiState.preferences.themeMode == TarazinoThemeMode.VELVET_AMETHYST,
-                                    onClick = { onSetThemeMode(TarazinoThemeMode.VELVET_AMETHYST) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .testTag("theme_chip_${TarazinoThemeMode.VELVET_AMETHYST.name}")
-                                )
                             }
+                            ThemePreviewSwatchCard(
+                                mode = TarazinoThemeMode.VELVET_AMETHYST,
+                                titleFa = "ارغوان مخملی",
+                                subtitleFa = "شفق تیره • فیروزه و طلا",
+                                isLightTheme = false,
+                                bgPreview = Color(0xFF0B1017),
+                                surfacePreview = Color(0xFF1C2636),
+                                heroStartPreview = Color(0xFF173642),
+                                accentPreview = Color(0xFF5AC2B8),
+                                secondaryPreview = Color(0xFFDAB978),
+                                selected = uiState.preferences.themeMode == TarazinoThemeMode.VELVET_AMETHYST,
+                                onClick = { onSetThemeMode(TarazinoThemeMode.VELVET_AMETHYST) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("theme_chip_${TarazinoThemeMode.VELVET_AMETHYST.name}")
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
