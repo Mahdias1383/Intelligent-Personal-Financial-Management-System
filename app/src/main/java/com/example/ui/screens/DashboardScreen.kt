@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material.icons.filled.CreditCard
@@ -163,6 +164,8 @@ fun DashboardScreen(
     onQuickSavingsDepositDelta: (Long) -> Unit = {},
     onUpdateMonthlySavingsGoal: (String, Long, Long) -> Unit = { _, _, _ -> },
     onUpdateExtraPayoffBudget: (Long) -> Unit = {},
+    onOpenContractScanner: () -> Unit = {},
+    onSaveAutomatedSchedule: (enabled: Boolean, primaryDay: Int, secondaryDay: Int?) -> Unit = { _, _, _ -> },
     tourScrollIndex: Int? = null
 ) {
     val ext = LocalTarazinoColors.current
@@ -384,7 +387,12 @@ fun DashboardScreen(
                     onQuickPay = onQuickPay,
                     onOpenObligationInTree = onOpenObligationInTree,
                     onOpenNewObligationWizard = onOpenNewObligationWizard,
-                    onOpenIntelligenceTab = onOpenIntelligenceTab
+                    onOpenIntelligenceTab = onOpenIntelligenceTab,
+                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                    autoPaymentScheduleEnabled = uiState.preferences.autoPaymentScheduleEnabled,
+                    preferredAutoPayDayOfMonth = uiState.preferences.preferredAutoPayDayOfMonth,
+                    preferredSecondaryPayDayOfMonth = uiState.preferences.preferredSecondaryPayDayOfMonth,
+                    onSaveAutomatedSchedule = onSaveAutomatedSchedule
                 )
             }
         } else {
@@ -956,6 +964,92 @@ fun DashboardScreen(
                         .testTag("dashboard_open_a4_report_btn")
                 )
             }
+            }
+        }
+
+        // =========================================================================
+        // 2.1. CAMERA OCR LOAN CONTRACT & RECEIPT SCANNER ACTION CARD
+        // =========================================================================
+        item(key = "dashboard_contract_scanner_banner") {
+            TarazinoStaggeredReveal(index = 2) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)
+                            )
+                        )
+                    ),
+                    shadowElevation = if (ext.isDark) 0.dp else 4.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .tarazinoPressScale(scaleDown = 0.98f) { onOpenContractScanner() }
+                        .testTag("dashboard_open_contract_scanner_btn")
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = if (ext.isDark) 0.16f else 0.08f),
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = if (ext.isDark) 0.12f else 0.06f)
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TarazinoIconBadge(
+                            icon = Icons.Default.DocumentScanner,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            size = 44.dp,
+                            iconSize = 22.dp,
+                            cornerRadius = 14.dp
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "اسکن قرارداد وام و رسید با دوربین",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                ) {
+                                    Text(
+                                        text = "OCR",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "استخراج خودکار مبلغ قسط، تاریخ سررسید و نرخ سود از روی کاغذ یا تصویر",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
             }
         }
 

@@ -30,6 +30,7 @@ import com.example.domain.InstallmentScheduleEngine
 import com.example.domain.MonthlyForwardLoadBar
 import com.example.domain.MonthlySavingsGoalEngine
 import com.example.domain.MonthlySavingsGoalSummary
+import com.example.domain.ScannedContractExtraction
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +56,8 @@ data class TreeDrillState(
 data class WizardLaunchPreset(
     val isOpen: Boolean = false,
     val preselectedCategory: EntityCategory? = null,
-    val preselectedCounterpartyId: Long? = null
+    val preselectedCounterpartyId: Long? = null,
+    val scannedPrefill: ScannedContractExtraction? = null
 )
 
 data class InteractiveTourStep(
@@ -93,6 +95,7 @@ data class TarazinoUiState(
     val isTourActive: Boolean = false,
     val currentTourStepIndex: Int = 0,
     val activeA4ReportPayload: A4ReportPayload? = null,
+    val isContractScannerOpen: Boolean = false,
     val toastMessageFa: String? = null,
     val celebrationMessageFa: String? = null
 ) {
@@ -136,6 +139,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val _isTourActive = MutableStateFlow(false)
     private val _tourStepIndex = MutableStateFlow(0)
     private val _activeA4Report = MutableStateFlow<A4ReportPayload?>(null)
+    private val _isContractScannerOpen = MutableStateFlow(false)
     private val _toastMessage = MutableStateFlow<String?>(null)
     private val _celebrationMessage = MutableStateFlow<String?>(null)
 
@@ -278,7 +282,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val tourStep: Int,
         val activeReport: A4ReportPayload?,
         val toast: String?,
-        val celebration: String?
+        val celebration: String?,
+        val isScannerOpen: Boolean
     )
 
     private val coreDataFlow = combine(
@@ -295,7 +300,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         combine(_activeTab, _treeDrill, _wizardPreset) { t, d, w -> Triple(t, d, w) },
         combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
         combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
-        combine(_toastMessage, _celebrationMessage) { tst, cel -> tst to cel }
+        combine(_toastMessage, _celebrationMessage, _isContractScannerOpen) { tst, cel, scan -> Triple(tst, cel, scan) }
     ) { g1, g2, g3, g4 ->
         UiOverlayBundle(
             activeTab = g1.first,
@@ -308,7 +313,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             tourStep = g3.second,
             activeReport = g3.third,
             toast = g4.first,
-            celebration = g4.second
+            celebration = g4.second,
+            isScannerOpen = g4.third
         )
     }
 
@@ -389,6 +395,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             isTourActive = over.isTourActive,
             currentTourStepIndex = over.tourStep,
             activeA4ReportPayload = over.activeReport,
+            isContractScannerOpen = over.isScannerOpen,
             toastMessageFa = over.toast,
             celebrationMessageFa = over.celebration
         )
@@ -480,6 +487,62 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
     fun closeStepByStepWizard() {
         _wizardPreset.value = WizardLaunchPreset(isOpen = false)
+    }
+
+    // Camera Loan Contract & Receipt Scanner Controls
+    fun openContractScanner() {
+        _wizardPreset.value = WizardLaunchPreset(isOpen = false)
+        _isContractScannerOpen.value = true
+    }
+
+    fun closeContractScanner() {
+        _isContractScannerOpen.value = false
+    }
+
+    fun openWizardFromScannedContract(extraction: ScannedContractExtraction) {
+        _isContractScannerOpen.value = false
+        val matchedCp = extraction.detectedCounterpartyName?.let { detectedName ->
+            uiState.value.counterparties.firstOrNull { cp ->
+                cp.name.contains(detectedName, ignoreCase = true) ||
+                    detectedName.contains(cp.name.substringBefore(" ("), ignoreCase = true)
+            }
+        }
+        _wizardPreset.value = WizardLaunchPreset(
+            isOpen = true,
+            preselectedCategory = matchedCp?.categoryEnum ?: extraction.suggestedCategory,
+            preselectedCounterpartyId = matchedCp?.id,
+            scannedPrefill = extraction
+        )
+        showToast("اطلاعات قرارداد اسکن‌شده با موفقیت در فرم ثبت وام بارگذاری شد.")
+    }
+
+    fun applyScannedReceiptToInstallment(
+        installment: InstallmentEntity,
+        extraction: ScannedContractExtraction
+    ) {
+        _isContractScannerOpen.value = false
+        viewModelScope.launch {
+            val today = JalaliCalendarEngine.todayJalali()
+            val paidDate = extraction.firstDueDateJalali ?: today
+            val scannedAmount = extraction.installmentAmountToman
+                ?.takeIf { it > 0L }
+                ?: installment.effectiveTotalToman
+            val effectivePaid = (installment.paidAmountToman + scannedAmount)
+                .coerceAtMost(installment.effectiveTotalToman)
+                .coerceAtLeast(scannedAmount.coerceAtMost(installment.effectiveTotalToman))
+            val tracking = extraction.trackingCode
+                ?.takeIf { it.isNotBlank() }
+                ?: installment.trackingCode.ifBlank { "OCR-${System.currentTimeMillis() % 10000}" }
+            val updated = InstallmentScheduleEngine.applyPaymentUpdate(
+                installment = installment,
+                paidAmountToman = effectivePaid,
+                paidDateJalali = paidDate,
+                trackingCode = tracking,
+                todayJalali = today
+            )
+            repository.updateInstallment(updated)
+            _celebrationMessage.value = "رسید اسکن‌شده برای «${installment.title}» ثبت شد (کد پیگیری: $tracking)."
+        }
     }
 
     fun saveWizardObligationAndCustomInstallments(
@@ -1022,6 +1085,30 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
     fun setFontScale(scale: FontScalePreset) {
         repository.updatePreferences { it.copy(fontScale = scale) }
+    }
+
+    fun saveAutomatedPaymentSchedule(enabled: Boolean, primaryDay: Int, secondaryDay: Int?) {
+        val safePrimary = if (enabled) primaryDay.coerceIn(1, 30) else 0
+        val safeSecondary = if (enabled && secondaryDay != null && secondaryDay in 1..30) secondaryDay else 0
+        repository.updatePreferences {
+            it.copy(
+                autoPaymentScheduleEnabled = enabled,
+                preferredAutoPayDayOfMonth = safePrimary,
+                preferredSecondaryPayDayOfMonth = safeSecondary
+            )
+        }
+        if (enabled) {
+            val dayFa = PersianCurrencyEngine.toPersianDigits(safePrimary.toString())
+            val msg = if (safeSecondary > 0) {
+                val secFa = PersianCurrencyEngine.toPersianDigits(safeSecondary.toString())
+                "زمان‌بند خودکار برای روزهای $dayFa و $secFa هر ماه شمسی فعال شد."
+            } else {
+                "زمان‌بند خودکار پرداخت اقساط برای روز $dayFa هر ماه شمسی فعال شد."
+            }
+            showToast(msg)
+        } else {
+            showToast("زمان‌بند خودکار ماهانه پرداخت اقساط غیرفعال شد.")
+        }
     }
 
     // Data Seed, Reset & JSON Backup

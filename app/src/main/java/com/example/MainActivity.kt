@@ -106,8 +106,10 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import com.example.data.InstallmentStatus
 import com.example.ui.components.A4ReportPreviewModal
 import com.example.ui.components.InteractiveOnboardingTourOverlay
+import com.example.ui.components.LoanContractScannerModal
 import com.example.ui.components.LocalSpotlightRegistry
 import com.example.ui.components.SecurityLockOverlay
 import com.example.ui.components.SpotlightTargetRegistry
@@ -774,7 +776,11 @@ fun TarazinoAppRoot(
                                     onUpdateMonthlySavingsGoal = { title, target, saved ->
                                         viewModel.updateMonthlySavingsGoal(title, target, saved)
                                     },
-                                    onUpdateExtraPayoffBudget = { viewModel.updateExtraPayoffBudget(it) }
+                                    onUpdateExtraPayoffBudget = { viewModel.updateExtraPayoffBudget(it) },
+                                    onOpenContractScanner = { viewModel.openContractScanner() },
+                                    onSaveAutomatedSchedule = { enabled, primaryDay, secondaryDay ->
+                                        viewModel.saveAutomatedPaymentSchedule(enabled, primaryDay, secondaryDay)
+                                    }
                                 )
 
                                 TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
@@ -927,6 +933,26 @@ fun TarazinoAppRoot(
                     onDismiss = { viewModel.closeStepByStepWizard() },
                     onCompleteWizard = { ob, customInst, newCp ->
                         viewModel.saveWizardObligationAndCustomInstallments(ob, customInst, newCp)
+                    },
+                    scannedPrefill = uiState.wizardPreset.scannedPrefill,
+                    onOpenContractScanner = { viewModel.openContractScanner() }
+                )
+            }
+
+            // CameraX + ML Kit OCR Loan Contract & Receipt Scanner Modal
+            if (uiState.isContractScannerOpen) {
+                val unpaidInstallments = remember(uiState.installments) {
+                    uiState.installments.filter { it.statusEnum != InstallmentStatus.PAID && it.remainingToman > 0L }
+                }
+                LoanContractScannerModal(
+                    currencyUnit = uiState.preferences.currencyUnit,
+                    unpaidInstallments = unpaidInstallments,
+                    onDismiss = { viewModel.closeContractScanner() },
+                    onPopulateNewObligationWizard = { extraction ->
+                        viewModel.openWizardFromScannedContract(extraction)
+                    },
+                    onApplyAsInstallmentPayment = { installment, extraction ->
+                        viewModel.applyScannedReceiptToInstallment(installment, extraction)
                     }
                 )
             }

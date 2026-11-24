@@ -45,7 +45,10 @@ data class UserPreferencesState(
     val recoveryQuestion: String = "نام اولین مدرسه یا شهر محل تولد شما چیست؟",
     val recoveryAnswerHash: String = "",
     val hasCompletedGuidedTour: Boolean = false,
-    val isInitialSeedDone: Boolean = false
+    val isInitialSeedDone: Boolean = false,
+    val autoPaymentScheduleEnabled: Boolean = false,
+    val preferredAutoPayDayOfMonth: Int = 0,
+    val preferredSecondaryPayDayOfMonth: Int = 0
 )
 
 class TarazinoRepository(
@@ -98,7 +101,10 @@ class TarazinoRepository(
             ) ?: "نام اولین مدرسه یا شهر محل تولد شما چیست؟",
             recoveryAnswerHash = prefs.getString("recovery_answer_hash", "") ?: "",
             hasCompletedGuidedTour = prefs.getBoolean("has_completed_guided_tour", false),
-            isInitialSeedDone = prefs.getBoolean("is_initial_seed_done", false)
+            isInitialSeedDone = prefs.getBoolean("is_initial_seed_done", false),
+            autoPaymentScheduleEnabled = prefs.getBoolean("auto_payment_schedule_enabled", false),
+            preferredAutoPayDayOfMonth = prefs.getInt("preferred_auto_pay_day_of_month", 0),
+            preferredSecondaryPayDayOfMonth = prefs.getInt("preferred_secondary_pay_day_of_month", 0)
         )
     }
 
@@ -123,6 +129,9 @@ class TarazinoRepository(
             .putString("recovery_answer_hash", updated.recoveryAnswerHash)
             .putBoolean("has_completed_guided_tour", updated.hasCompletedGuidedTour)
             .putBoolean("is_initial_seed_done", updated.isInitialSeedDone)
+            .putBoolean("auto_payment_schedule_enabled", updated.autoPaymentScheduleEnabled)
+            .putInt("preferred_auto_pay_day_of_month", updated.preferredAutoPayDayOfMonth)
+            .putInt("preferred_secondary_pay_day_of_month", updated.preferredSecondaryPayDayOfMonth)
             .apply()
         _preferencesState.value = updated
     }

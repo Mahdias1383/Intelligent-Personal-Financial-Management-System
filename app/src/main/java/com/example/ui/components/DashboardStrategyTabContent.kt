@@ -101,6 +101,11 @@ fun DashboardStrategyTabContent(
     onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
     onOpenNewObligationWizard: () -> Unit,
     onOpenIntelligenceTab: () -> Unit,
+    monthlyIncomeToman: Long = 58_000_000L,
+    autoPaymentScheduleEnabled: Boolean = false,
+    preferredAutoPayDayOfMonth: Int = 0,
+    preferredSecondaryPayDayOfMonth: Int = 0,
+    onSaveAutomatedSchedule: (enabled: Boolean, primaryDay: Int, secondaryDay: Int?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val ext = LocalTarazinoColors.current
@@ -139,6 +144,19 @@ fun DashboardStrategyTabContent(
             goldAccent = goldAccent,
             dangerAccent = dangerAccent,
             privacyMasked = privacyMasked
+        )
+
+        // 1.5. Automated Optimal Payment-Day Scheduler Based on Historical Income Cycles
+        StrategyAutomatedPaymentSchedulerCard(
+            obligations = obligations,
+            installments = installments,
+            fallbackMonthlyIncomeToman = monthlyIncomeToman,
+            currencyUnit = currencyUnit,
+            privacyMasked = privacyMasked,
+            autoScheduleEnabled = autoPaymentScheduleEnabled,
+            savedAutoPayPrimaryDay = preferredAutoPayDayOfMonth,
+            savedAutoPaySecondaryDay = preferredSecondaryPayDayOfMonth,
+            onSaveAutomatedSchedule = onSaveAutomatedSchedule
         )
 
         // 2. Ranking Mode Selector + Extra Monthly Attack Budget Control

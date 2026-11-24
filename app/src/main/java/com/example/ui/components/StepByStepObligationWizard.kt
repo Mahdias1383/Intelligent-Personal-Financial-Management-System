@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditScore
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
@@ -96,6 +97,7 @@ import com.example.data.PaymentInterval
 import com.example.data.ScheduleMode
 import com.example.data.TrustPriority
 import com.example.domain.InstallmentScheduleEngine
+import com.example.domain.ScannedContractExtraction
 import com.example.ui.theme.LocalTarazinoColors
 
 data class EditableInstallmentDraft(
@@ -118,10 +120,18 @@ fun StepByStepObligationWizardModal(
         obligation: ObligationEntity,
         customInstallments: List<InstallmentEntity>,
         newCounterpartyToCreate: CounterpartyEntity?
-    ) -> Unit
+    ) -> Unit,
+    scannedPrefill: ScannedContractExtraction? = null,
+    onOpenContractScanner: (() -> Unit)? = null
 ) {
-    val initialCp = remember(counterparties, preselectedCounterpartyId) {
+    val initialCp = remember(counterparties, preselectedCounterpartyId, scannedPrefill) {
         counterparties.firstOrNull { it.id == preselectedCounterpartyId }
+            ?: scannedPrefill?.detectedCounterpartyName?.let { detected ->
+                counterparties.firstOrNull { cp ->
+                    cp.name.contains(detected, ignoreCase = true) ||
+                        detected.contains(cp.name.substringBefore(" ("), ignoreCase = true)
+                }
+            }
     }
 
     var currentStep by remember { mutableIntStateOf(1) } // 1, 2, or 3
@@ -129,38 +139,68 @@ fun StepByStepObligationWizardModal(
     // Step 1 State: Parent Category & Sub-Provider (e.g., BNPL -> SnappPay / DigiPay)
     var selectedParentCategory by remember {
         mutableStateOf(
-            initialCp?.categoryEnum ?: preselectedCategory ?: EntityCategory.BNPL_PLATFORM
+            initialCp?.categoryEnum
+                ?: scannedPrefill?.suggestedCategory
+                ?: preselectedCategory
+                ?: EntityCategory.BNPL_PLATFORM
         )
     }
     val matchingCounterparties = remember(counterparties, selectedParentCategory) {
         counterparties.filter { it.categoryEnum == selectedParentCategory }
     }
-    var selectedCounterpartyId by remember(matchingCounterparties, preselectedCounterpartyId) {
+    var selectedCounterpartyId by remember(matchingCounterparties, preselectedCounterpartyId, initialCp) {
         mutableLongStateOf(
-            matchingCounterparties.firstOrNull { it.id == preselectedCounterpartyId }?.id
+            initialCp?.takeIf { it.categoryEnum == selectedParentCategory }?.id
+                ?: matchingCounterparties.firstOrNull { it.id == preselectedCounterpartyId }?.id
                 ?: matchingCounterparties.firstOrNull()?.id
                 ?: -1L
         )
     }
-    var isCreatingNewSubProvider by remember { mutableStateOf(matchingCounterparties.isEmpty()) }
-    var newSubProviderName by remember { mutableStateOf("") }
+    val hasUnmatchedScannedCounterparty = remember(initialCp, scannedPrefill) {
+        initialCp == null && !scannedPrefill?.detectedCounterpartyName.isNullOrBlank()
+    }
+    var isCreatingNewSubProvider by remember {
+        mutableStateOf(matchingCounterparties.isEmpty() || hasUnmatchedScannedCounterparty)
+    }
+    var newSubProviderName by remember {
+        mutableStateOf(
+            if (hasUnmatchedScannedCounterparty) scannedPrefill?.detectedCounterpartyName.orEmpty() else ""
+        )
+    }
     var newSubProviderCard by remember { mutableStateOf("") }
 
-    var obligationTitle by remember { mutableStateOf("") }
+    var obligationTitle by remember { mutableStateOf(scannedPrefill?.suggestedTitle.orEmpty()) }
     var isReceivableMode by remember { mutableStateOf(false) }
-    var isCheckOrRentMode by remember { mutableStateOf(false) }
+    var isCheckOrRentMode by remember {
+        mutableStateOf(
+            scannedPrefill?.detectedDocumentType == com.example.domain.ScannedDocumentType.CHECK_OR_PROMISSORY
+        )
+    }
     var priority by remember { mutableStateOf(TrustPriority.HIGH) }
-    var trackingOrCheckCode by remember { mutableStateOf("") }
+    var trackingOrCheckCode by remember { mutableStateOf(scannedPrefill?.trackingCode.orEmpty()) }
 
-    // Step 2 State: Base Amount & Initial Split Parameters
-    var principalAmountToman by remember { mutableLongStateOf(20_000_000L) }
-    var showAdvancedFeeFields by remember { mutableStateOf(false) }
-    var profitOrFeeToman by remember { mutableLongStateOf(0L) }
+    // Step 2 State: Base Amount & Initial Split Parameters (Pre-populated from OCR Scanner if available)
+    var principalAmountToman by remember {
+        mutableLongStateOf(
+            scannedPrefill?.principalAmountToman?.takeIf { it > 0L } ?: 20_000_000L
+        )
+    }
+    var showAdvancedFeeFields by remember {
+        mutableStateOf((scannedPrefill?.computedProfitOrFeeToman ?: 0L) > 0L)
+    }
+    var profitOrFeeToman by remember {
+        mutableLongStateOf((scannedPrefill?.computedProfitOrFeeToman ?: 0L).coerceAtLeast(0L))
+    }
     var downPaymentToman by remember { mutableLongStateOf(0L) }
-    var installmentCount by remember { mutableIntStateOf(4) }
+    var installmentCount by remember {
+        mutableIntStateOf((scannedPrefill?.installmentCount ?: 4).coerceIn(1, 360))
+    }
     var paymentInterval by remember { mutableStateOf(PaymentInterval.MONTHLY) }
     var firstDueDateJalali by remember {
-        mutableStateOf(JalaliCalendarEngine.firstOfNextJalaliMonth(JalaliCalendarEngine.todayJalali()))
+        mutableStateOf(
+            scannedPrefill?.firstDueDateJalali
+                ?: JalaliCalendarEngine.firstOfNextJalaliMonth(JalaliCalendarEngine.todayJalali())
+        )
     }
 
     // Step 3 State: Granular Editable Installment Rows
@@ -310,6 +350,69 @@ fun StepByStepObligationWizardModal(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
+                            }
+                        }
+
+                        // Camera OCR Scanner Quick Action / Active Prefill Banner
+                        if (scannedPrefill != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                border = BorderStroke(0.9.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DocumentScanner,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = buildString {
+                                            append("تکمیل‌شده از اسکن قرارداد")
+                                            scannedPrefill.annualInterestRatePercent?.let { rate ->
+                                                append(" • نرخ سود ${PersianCurrencyEngine.toPersianDigits(rate.toString())}٪")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        } else if (onOpenContractScanner != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            OutlinedButton(
+                                onClick = onOpenContractScanner,
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("wizard_open_contract_scanner_btn")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DocumentScanner,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "اسکن قرارداد وام یا رسید با دوربین (تکمیل خودکار)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
 
