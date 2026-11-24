@@ -107,6 +107,7 @@ import com.example.domain.AlertUrgencyBucket
 import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
 import com.example.domain.MonthlySavingsGoalEngine
+import com.example.ui.components.AiDailyFinancialTipCard
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DashboardDebtCategoryTagFilterSection
@@ -166,6 +167,7 @@ fun DashboardScreen(
     onUpdateExtraPayoffBudget: (Long) -> Unit = {},
     onOpenContractScanner: () -> Unit = {},
     onSaveAutomatedSchedule: (enabled: Boolean, primaryDay: Int, secondaryDay: Int?) -> Unit = { _, _, _ -> },
+    onRefreshDailyAiTip: () -> Unit = {},
     tourScrollIndex: Int? = null
 ) {
     val ext = LocalTarazinoColors.current
@@ -865,6 +867,21 @@ fun DashboardScreen(
                     }
                 }
             }
+            }
+        }
+
+        // =========================================================================
+        // 1.2. AI-DRIVEN SPENDING PATTERN & DAILY PERSONALIZED FINANCIAL TIP CARD
+        // =========================================================================
+        item(key = "dashboard_ai_daily_financial_tip") {
+            TarazinoStaggeredReveal(index = 1) {
+                AiDailyFinancialTipCard(
+                    tipState = uiState.dailyAiTipState,
+                    snapshot = uiState.dailySpendingSnapshot,
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    onRefreshTip = onRefreshDailyAiTip
+                )
             }
         }
 

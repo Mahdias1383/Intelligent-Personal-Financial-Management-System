@@ -31,12 +31,21 @@ import com.example.domain.MonthlyForwardLoadBar
 import com.example.domain.MonthlySavingsGoalEngine
 import com.example.domain.MonthlySavingsGoalSummary
 import com.example.domain.ScannedContractExtraction
+import android.util.Log
+import com.example.ai.FirebaseAiFinancialTipService
+import com.example.domain.DailyAiFinancialTipEngine
+import com.example.domain.DailyAiTipUiState
+import com.example.domain.SpendingAndDebtSnapshot
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -96,6 +105,8 @@ data class TarazinoUiState(
     val currentTourStepIndex: Int = 0,
     val activeA4ReportPayload: A4ReportPayload? = null,
     val isContractScannerOpen: Boolean = false,
+    val dailySpendingSnapshot: SpendingAndDebtSnapshot? = null,
+    val dailyAiTipState: DailyAiTipUiState = DailyAiTipUiState.Idle,
     val toastMessageFa: String? = null,
     val celebrationMessageFa: String? = null
 ) {
@@ -140,8 +151,12 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val _tourStepIndex = MutableStateFlow(0)
     private val _activeA4Report = MutableStateFlow<A4ReportPayload?>(null)
     private val _isContractScannerOpen = MutableStateFlow(false)
+    private val _dailyAiTipState = MutableStateFlow<DailyAiTipUiState>(DailyAiTipUiState.Idle)
     private val _toastMessage = MutableStateFlow<String?>(null)
     private val _celebrationMessage = MutableStateFlow<String?>(null)
+
+    private val aiFinancialTipService by lazy { FirebaseAiFinancialTipService() }
+    private var dailyAiTipJob: Job? = null
 
     val guidedTourSteps: List<InteractiveTourStep> = listOf(
         InteractiveTourStep(
@@ -283,7 +298,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val activeReport: A4ReportPayload?,
         val toast: String?,
         val celebration: String?,
-        val isScannerOpen: Boolean
+        val isScannerOpen: Boolean,
+        val dailyAiTipState: DailyAiTipUiState
     )
 
     private val coreDataFlow = combine(
@@ -300,8 +316,9 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         combine(_activeTab, _treeDrill, _wizardPreset) { t, d, w -> Triple(t, d, w) },
         combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
         combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
-        combine(_toastMessage, _celebrationMessage, _isContractScannerOpen) { tst, cel, scan -> Triple(tst, cel, scan) }
-    ) { g1, g2, g3, g4 ->
+        combine(_toastMessage, _celebrationMessage, _isContractScannerOpen) { tst, cel, scan -> Triple(tst, cel, scan) },
+        _dailyAiTipState
+    ) { g1, g2, g3, g4, aiTip ->
         UiOverlayBundle(
             activeTab = g1.first,
             treeDrill = g1.second,
@@ -314,7 +331,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             activeReport = g3.third,
             toast = g4.first,
             celebration = g4.second,
-            isScannerOpen = g4.third
+            isScannerOpen = g4.third,
+            dailyAiTipState = aiTip
         )
     }
 
@@ -371,6 +389,18 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             todayJalali = today
         )
 
+        val spendingSnapshot = DailyAiFinancialTipEngine.buildSnapshot(
+            obligations = core.obligations,
+            installments = core.installments,
+            counterparties = core.counterparties,
+            subRecords = core.subRecords,
+            recurringItems = repository.loadRecurringCashflowItems(),
+            dtiReport = dtiReport,
+            savingsSummary = savingsSummary,
+            preferences = core.preferences,
+            todayJalali = today
+        )
+
         TarazinoUiState(
             isLoading = false,
             activeTab = over.activeTab,
@@ -396,6 +426,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             currentTourStepIndex = over.tourStep,
             activeA4ReportPayload = over.activeReport,
             isContractScannerOpen = over.isScannerOpen,
+            dailySpendingSnapshot = spendingSnapshot,
+            dailyAiTipState = over.dailyAiTipState,
             toastMessageFa = over.toast,
             celebrationMessageFa = over.celebration
         )
@@ -414,6 +446,86 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             }
             if (!prefs.hasCompletedGuidedTour) {
                 startGuidedTour()
+            }
+            // Wait for initial database emission before triggering today's AI Financial Tip
+            coreDataFlow.first()
+            refreshDailyAiFinancialTip(forceRefresh = false)
+        }
+    }
+
+    /**
+     * Generates or loads today's personalized AI Daily Financial Tip via Firebase AI Logic (Gemini).
+     * Uses same-day local caching unless forceRefresh is true; propagates authentic errors directly to UI.
+     */
+    fun refreshDailyAiFinancialTip(forceRefresh: Boolean = false) {
+        val today = JalaliCalendarEngine.todayJalali()
+        if (!forceRefresh) {
+            val cached = repository.loadCachedDailyAiTip()
+            if (DailyAiFinancialTipEngine.isCacheValidForToday(cached, today) && cached != null) {
+                _dailyAiTipState.value = DailyAiTipUiState.Success(
+                    tip = cached,
+                    isCachedFromToday = true
+                )
+                return
+            }
+        }
+
+        dailyAiTipJob?.cancel()
+        dailyAiTipJob = viewModelScope.launch {
+            _dailyAiTipState.value = DailyAiTipUiState.Loading
+            try {
+                val core = coreDataFlow.first()
+                val dtiReport = FinancialIntelligenceEngine.analyzeDtiAndCashflowHealth(
+                    installments = core.installments,
+                    obligations = core.obligations,
+                    monthlyIncomeToman = core.preferences.monthlyIncomeToman,
+                    todayJalali = today,
+                    livingExpensePercent = core.preferences.livingExpensePercent
+                )
+                val savingsSummary = MonthlySavingsGoalEngine.evaluateMonthlySavingsGoal(
+                    goalTitleFa = core.preferences.monthlySavingsGoalTitle,
+                    targetAmountToman = core.preferences.monthlySavingsTargetToman,
+                    savedAmountToman = core.preferences.monthlySavingsSavedToman,
+                    monthlyIncomeToman = core.preferences.monthlyIncomeToman,
+                    livingExpensePercent = core.preferences.livingExpensePercent,
+                    currentMonthDebtDueToman = dtiReport.currentMonthDebtDueToman,
+                    todayJalali = today
+                )
+                val snapshot = DailyAiFinancialTipEngine.buildSnapshot(
+                    obligations = core.obligations,
+                    installments = core.installments,
+                    counterparties = core.counterparties,
+                    subRecords = core.subRecords,
+                    recurringItems = repository.loadRecurringCashflowItems(),
+                    dtiReport = dtiReport,
+                    savingsSummary = savingsSummary,
+                    preferences = core.preferences,
+                    todayJalali = today
+                )
+
+                val generatedTip = aiFinancialTipService.generateDailyFinancialTip(
+                    snapshot = snapshot,
+                    currencyUnit = core.preferences.currencyUnit
+                )
+                repository.saveCachedDailyAiTip(generatedTip)
+                _dailyAiTipState.value = DailyAiTipUiState.Success(
+                    tip = generatedTip,
+                    isCachedFromToday = false
+                )
+            } catch (e: TimeoutCancellationException) {
+                Log.e(AI_TIP_TAG, "Daily AI Financial Tip generation timed out", e)
+                _dailyAiTipState.value = DailyAiTipUiState.Error(
+                    "زمان پاسخ‌دهی هوش مصنوعی به پایان رسید (۶۰ ثانیه). لطفاً اتصال اینترنت را بررسی و مجدداً تلاش کنید."
+                )
+            } catch (e: CancellationException) {
+                // Always re-throw CancellationException to preserve cooperative coroutine cancellation
+                throw e
+            } catch (e: Exception) {
+                Log.e(AI_TIP_TAG, "Firebase AI Daily Financial Tip generation failed", e)
+                _dailyAiTipState.value = DailyAiTipUiState.Error(
+                    e.localizedMessage?.takeIf { it.isNotBlank() }
+                        ?: "ارتباط با سرویس هوش مصنوعی برقرار نشد. لطفاً دوباره تلاش کنید."
+                )
             }
         }
     }
@@ -1145,5 +1257,9 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 showToast("خطا در ساختار فایل JSON واردشده.")
             }
         }
+    }
+
+    companion object {
+        private const val AI_TIP_TAG = "TarazinoAiTipVM"
     }
 }

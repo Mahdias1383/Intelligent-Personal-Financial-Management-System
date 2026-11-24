@@ -136,6 +136,21 @@ class TarazinoRepository(
         _preferencesState.value = updated
     }
 
+    fun loadRecurringCashflowItems(): List<com.example.domain.RecurringCashflowItem> {
+        val raw = prefs.getString("recurring_non_loan_cashflow_items_v1", null)
+        return com.example.domain.RecurringCashflowHealthEngine.deserializeItems(raw)
+    }
+
+    fun loadCachedDailyAiTip(): com.example.domain.DailyFinancialTipResult? {
+        val raw = prefs.getString("daily_ai_financial_tip_cache_v1", null)
+        return com.example.domain.DailyAiFinancialTipEngine.deserializeCachedTip(raw)
+    }
+
+    fun saveCachedDailyAiTip(tip: com.example.domain.DailyFinancialTipResult) {
+        val serialized = com.example.domain.DailyAiFinancialTipEngine.serializeCachedTip(tip)
+        prefs.edit().putString("daily_ai_financial_tip_cache_v1", serialized).apply()
+    }
+
     suspend fun ensureSeedDataLoadedIfFirstLaunch() {
         val seedV2Done = prefs.getBoolean("is_initial_seed_v2_done", false)
         if (!seedV2Done) {

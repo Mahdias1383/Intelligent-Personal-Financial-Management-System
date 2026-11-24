@@ -132,6 +132,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import com.example.ai.configureAppCheck
 import com.example.notification.ShamsiInstallmentNotificationManager
 
 private data class NavBarDestination(
@@ -144,6 +145,8 @@ private data class NavBarDestination(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // STEP 1: Configure Firebase App Check with launch intent before any UI, ViewModels, or Firebase calls
+        configureAppCheck(this, intent)
         enableEdgeToEdge()
         ShamsiInstallmentNotificationManager.ensureChannelAndSchedulePeriodicWork(this)
         setContent {
@@ -780,7 +783,8 @@ fun TarazinoAppRoot(
                                     onOpenContractScanner = { viewModel.openContractScanner() },
                                     onSaveAutomatedSchedule = { enabled, primaryDay, secondaryDay ->
                                         viewModel.saveAutomatedPaymentSchedule(enabled, primaryDay, secondaryDay)
-                                    }
+                                    },
+                                    onRefreshDailyAiTip = { viewModel.refreshDailyAiFinancialTip(forceRefresh = true) }
                                 )
 
                                 TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
