@@ -50,7 +50,9 @@ data class UserPreferencesState(
     val preferredAutoPayDayOfMonth: Int = 0,
     val preferredSecondaryPayDayOfMonth: Int = 0,
     val dashboardLayoutConfig: com.example.domain.DashboardLayoutConfig =
-        com.example.domain.DashboardLayoutGridEngine.defaultConfig()
+        com.example.domain.DashboardLayoutGridEngine.defaultConfig(),
+    val connectivityPrivacy: com.example.domain.ConnectivityPrivacyPolicy =
+        com.example.domain.ConnectivityPrivacyEngine.defaultOfflinePolicy()
 )
 
 class TarazinoRepository(
@@ -109,6 +111,9 @@ class TarazinoRepository(
             preferredSecondaryPayDayOfMonth = prefs.getInt("preferred_secondary_pay_day_of_month", 0),
             dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.deserializeConfig(
                 prefs.getString("dashboard_layout_grid_v1", null)
+            ),
+            connectivityPrivacy = com.example.domain.ConnectivityPrivacyEngine.deserializePolicy(
+                prefs.getString("connectivity_privacy_policy_v1", null)
             )
         )
     }
@@ -141,6 +146,10 @@ class TarazinoRepository(
                 "dashboard_layout_grid_v1",
                 com.example.domain.DashboardLayoutGridEngine.serializeConfig(updated.dashboardLayoutConfig)
             )
+            .putString(
+                "connectivity_privacy_policy_v1",
+                com.example.domain.ConnectivityPrivacyEngine.serializePolicy(updated.connectivityPrivacy)
+            )
             .apply()
         _preferencesState.value = updated
     }
@@ -158,6 +167,14 @@ class TarazinoRepository(
     fun saveCachedDailyAiTip(tip: com.example.domain.DailyFinancialTipResult) {
         val serialized = com.example.domain.DailyAiFinancialTipEngine.serializeCachedTip(tip)
         prefs.edit().putString("daily_ai_financial_tip_cache_v1", serialized).apply()
+    }
+
+    fun clearCachedDailyAiTip() {
+        prefs.edit().remove("daily_ai_financial_tip_cache_v1").apply()
+    }
+
+    fun refreshHomeWidgets() {
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun ensureSeedDataLoadedIfFirstLaunch() {

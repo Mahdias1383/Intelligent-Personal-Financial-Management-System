@@ -30,10 +30,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -75,6 +77,7 @@ fun AiDailyFinancialTipCard(
     currencyUnit: CurrencyUnit,
     privacyMasked: Boolean,
     onRefreshTip: () -> Unit,
+    onOpenConnectivityPrivacySettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ext = LocalTarazinoColors.current
@@ -263,6 +266,13 @@ fun AiDailyFinancialTipCard(
                         AiTipErrorBody(
                             messageFa = state.messageFa,
                             onRetry = onRefreshTip
+                        )
+                    }
+
+                    is DailyAiTipUiState.OfflineDisabled -> {
+                        AiTipOfflineDisabledBody(
+                            reasonFa = state.reasonFa,
+                            onOpenSettings = onOpenConnectivityPrivacySettings
                         )
                     }
 
@@ -756,6 +766,82 @@ private fun AiTipIdleBody(onGenerate: () -> Unit) {
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.ExtraBold
             )
+        }
+    }
+}
+
+@Composable
+private fun AiTipOfflineDisabledBody(
+    reasonFa: String,
+    onOpenSettings: () -> Unit
+) {
+    val ext = LocalTarazinoColors.current
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = ext.positive.copy(alpha = if (ext.isDark) 0.14f else 0.09f),
+        border = BorderStroke(0.95.dp, ext.positive.copy(alpha = 0.42f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(ext.positive.copy(alpha = 0.18f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudOff,
+                        contentDescription = "حالت آفلاین فعال است",
+                        tint = ext.positive,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        text = "حالت کاملاً آفلاین فعال است",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = ext.positive
+                    )
+                    Text(
+                        text = PersianCurrencyEngine.formatRtlBidiSafe(reasonFa),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 19.sp
+                    )
+                }
+            }
+            FilledTonalButton(
+                onClick = onOpenSettings,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("dashboard_ai_tip_open_privacy_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                TarazinoAutoSizeText(
+                    text = "مدیریت در تنظیمات اتصال و حریم خصوصی",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    minFontSize = 10.sp
+                )
+            }
         }
     }
 }

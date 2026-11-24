@@ -152,26 +152,41 @@ class TarazinoQuickLogWidgetProvider : AppWidgetProvider() {
                 obligations = obligations,
                 installments = installments
             )
+            val prefs = context.getSharedPreferences("tarazino_prefs_v1", Context.MODE_PRIVATE)
+            val privacyPolicy = com.example.domain.ConnectivityPrivacyEngine.deserializePolicy(
+                prefs.getString("connectivity_privacy_policy_v1", null)
+            )
+            val hideAmounts = privacyPolicy.hideAmountsInWidget ||
+                prefs.getBoolean("privacy_mask_enabled", false)
 
             appWidgetIds.forEach { appWidgetId ->
-                val views = buildRemoteViews(context, snapshot)
+                val views = buildRemoteViews(context, snapshot, hideAmounts = hideAmounts)
                 appWidgetManager.updateAppWidget(appWidgetId, views)
             }
         }
 
         private fun buildRemoteViews(
             context: Context,
-            snapshot: QuickLogWidgetSnapshot
+            snapshot: QuickLogWidgetSnapshot,
+            hideAmounts: Boolean = false
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_tarazino_quick_log)
-            views.setTextViewText(R.id.widget_total_debt_summary, snapshot.summaryHeaderFa)
+            val headerText = if (hideAmounts) {
+                "مانده کل: •••,••• تومان (حالت حریم خصوصی)"
+            } else {
+                snapshot.summaryHeaderFa
+            }
+            views.setTextViewText(R.id.widget_total_debt_summary, headerText)
 
             if (snapshot.nextDueInstallmentId != null) {
                 views.setTextViewText(
                     R.id.widget_next_due_title,
                     snapshot.nextDueObligationTitleFa
                 )
-                val formattedAmount = PersianCurrencyEngine.formatAmount(snapshot.nextDueRemainingToman)
+                val formattedAmount = PersianCurrencyEngine.formatAmount(
+                    amountToman = snapshot.nextDueRemainingToman,
+                    privacyMasked = hideAmounts
+                )
                 views.setTextViewText(
                     R.id.widget_next_due_subtitle,
                     "$formattedAmount • ${snapshot.nextDueRelativeLabelFa}"

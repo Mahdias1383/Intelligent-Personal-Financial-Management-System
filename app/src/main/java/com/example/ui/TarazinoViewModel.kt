@@ -31,10 +31,16 @@ import com.example.domain.MonthlyForwardLoadBar
 import com.example.domain.MonthlySavingsGoalEngine
 import com.example.domain.MonthlySavingsGoalSummary
 import com.example.domain.ScannedContractExtraction
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import com.example.ai.FirebaseAiFinancialTipService
+import com.example.domain.ConnectivityPrivacyEngine
+import com.example.domain.ConnectivityPrivacyPolicy
 import com.example.domain.DailyAiFinancialTipEngine
 import com.example.domain.DailyAiTipUiState
+import com.example.domain.OnlineFeatureGateDecision
+import com.example.domain.OnlineGateBlockReason
 import com.example.domain.SpendingAndDebtSnapshot
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
@@ -105,6 +111,7 @@ data class TarazinoUiState(
     val currentTourStepIndex: Int = 0,
     val activeA4ReportPayload: A4ReportPayload? = null,
     val isContractScannerOpen: Boolean = false,
+    val isConnectivityPrivacyOpen: Boolean = false,
     val dailySpendingSnapshot: SpendingAndDebtSnapshot? = null,
     val dailyAiTipState: DailyAiTipUiState = DailyAiTipUiState.Idle,
     val toastMessageFa: String? = null,
@@ -151,6 +158,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val _tourStepIndex = MutableStateFlow(0)
     private val _activeA4Report = MutableStateFlow<A4ReportPayload?>(null)
     private val _isContractScannerOpen = MutableStateFlow(false)
+    private val _isConnectivityPrivacyOpen = MutableStateFlow(false)
     private val _dailyAiTipState = MutableStateFlow<DailyAiTipUiState>(DailyAiTipUiState.Idle)
     private val _toastMessage = MutableStateFlow<String?>(null)
     private val _celebrationMessage = MutableStateFlow<String?>(null)
@@ -299,6 +307,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val toast: String?,
         val celebration: String?,
         val isScannerOpen: Boolean,
+        val isConnectivityPrivacyOpen: Boolean,
         val dailyAiTipState: DailyAiTipUiState
     )
 
@@ -317,8 +326,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
         combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
         combine(_toastMessage, _celebrationMessage, _isContractScannerOpen) { tst, cel, scan -> Triple(tst, cel, scan) },
-        _dailyAiTipState
-    ) { g1, g2, g3, g4, aiTip ->
+        combine(_isConnectivityPrivacyOpen, _dailyAiTipState) { connOpen, aiTip -> connOpen to aiTip }
+    ) { g1, g2, g3, g4, g5 ->
         UiOverlayBundle(
             activeTab = g1.first,
             treeDrill = g1.second,
@@ -332,7 +341,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             toast = g4.first,
             celebration = g4.second,
             isScannerOpen = g4.third,
-            dailyAiTipState = aiTip
+            isConnectivityPrivacyOpen = g5.first,
+            dailyAiTipState = g5.second
         )
     }
 
@@ -426,6 +436,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             currentTourStepIndex = over.tourStep,
             activeA4ReportPayload = over.activeReport,
             isContractScannerOpen = over.isScannerOpen,
+            isConnectivityPrivacyOpen = over.isConnectivityPrivacyOpen,
             dailySpendingSnapshot = spendingSnapshot,
             dailyAiTipState = over.dailyAiTipState,
             toastMessageFa = over.toast,
@@ -447,18 +458,73 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             if (!prefs.hasCompletedGuidedTour) {
                 startGuidedTour()
             }
-            // Wait for initial database emission before triggering today's AI Financial Tip
+            // Wait for initial database emission before evaluating AI Financial Tip under Connectivity & Privacy policy
             coreDataFlow.first()
-            refreshDailyAiFinancialTip(forceRefresh = false)
+            val policy = repository.preferencesState.value.connectivityPrivacy
+            val today = JalaliCalendarEngine.todayJalali()
+            if (!ConnectivityPrivacyEngine.effectiveAiTipsEnabled(policy)) {
+                val gate = ConnectivityPrivacyEngine.evaluateAiTipAccess(
+                    policy = policy,
+                    isNetworkAvailable = true,
+                    isWifiConnected = true,
+                    todayJalali = today
+                )
+                val reason = (gate as? OnlineFeatureGateDecision.Blocked)?.messageFa
+                    ?: "حالت آفلاین فعال است. برای دریافت نکته مالی هوشمند، دسترسی آنلاین را در تنظیمات «اتصال و حریم خصوصی» فعال کنید."
+                _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(reason)
+            } else {
+                val cached = repository.loadCachedDailyAiTip()
+                if (DailyAiFinancialTipEngine.isCacheValidForToday(cached, today) && cached != null) {
+                    _dailyAiTipState.value = DailyAiTipUiState.Success(
+                        tip = cached,
+                        isCachedFromToday = true
+                    )
+                } else if (policy.autoRefreshAiTipOnLaunch) {
+                    refreshDailyAiFinancialTip(forceRefresh = false)
+                } else {
+                    _dailyAiTipState.value = DailyAiTipUiState.Idle
+                }
+            }
         }
     }
 
+    private fun readDeviceNetworkState(): Pair<Boolean, Boolean> {
+        val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return false to false
+        val activeNetwork = cm.activeNetwork ?: return false to false
+        val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false to false
+        val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        val isWifi = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        return hasInternet to isWifi
+    }
+
     /**
-     * Generates or loads today's personalized AI Daily Financial Tip via Firebase AI Logic (Gemini).
-     * Uses same-day local caching unless forceRefresh is true; propagates authentic errors directly to UI.
+     * Generates or loads today's personalized AI Daily Financial Tip via Firebase AI Logic (Gemini),
+     * strictly respecting the user's Connectivity & Privacy toggles, Wi-Fi-only rule, daily quota
+     * threshold, and payload anonymization permission.
      */
     fun refreshDailyAiFinancialTip(forceRefresh: Boolean = false) {
         val today = JalaliCalendarEngine.todayJalali()
+        val policy = repository.preferencesState.value.connectivityPrivacy
+
+        // Gate 1: Strict offline / disabled feature enforcement (zero network traffic!)
+        if (!ConnectivityPrivacyEngine.effectiveAiTipsEnabled(policy)) {
+            val gate = ConnectivityPrivacyEngine.evaluateAiTipAccess(
+                policy = policy,
+                isNetworkAvailable = true,
+                isWifiConnected = true,
+                todayJalali = today
+            )
+            val reason = (gate as? OnlineFeatureGateDecision.Blocked)?.messageFa
+                ?: "دسترسی آنلاین در تنظیمات «اتصال و حریم خصوصی» غیرفعال است."
+            _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(reason)
+            if (forceRefresh) {
+                showToast(reason)
+            }
+            return
+        }
+
         if (!forceRefresh) {
             val cached = repository.loadCachedDailyAiTip()
             if (DailyAiFinancialTipEngine.isCacheValidForToday(cached, today) && cached != null) {
@@ -470,11 +536,40 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
+        // Gate 2: Network availability, Wi-Fi-only threshold, and daily AI request quota enforcement
+        val (hasNetwork, isWifi) = readDeviceNetworkState()
+        when (
+            val gateDecision = ConnectivityPrivacyEngine.evaluateAiTipAccess(
+                policy = policy,
+                isNetworkAvailable = hasNetwork,
+                isWifiConnected = isWifi,
+                todayJalali = today
+            )
+        ) {
+            is OnlineFeatureGateDecision.Blocked -> {
+                if (
+                    gateDecision.reason == OnlineGateBlockReason.MASTER_OFFLINE_LOCKED ||
+                    gateDecision.reason == OnlineGateBlockReason.FEATURE_DISABLED
+                ) {
+                    _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(gateDecision.messageFa)
+                } else {
+                    _dailyAiTipState.value = DailyAiTipUiState.Error(gateDecision.messageFa)
+                }
+                if (forceRefresh) {
+                    showToast(gateDecision.messageFa)
+                }
+                return
+            }
+
+            is OnlineFeatureGateDecision.Allowed -> Unit
+        }
+
         dailyAiTipJob?.cancel()
         dailyAiTipJob = viewModelScope.launch {
             _dailyAiTipState.value = DailyAiTipUiState.Loading
             try {
                 val core = coreDataFlow.first()
+                val activePolicy = core.preferences.connectivityPrivacy
                 val dtiReport = FinancialIntelligenceEngine.analyzeDtiAndCashflowHealth(
                     installments = core.installments,
                     obligations = core.obligations,
@@ -491,7 +586,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                     currentMonthDebtDueToman = dtiReport.currentMonthDebtDueToman,
                     todayJalali = today
                 )
-                val snapshot = DailyAiFinancialTipEngine.buildSnapshot(
+                val rawSnapshot = DailyAiFinancialTipEngine.buildSnapshot(
                     obligations = core.obligations,
                     installments = core.installments,
                     counterparties = core.counterparties,
@@ -502,12 +597,25 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                     preferences = core.preferences,
                     todayJalali = today
                 )
+                val outboundSnapshot = if (activePolicy.anonymizeAiPayloads) {
+                    ConnectivityPrivacyEngine.anonymizeSnapshotForPrivacy(rawSnapshot)
+                } else {
+                    rawSnapshot
+                }
 
                 val generatedTip = aiFinancialTipService.generateDailyFinancialTip(
-                    snapshot = snapshot,
+                    snapshot = outboundSnapshot,
                     currencyUnit = core.preferences.currencyUnit
                 )
                 repository.saveCachedDailyAiTip(generatedTip)
+                repository.updatePreferences { prefs ->
+                    prefs.copy(
+                        connectivityPrivacy = ConnectivityPrivacyEngine.recordAiRequestUsage(
+                            policy = prefs.connectivityPrivacy,
+                            todayJalali = today
+                        )
+                    )
+                }
                 _dailyAiTipState.value = DailyAiTipUiState.Success(
                     tip = generatedTip,
                     isCachedFromToday = false
@@ -1325,6 +1433,75 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 showToast("خطا در ساختار فایل JSON واردشده.")
             }
         }
+    }
+
+    // Centralized Connectivity & Privacy Settings Controls
+    fun openConnectivityPrivacyScreen() {
+        _isConnectivityPrivacyOpen.value = true
+    }
+
+    fun closeConnectivityPrivacyScreen() {
+        _isConnectivityPrivacyOpen.value = false
+    }
+
+    fun updateConnectivityPrivacyPolicy(
+        transform: (ConnectivityPrivacyPolicy) -> ConnectivityPrivacyPolicy
+    ) {
+        val previous = repository.preferencesState.value.connectivityPrivacy
+        var updatedPolicy = previous
+        repository.updatePreferences { prefs ->
+            updatedPolicy = transform(prefs.connectivityPrivacy)
+            prefs.copy(connectivityPrivacy = updatedPolicy)
+        }
+
+        if (previous.hideAmountsInWidget != updatedPolicy.hideAmountsInWidget) {
+            repository.refreshHomeWidgets()
+        }
+
+        val today = JalaliCalendarEngine.todayJalali()
+        if (!ConnectivityPrivacyEngine.effectiveAiTipsEnabled(updatedPolicy)) {
+            dailyAiTipJob?.cancel()
+            val gate = ConnectivityPrivacyEngine.evaluateAiTipAccess(
+                policy = updatedPolicy,
+                isNetworkAvailable = true,
+                isWifiConnected = true,
+                todayJalali = today
+            )
+            val reason = (gate as? OnlineFeatureGateDecision.Blocked)?.messageFa
+                ?: "دسترسی آنلاین در تنظیمات «اتصال و حریم خصوصی» غیرفعال است."
+            _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(reason)
+        } else if (_dailyAiTipState.value is DailyAiTipUiState.OfflineDisabled) {
+            val cached = repository.loadCachedDailyAiTip()
+            _dailyAiTipState.value = if (
+                DailyAiFinancialTipEngine.isCacheValidForToday(cached, today) && cached != null
+            ) {
+                DailyAiTipUiState.Success(tip = cached, isCachedFromToday = true)
+            } else {
+                DailyAiTipUiState.Idle
+            }
+        }
+    }
+
+    fun resetConnectivityPrivacyToStrictOffline() {
+        dailyAiTipJob?.cancel()
+        repository.clearCachedDailyAiTip()
+        repository.updatePreferences { prefs ->
+            prefs.copy(connectivityPrivacy = ConnectivityPrivacyEngine.defaultOfflinePolicy())
+        }
+        repository.refreshHomeWidgets()
+        _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(
+            "حالت کاملاً آفلاین بازنشانی شد. تمام دسترسی‌های آنلاین غیرفعال هستند."
+        )
+        showToast("حالت کاملاً آفلاین فعال شد و تمام دسترسی‌های آنلاین غیرفعال گردید.")
+    }
+
+    fun clearOnlineAiCacheOnly() {
+        repository.clearCachedDailyAiTip()
+        val policy = repository.preferencesState.value.connectivityPrivacy
+        if (ConnectivityPrivacyEngine.effectiveAiTipsEnabled(policy)) {
+            _dailyAiTipState.value = DailyAiTipUiState.Idle
+        }
+        showToast("حافظه موقت تحلیل‌های آنلاین با موفقیت پاکسازی شد.")
     }
 
     companion object {

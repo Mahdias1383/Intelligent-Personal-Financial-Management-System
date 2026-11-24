@@ -63,6 +63,7 @@ data class DailyFinancialTipResult(
 
 sealed interface DailyAiTipUiState {
     data object Idle : DailyAiTipUiState
+    data class OfflineDisabled(val reasonFa: String) : DailyAiTipUiState
     data object Loading : DailyAiTipUiState
     data class Success(
         val tip: DailyFinancialTipResult,

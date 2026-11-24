@@ -175,6 +175,7 @@ fun DashboardScreen(
     onOpenContractScanner: () -> Unit = {},
     onSaveAutomatedSchedule: (enabled: Boolean, primaryDay: Int, secondaryDay: Int?) -> Unit = { _, _, _ -> },
     onRefreshDailyAiTip: () -> Unit = {},
+    onOpenConnectivityPrivacySettings: () -> Unit = {},
     onMoveDashboardModule: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
     onMoveDashboardModuleByDelta: (DashboardModuleId, Int) -> Unit = { _, _ -> },
     onPinDashboardModuleToTop: (DashboardModuleId) -> Unit = {},
@@ -904,7 +905,8 @@ fun DashboardScreen(
                                 snapshot = uiState.dailySpendingSnapshot,
                                 currencyUnit = unit,
                                 privacyMasked = masked,
-                                onRefreshTip = onRefreshDailyAiTip
+                                onRefreshTip = onRefreshDailyAiTip,
+                                onOpenConnectivityPrivacySettings = onOpenConnectivityPrivacySettings
                             )
                         }
 

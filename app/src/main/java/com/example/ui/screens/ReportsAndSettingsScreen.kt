@@ -49,14 +49,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.GppGood
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -111,6 +114,7 @@ import com.example.core.PersianCurrencyEngine
 import com.example.data.CounterpartyEntity
 import com.example.data.FontScalePreset
 import com.example.data.TarazinoThemeMode
+import com.example.domain.ConnectivityPrivacyEngine
 import com.example.domain.DebtCategoryTag
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
@@ -153,6 +157,7 @@ fun ReportsAndSettingsScreen(
     onImportBackupJson: (String) -> Unit,
     onShowToast: (String) -> Unit,
     onOpenCustomA4ReportPayload: (A4ReportPayload) -> Unit = {},
+    onOpenConnectivityPrivacySettings: () -> Unit = {},
     tourScrollIndex: Int? = null
 ) {
     val context = LocalContext.current
@@ -192,6 +197,101 @@ fun ReportsAndSettingsScreen(
                 onSelectIndex = { activeSectionIndex = it },
                 testTagPrefix = "settings_subtab"
             )
+        }
+
+        // Centralized Connectivity & Privacy Control Center Entry Card (Always Accessible)
+        item {
+            val privacyPolicy = uiState.preferences.connectivityPrivacy
+            val isFullyOffline = ConnectivityPrivacyEngine.isFullyOffline(privacyPolicy)
+            val posture = remember(
+                privacyPolicy,
+                uiState.preferences.pinHash,
+                uiState.preferences.privacyMaskEnabled
+            ) {
+                ConnectivityPrivacyEngine.computePrivacyPosture(
+                    policy = privacyPolicy,
+                    hasPinLock = uiState.preferences.pinHash.isNotBlank(),
+                    privacyMaskEnabled = uiState.preferences.privacyMaskEnabled
+                )
+            }
+            val accentColor = if (isFullyOffline) ext.positive else ext.warning
+            val activeCountFa = PersianCurrencyEngine.toPersianDigits(posture.activeOnlineFeaturesCount.toString())
+            val totalCountFa = PersianCurrencyEngine.toPersianDigits(posture.totalOnlineFeaturesCount.toString())
+
+            TarazinoGlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 76.dp)
+                    .clickable(onClick = onOpenConnectivityPrivacySettings)
+                    .testTag("open_connectivity_privacy_settings_card")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(accentColor.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isFullyOffline) Icons.Default.CloudOff else Icons.Default.GppGood,
+                            contentDescription = "اتصال و حریم خصوصی",
+                            tint = accentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "اتصال و حریم خصوصی",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            TarazinoStatusPill(
+                                text = if (isFullyOffline) "آفلاین مطلق" else "اتصال انتخابی",
+                                accentColor = accentColor
+                            )
+                        }
+                        Text(
+                            text = if (isFullyOffline) {
+                                "تمام سرویس‌های آنلاین غیرفعال است ($activeCountFa از $totalCountFa) • مدیریت مجوزها و آستانه‌ها"
+                            } else {
+                                "$activeCountFa از $totalCountFa سرویس آنلاین فعال • مدیریت وای‌فای، سهمیه روزانه و حریم خصوصی"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Box(
+                        modifier = Modifier.size(36.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "ورود به تنظیمات اتصال و حریم خصوصی",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
         }
 
         // =========================================================================

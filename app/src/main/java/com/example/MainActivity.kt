@@ -119,6 +119,7 @@ import com.example.ui.components.TarazinoCelebrationConfettiBurst
 import com.example.ui.components.tarazinoAmbientBackdrop
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
+import com.example.ui.screens.ConnectivityPrivacyScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.IntelligenceScreen
 import com.example.ui.screens.ReportsAndSettingsScreen
@@ -129,6 +130,7 @@ import com.example.ui.theme.TarazinoTheme
 
 import android.Manifest
 import android.os.Build
+import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
@@ -152,6 +154,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: TarazinoViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+            val preventScreenshots = uiState.preferences.connectivityPrivacy.preventScreenshotsAndRecents
+            LaunchedEffect(preventScreenshots) {
+                if (preventScreenshots) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
 
             TarazinoTheme(
                 themeMode = uiState.preferences.themeMode,
@@ -785,6 +796,7 @@ fun TarazinoAppRoot(
                                         viewModel.saveAutomatedPaymentSchedule(enabled, primaryDay, secondaryDay)
                                     },
                                     onRefreshDailyAiTip = { viewModel.refreshDailyAiFinancialTip(forceRefresh = true) },
+                                    onOpenConnectivityPrivacySettings = { viewModel.openConnectivityPrivacyScreen() },
                                     onMoveDashboardModule = { from, to -> viewModel.moveDashboardModule(from, to) },
                                     onMoveDashboardModuleByDelta = { id, delta ->
                                         viewModel.moveDashboardModuleByDelta(id, delta)
@@ -931,6 +943,9 @@ fun TarazinoAppRoot(
                                     onShowToast = { viewModel.showToast(it) },
                                     onOpenCustomA4ReportPayload = { payload ->
                                         viewModel.openCustomA4ReportPayload(payload)
+                                    },
+                                    onOpenConnectivityPrivacySettings = {
+                                        viewModel.openConnectivityPrivacyScreen()
                                     }
                                 )
                             }
@@ -998,6 +1013,20 @@ fun TarazinoAppRoot(
             // Procedural 60fps Emerald & Gold Confetti Burst on Installment Settlement
             uiState.celebrationMessageFa?.let { msg ->
                 TarazinoCelebrationConfettiBurst(triggerKey = msg)
+            }
+
+            // Centralized Connectivity & Privacy Control Center Full-Screen Overlay
+            if (uiState.isConnectivityPrivacyOpen && !uiState.isVaultLocked) {
+                ConnectivityPrivacyScreen(
+                    policy = uiState.preferences.connectivityPrivacy,
+                    hasPinLock = uiState.preferences.pinHash.isNotBlank(),
+                    privacyMaskEnabled = uiState.preferences.privacyMaskEnabled,
+                    onUpdatePolicy = { transform -> viewModel.updateConnectivityPrivacyPolicy(transform) },
+                    onTogglePrivacyMask = { viewModel.togglePrivacyMask() },
+                    onClearOnlineAiCache = { viewModel.clearOnlineAiCacheOnly() },
+                    onResetStrictOffline = { viewModel.resetConnectivityPrivacyToStrictOffline() },
+                    onBack = { viewModel.closeConnectivityPrivacyScreen() }
+                )
             }
 
             // Security Vault Lock Gate Overlay
