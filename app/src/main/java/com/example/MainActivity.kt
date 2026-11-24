@@ -801,7 +801,8 @@ fun TarazinoAppRoot(
                                     onChangeHeatmapMonth = { viewModel.changeHeatmapMonth(it) },
                                     onUpdateBudgetPlannerSettings = { inc, livingPct, days ->
                                         viewModel.updateBudgetPlannerSettings(inc, livingPct, days)
-                                    }
+                                    },
+                                    onQuickPayInstallment = { viewModel.quickPayInstallment(it) }
                                 )
 
                                 TarazinoNavTab.REPORTS_SETTINGS -> ReportsAndSettingsScreen(

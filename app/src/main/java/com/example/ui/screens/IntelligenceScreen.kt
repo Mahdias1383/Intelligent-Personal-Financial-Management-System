@@ -93,7 +93,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.core.CurrencyUnit
 import com.example.core.JalaliCalendarEngine
 import com.example.core.PersianCurrencyEngine
-import com.example.domain.CalendarHeatmapDay
+import com.example.data.InstallmentEntity
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.DebtAmortizationCalculatorSection
 import com.example.ui.components.DebtSnowballCalculatorSection
@@ -103,6 +103,7 @@ import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MlFinancialForecastSection
 import com.example.ui.components.MoneyInputField
 import com.example.ui.components.OfflineCurrencyDebtConverterSection
+import com.example.ui.components.PersianInstallmentHeatmapSection
 import com.example.ui.components.RecurringCashflowHealthSection
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
@@ -125,6 +126,7 @@ fun IntelligenceScreen(
     onUpdateExtraPayoffBudget: (Long) -> Unit,
     onChangeHeatmapMonth: (Int) -> Unit,
     onUpdateBudgetPlannerSettings: (monthlyIncomeToman: Long, livingExpensePercent: Int, alertDays: Int) -> Unit,
+    onQuickPayInstallment: ((InstallmentEntity) -> Unit)? = null,
     tourScrollIndex: Int? = null
 ) {
     val unit = uiState.preferences.currencyUnit
@@ -132,7 +134,6 @@ fun IntelligenceScreen(
     val ext = LocalTarazinoColors.current
     val listState = rememberLazyListState()
 
-    var selectedHeatmapDay by remember { mutableStateOf<CalendarHeatmapDay?>(null) }
     var selectedForwardBarIndex by remember { mutableIntStateOf(0) }
     var showBudgetConfigModal by remember { mutableStateOf(false) }
     var selectedStrategyTab by remember { mutableIntStateOf(0) } // 0 = Avalanche, 1 = Snowball
@@ -537,242 +538,22 @@ fun IntelligenceScreen(
         }
 
         // =========================================================================
-        // 2. INTERACTIVE JALALI MONTHLY CALENDAR HEATMAP
+        // 2. INTERACTIVE PERSIAN (SHAMSI) INSTALLMENT INTENSITY CALENDAR HEATMAP
+        //    (5-Tier Thermal Heat Scale, High-Pressure Period Detection & Decade Strips)
         // =========================================================================
         item {
-            TarazinoGlassCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    TarazinoSectionHeader(
-                        title = "تقویم حرارتی سررسیدها (شمسی)",
-                        subtitle = "برای مشاهده جزئیات اقساط هر روز، روی خانه آن روز بزنید",
-                        icon = Icons.Default.CalendarMonth,
-                        accentColor = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Month Stepper Bar
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(onClick = { onChangeHeatmapMonth(-1) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                                    contentDescription = "ماه قبل"
-                                )
-                            }
-                            Text(
-                                text = "${JalaliCalendarEngine.getMonthName(uiState.heatmapMonth)} ${
-                                    PersianCurrencyEngine.toPersianDigits(uiState.heatmapYear.toString())
-                                }",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            IconButton(onClick = { onChangeHeatmapMonth(1) }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = "ماه بعد"
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Compact 4-Dot Legend
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LegendDotLabel("پرفشار", ext.danger)
-                        LegendDotLabel("دارای قسط", ext.warning)
-                        LegendDotLabel("طلب", ext.info)
-                        LegendDotLabel("تسویه‌شده", ext.positive)
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // 7-Column Weekday Header
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        for (w in 0..6) {
-                            Text(
-                                text = JalaliCalendarEngine.WEEKDAY_SHORT[w],
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (w == 6) ext.danger else MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val firstDayStr = "%04d/%02d/01".format(
-                        java.util.Locale.US,
-                        uiState.heatmapYear,
-                        uiState.heatmapMonth
-                    )
-                    val firstDayOffset = JalaliCalendarEngine.getPersianWeekdayIndex(firstDayStr)
-                    val totalSlots = firstDayOffset + uiState.heatmapDays.size
-                    val rowCount = (totalSlots + 6) / 7
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (r in 0 until rowCount) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                for (c in 0..6) {
-                                    val slot = r * 7 + c
-                                    val dayIdx = slot - firstDayOffset
-                                    if (dayIdx in uiState.heatmapDays.indices) {
-                                        val dayItem = uiState.heatmapDays[dayIdx]
-                                        val hasUnpaid = dayItem.unpaidDebtToman > 0L
-                                        val hasPaid = dayItem.paidDebtToman > 0L
-                                        val hasRec = dayItem.receivableToman > 0L
-                                        val isSelectedDay = selectedHeatmapDay?.dateJalali == dayItem.dateJalali
-
-                                        val cellColor = when {
-                                            dayItem.unpaidDebtToman >= 10_000_000L -> ext.danger.copy(alpha = 0.24f)
-                                            hasUnpaid -> ext.warning.copy(alpha = 0.22f)
-                                            hasRec -> ext.info.copy(alpha = 0.22f)
-                                            hasPaid -> ext.positive.copy(alpha = 0.20f)
-                                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                        }
-
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(44.dp)
-                                                .clip(RoundedCornerShape(11.dp))
-                                                .background(cellColor)
-                                                .then(
-                                                    when {
-                                                        isSelectedDay -> Modifier.border(
-                                                            2.dp,
-                                                            MaterialTheme.colorScheme.secondary,
-                                                            RoundedCornerShape(11.dp)
-                                                        )
-                                                        dayItem.isToday -> Modifier.border(
-                                                            1.5.dp,
-                                                            MaterialTheme.colorScheme.primary,
-                                                            RoundedCornerShape(11.dp)
-                                                        )
-                                                        else -> Modifier
-                                                    }
-                                                )
-                                                .clickable {
-                                                    if (dayItem.items.isNotEmpty()) {
-                                                        selectedHeatmapDay = dayItem
-                                                    }
-                                                }
-                                        ) {
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(
-                                                    text = PersianCurrencyEngine.toPersianDigits(dayItem.dayOfMonth.toString()),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    fontWeight = if (dayItem.items.isNotEmpty() || dayItem.isToday) FontWeight.Bold else FontWeight.Normal
-                                                )
-                                                if (dayItem.items.isNotEmpty()) {
-                                                    Spacer(modifier = Modifier.height(2.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(6.dp)
-                                                            .clip(CircleShape)
-                                                            .background(
-                                                                when {
-                                                                    hasUnpaid -> ext.danger
-                                                                    hasRec -> ext.info
-                                                                    else -> ext.positive
-                                                                }
-                                                            )
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        Spacer(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(44.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = selectedHeatmapDay != null,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        selectedHeatmapDay?.let { sel ->
-                            Column(modifier = Modifier.padding(top = 12.dp)) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = "تعهدات روز ${JalaliCalendarEngine.formatJalaliVerbose(sel.dateJalali)}:",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                sel.items.forEach { alert ->
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 3.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            TarazinoAutoSizeText(
-                                                text = "${alert.installment.title} (${alert.counterparty?.name ?: ""})",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 2,
-                                                minFontSize = 9.5.sp,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            FormattedMoneyText(
-                                                amountToman = alert.installment.remainingToman,
-                                                unit = unit,
-                                                privacyMasked = masked,
-                                                style = MaterialTheme.typography.labelLarge,
-                                                numberColor = MaterialTheme.colorScheme.primary,
-                                                minFontSize = 9.sp,
-                                                textAlign = TextAlign.End,
-                                                modifier = Modifier.widthIn(max = 148.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            PersianInstallmentHeatmapSection(
+                heatmapYear = uiState.heatmapYear,
+                heatmapMonth = uiState.heatmapMonth,
+                installments = uiState.installments,
+                obligations = uiState.obligations,
+                counterparties = uiState.counterparties,
+                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                currencyUnit = unit,
+                privacyMasked = masked,
+                onChangeHeatmapMonth = onChangeHeatmapMonth,
+                onQuickPay = onQuickPayInstallment
+            )
         }
 
         // =========================================================================
