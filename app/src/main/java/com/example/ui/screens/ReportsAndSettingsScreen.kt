@@ -1,8 +1,12 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -51,11 +55,15 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TableChart
+import com.example.core.JalaliCalendarEngine
+import com.example.notification.ShamsiInstallmentNotificationManager
+import com.example.notification.ShamsiInstallmentReminderEvaluator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -833,6 +841,178 @@ fun ReportsAndSettingsScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+
+            // Shamsi Installment Due-Date Background Worker & Local Notification Card
+            item {
+                var bgReminderEnabled by remember {
+                    mutableStateOf(ShamsiInstallmentNotificationManager.isBackgroundReminderEnabled(context))
+                }
+                var hasNotifPermission by remember {
+                    mutableStateOf(ShamsiInstallmentNotificationManager.hasNotificationPermission(context))
+                }
+                val liveSummary = remember(
+                    uiState.installments,
+                    uiState.obligations,
+                    uiState.counterparties,
+                    uiState.preferences.alertAdvanceDays,
+                    uiState.preferences.currencyUnit,
+                    uiState.preferences.privacyMaskEnabled
+                ) {
+                    ShamsiInstallmentReminderEvaluator.buildShamsiDueNotificationSummary(
+                        installments = uiState.installments,
+                        obligations = uiState.obligations,
+                        counterparties = uiState.counterparties,
+                        todayJalali = JalaliCalendarEngine.todayJalali(),
+                        alertAdvanceDays = uiState.preferences.alertAdvanceDays,
+                        currencyUnit = uiState.preferences.currencyUnit,
+                        privacyMasked = uiState.preferences.privacyMaskEnabled
+                    )
+                }
+
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    hasNotifPermission = granted
+                    if (granted) {
+                        ShamsiInstallmentNotificationManager.setBackgroundReminderEnabled(context, true)
+                        bgReminderEnabled = true
+                        ShamsiInstallmentNotificationManager.postSummaryNotification(
+                            context = context,
+                            summary = liveSummary,
+                            forceEvenIfEmpty = true
+                        )
+                        onShowToast("مجوز اعلان فعال شد و یادآور سررسیدهای شمسی ارسال گردید")
+                    } else {
+                        onShowToast("مجوز نمایش اعلان در سیستم اندروید تایید نشد")
+                    }
+                }
+
+                TarazinoGlassCard(
+                    accentBorderColor = if (bgReminderEnabled && hasNotifPermission) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.testTag("shamsi_notification_settings_card")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TarazinoSectionHeader(
+                            title = "یادآور پس‌زمینه و اعلان سررسیدهای شمسی",
+                            subtitle = "بررسی خودکار اقساط با تقویم جلالی (${liveSummary.todayVerboseFa})",
+                            icon = Icons.Default.NotificationsActive,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            trailing = {
+                                TarazinoStatusPill(
+                                    text = if (bgReminderEnabled && hasNotifPermission) "فعال (۱۲ ساعته)" else "نیازمند مجوز",
+                                    accentColor = if (bgReminderEnabled && hasNotifPermission) ext.positive else ext.warning
+                                )
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(13.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "پایش خودکار سررسید اقساط در پس‌زمینه",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "هشدار تا ${PersianCurrencyEngine.toPersianDigits(uiState.preferences.alertAdvanceDays.toString())} روز قبل از سررسید شمسی",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = bgReminderEnabled,
+                                    onCheckedChange = { enabled ->
+                                        bgReminderEnabled = enabled
+                                        ShamsiInstallmentNotificationManager.setBackgroundReminderEnabled(context, enabled)
+                                        if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotifPermission) {
+                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("shamsi_bg_notification_switch")
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (ext.isDark) 0.36f else 0.55f),
+                            border = BorderStroke(0.85.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = liveSummary.notificationTitle,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = liveSummary.notificationShortText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    !ShamsiInstallmentNotificationManager.hasNotificationPermission(context)
+                                ) {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    ShamsiInstallmentNotificationManager.triggerImmediateWorkerCheck(context)
+                                    val posted = ShamsiInstallmentNotificationManager.postSummaryNotification(
+                                        context = context,
+                                        summary = liveSummary,
+                                        forceEvenIfEmpty = true
+                                    )
+                                    if (posted) {
+                                        onShowToast("اعلان سررسیدهای شمسی با موفقیت ارسال شد")
+                                    } else {
+                                        onShowToast("امکان ارسال اعلان وجود ندارد؛ مجوز اعلان دستگاه را بررسی کنید")
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(13.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("trigger_shamsi_due_notification_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            TarazinoAutoSizeText(
+                                text = "بررسی فوری و ارسال اعلان آزمایشی سررسید شمسی",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                minFontSize = 9.5.sp
+                            )
                         }
                     }
                 }

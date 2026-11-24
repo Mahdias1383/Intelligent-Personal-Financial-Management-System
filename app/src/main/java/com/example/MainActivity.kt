@@ -122,6 +122,13 @@ import com.example.ui.screens.TreePortfolioScreen
 import com.example.ui.theme.LocalTarazinoColors
 import com.example.ui.theme.TarazinoTheme
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import com.example.notification.ShamsiInstallmentNotificationManager
+
 private data class NavBarDestination(
     val tab: TarazinoNavTab,
     val labelFa: String,
@@ -133,6 +140,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        ShamsiInstallmentNotificationManager.ensureChannelAndSchedulePeriodicWork(this)
         setContent {
             val viewModel: TarazinoViewModel = viewModel()
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,6 +165,21 @@ fun TarazinoAppRoot(
     viewModel: TarazinoViewModel
 ) {
     val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            ShamsiInstallmentNotificationManager.ensureChannelAndSchedulePeriodicWork(context)
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ShamsiInstallmentNotificationManager.isBackgroundReminderEnabled(context) &&
+            !ShamsiInstallmentNotificationManager.hasNotificationPermission(context)
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val spotlightRegistry = remember { SpotlightTargetRegistry() }
     val extColors = LocalTarazinoColors.current
     val todayShortHeader = remember {
