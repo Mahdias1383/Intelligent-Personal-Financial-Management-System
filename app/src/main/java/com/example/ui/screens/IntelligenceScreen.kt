@@ -608,9 +608,15 @@ fun IntelligenceScreen(
                                         maxLines = 1,
                                         minFontSize = 10.sp
                                     )
-                                    val focusedDisplayTotal = if (unit == CurrencyUnit.RIAL) focusedBar.totalDebtToman * 10L else focusedBar.totalDebtToman
                                     TarazinoAutoSizeText(
-                                        text = "کل بار ماه: ${formatCompactPersianToman(focusedDisplayTotal, masked)} ${if (masked) "" else unit.labelFa}",
+                                        text = "کل بار ماه: ${
+                                            PersianCurrencyEngine.formatCompactAmount(
+                                                amountToman = focusedBar.totalDebtToman,
+                                                unit = unit,
+                                                includeUnit = true,
+                                                privacyMasked = masked
+                                            )
+                                        }",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
@@ -1321,7 +1327,7 @@ private fun FinancialHealthSpeedometerGauge(
             }
             Spacer(modifier = Modifier.height(4.dp))
             TarazinoStatusPill(
-                text = "$statusBadgeFa • DTI ${PersianCurrencyEngine.toPersianDigits(dtiPercent.toString())}٪",
+                text = "$statusBadgeFa • فشار قسط ${PersianCurrencyEngine.toPersianDigits(dtiPercent.toString())}٪",
                 accentColor = statusColor
             )
         }

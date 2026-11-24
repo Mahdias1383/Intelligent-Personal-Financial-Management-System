@@ -48,7 +48,9 @@ data class UserPreferencesState(
     val isInitialSeedDone: Boolean = false,
     val autoPaymentScheduleEnabled: Boolean = false,
     val preferredAutoPayDayOfMonth: Int = 0,
-    val preferredSecondaryPayDayOfMonth: Int = 0
+    val preferredSecondaryPayDayOfMonth: Int = 0,
+    val dashboardLayoutConfig: com.example.domain.DashboardLayoutConfig =
+        com.example.domain.DashboardLayoutGridEngine.defaultConfig()
 )
 
 class TarazinoRepository(
@@ -104,7 +106,10 @@ class TarazinoRepository(
             isInitialSeedDone = prefs.getBoolean("is_initial_seed_done", false),
             autoPaymentScheduleEnabled = prefs.getBoolean("auto_payment_schedule_enabled", false),
             preferredAutoPayDayOfMonth = prefs.getInt("preferred_auto_pay_day_of_month", 0),
-            preferredSecondaryPayDayOfMonth = prefs.getInt("preferred_secondary_pay_day_of_month", 0)
+            preferredSecondaryPayDayOfMonth = prefs.getInt("preferred_secondary_pay_day_of_month", 0),
+            dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.deserializeConfig(
+                prefs.getString("dashboard_layout_grid_v1", null)
+            )
         )
     }
 
@@ -132,6 +137,10 @@ class TarazinoRepository(
             .putBoolean("auto_payment_schedule_enabled", updated.autoPaymentScheduleEnabled)
             .putInt("preferred_auto_pay_day_of_month", updated.preferredAutoPayDayOfMonth)
             .putInt("preferred_secondary_pay_day_of_month", updated.preferredSecondaryPayDayOfMonth)
+            .putString(
+                "dashboard_layout_grid_v1",
+                com.example.domain.DashboardLayoutGridEngine.serializeConfig(updated.dashboardLayoutConfig)
+            )
             .apply()
         _preferencesState.value = updated
     }

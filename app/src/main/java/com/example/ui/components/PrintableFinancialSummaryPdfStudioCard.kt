@@ -278,7 +278,11 @@ fun PrintableFinancialSummaryPdfStudioCard(
                     savedRecords = ComprehensiveFinancialPdfReportEngine.listSavedPdfRecords(context)
                     lastSavedFileName = savedFile.name
                     ComprehensiveFinancialPdfReportEngine.shareSavedPdfRecord(context, savedFile)
-                    onShowToast("گزارش جامع PDF (${savedFile.name}) در بایگانی ذخیره و آماده چاپ شد.")
+                    onShowToast(
+                        PersianCurrencyEngine.formatRtlBidiSafe(
+                            "گزارش جامع PDF (${savedFile.name}) در بایگانی ذخیره و آماده چاپ شد."
+                        )
+                    )
                 },
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -319,10 +323,14 @@ fun PrintableFinancialSummaryPdfStudioCard(
                             pdfFile = savedFile
                         )
                         if (printed) {
-                            onShowToast("سرویس چاپگر استاندارد A4 اندروید باز شد.")
+                            onShowToast(PersianCurrencyEngine.formatRtlBidiSafe("سرویس چاپگر استاندارد A4 اندروید باز شد."))
                         } else {
                             ComprehensiveFinancialPdfReportEngine.shareSavedPdfRecord(context, savedFile)
-                            onShowToast("فایل PDF جامع (${savedFile.name}) ذخیره و آماده چاپ شد.")
+                            onShowToast(
+                                PersianCurrencyEngine.formatRtlBidiSafe(
+                                    "فایل PDF جامع (${savedFile.name}) ذخیره و آماده چاپ شد."
+                                )
+                            )
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
@@ -389,7 +397,7 @@ fun PrintableFinancialSummaryPdfStudioCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "بایگانی گزارش‌های PDF ذخیره‌شده در دستگاه:",
+                            text = PersianCurrencyEngine.formatRtlBidiSafe("بایگانی گزارش‌های PDF ذخیره‌شده در دستگاه:"),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -104,6 +105,8 @@ import com.example.data.InstallmentStatus
 import com.example.data.ObligationEntity
 import com.example.data.TrustPriority
 import com.example.domain.AlertUrgencyBucket
+import com.example.domain.DashboardFocusPreset
+import com.example.domain.DashboardModuleId
 import com.example.domain.EnrichedInstallmentAlert
 import com.example.ui.TarazinoUiState
 import com.example.domain.MonthlySavingsGoalEngine
@@ -111,11 +114,15 @@ import com.example.ui.components.AiDailyFinancialTipCard
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DashboardDebtCategoryTagFilterSection
+import com.example.ui.components.DashboardDebtSnowballCard
 import com.example.ui.components.DashboardGlobalSearchAndFilterBar
+import com.example.ui.components.DashboardLayoutCustomizeToolbar
+import com.example.ui.components.DashboardReorderableGridModal
 import com.example.ui.components.DashboardStrategyTabContent
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
+import com.example.ui.components.InlineReorderableModuleWrapper
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MetallicSmartChipEmblem
 import com.example.ui.components.MonthlySavingsGoalDashboardSummarySection
@@ -168,21 +175,35 @@ fun DashboardScreen(
     onOpenContractScanner: () -> Unit = {},
     onSaveAutomatedSchedule: (enabled: Boolean, primaryDay: Int, secondaryDay: Int?) -> Unit = { _, _, _ -> },
     onRefreshDailyAiTip: () -> Unit = {},
+    onMoveDashboardModule: (fromIndex: Int, toIndex: Int) -> Unit = { _, _ -> },
+    onMoveDashboardModuleByDelta: (DashboardModuleId, Int) -> Unit = { _, _ -> },
+    onPinDashboardModuleToTop: (DashboardModuleId) -> Unit = {},
+    onToggleDashboardModuleVisibility: (DashboardModuleId) -> Unit = {},
+    onApplyDashboardFocusPreset: (DashboardFocusPreset) -> Unit = {},
+    onResetDashboardLayout: () -> Unit = {},
     tourScrollIndex: Int? = null
 ) {
     val ext = LocalTarazinoColors.current
     val unit = uiState.preferences.currencyUnit
     val masked = uiState.preferences.privacyMaskEnabled
     val listState = rememberLazyListState()
+    val layoutConfig = uiState.preferences.dashboardLayoutConfig
+    val visibleModules = remember(layoutConfig) { layoutConfig.visibleOrderedModules }
 
     var selectedSubTab by remember { mutableStateOf(DashboardSubTab.OVERVIEW) }
     var showAllAlertsModal by remember { mutableStateOf(false) }
+    var showReorderGridModal by remember { mutableStateOf(false) }
+    var isInlineReorderMode by remember { mutableStateOf(false) }
     var heroModeIndex by remember { mutableIntStateOf(0) } // 0 = This Month, 1 = Total Remaining, 2 = Receivables
     var isVaultCardFlipped by remember { mutableStateOf(false) }
     var selectedDonutCategory by remember { mutableStateOf<EntityCategory?>(null) }
 
-    BackHandler(enabled = selectedSubTab == DashboardSubTab.STRATEGY) {
-        selectedSubTab = DashboardSubTab.OVERVIEW
+    BackHandler(enabled = selectedSubTab == DashboardSubTab.STRATEGY || isInlineReorderMode) {
+        if (isInlineReorderMode) {
+            isInlineReorderMode = false
+        } else {
+            selectedSubTab = DashboardSubTab.OVERVIEW
+        }
     }
 
     val activeStrategyDebtCount = remember(uiState.obligations, uiState.installments) {
@@ -401,7 +422,7 @@ fun DashboardScreen(
         // =========================================================================
         // 0. GLOBAL SEARCH & MULTI-CRITERIA FILTER BAR (NAME, TAG, SHAMSI DUE DATE RANGE)
         // =========================================================================
-        item {
+        item(key = "dashboard_global_search_bar") {
             DashboardGlobalSearchAndFilterBar(
                 obligations = uiState.obligations,
                 installments = uiState.installments,
@@ -414,998 +435,461 @@ fun DashboardScreen(
         }
 
         // =========================================================================
-        // 1. INTERACTIVE 3D-TILTABLE & 3D-FLIPPABLE PLATINUM VAULT CARD
-        //    (Drag to tilt in 3D with live specular flare • Tap flip for Back Vault Stats)
+        // 0.5. REORDERABLE GRID & FOCUS PRIORITIZATION TOOLBAR
         // =========================================================================
-        item {
-            val heroModes = listOf(
-                uiState.dtiHealthReport?.currentMonthYearLabelFa?.substringBefore(" ") ?: "این ماه",
-                "کل بدهی",
-                "مطالبات"
+        item(key = "dashboard_layout_customize_toolbar") {
+            DashboardLayoutCustomizeToolbar(
+                layoutConfig = layoutConfig,
+                isInlineReorderMode = isInlineReorderMode,
+                onToggleInlineReorderMode = { isInlineReorderMode = !isInlineReorderMode },
+                onOpenReorderGridModal = { showReorderGridModal = true },
+                onApplyPreset = onApplyDashboardFocusPreset
             )
-            val displayedAmount = when (heroModeIndex) {
-                0 -> currentMonthDue
-                1 -> totalRem
-                else -> receivablesRem
-            }
-            val displayedSubtitle = when (heroModeIndex) {
-                0 -> "مجموع اقساط مانده در ماه جاری"
-                1 -> "کل تعهدات و اقساط پرداخت‌نشده"
-                else -> "مجموع طلب‌های دریافت‌نشده از دیگران"
-            }
+        }
 
-            // Dynamic Theme-Synced Aura Morphing per Mode (Institutional Private-Banking Finishes)
-            val cardAccentPrimary = when (heroModeIndex) {
-                0 -> ext.heroAccent
-                1 -> Color(0xFFDEB14B) // Sovereign Bullion Champagne Gold
-                else -> Color(0xFF4DA6F0) // Imperial Sapphire Slate
-            }
-            val cardAccentSecondary = when (heroModeIndex) {
-                0 -> MaterialTheme.colorScheme.secondary
-                1 -> Color(0xFFD9884B)
-                else -> Color(0xFFA794E8)
-            }
-            val cardBaseStart = when (heroModeIndex) {
-                0 -> ext.heroStart
-                1 -> if (ext.isDark) Color(0xFF2C2215) else Color(0xFF3B2B16)
-                else -> if (ext.isDark) Color(0xFF102446) else Color(0xFF0E3254)
-            }
-            val cardBaseMid = when (heroModeIndex) {
-                0 -> ext.heroMid
-                1 -> if (ext.isDark) Color(0xFF1E1914) else Color(0xFF282019)
-                else -> if (ext.isDark) Color(0xFF101C36) else Color(0xFF102640)
-            }
-            val cardBaseEnd = when (heroModeIndex) {
-                0 -> ext.heroEnd
-                1 -> if (ext.isDark) Color(0xFF13110E) else Color(0xFF1A1715)
-                else -> if (ext.isDark) Color(0xFF0B1224) else Color(0xFF0E1B2E)
-            }
-
-            val freedomDateShort = uiState.payoffSimulation?.projectedBaselineDateJalali?.let {
-                JalaliCalendarEngine.formatJalaliShortText(it)
-            } ?: "تسویه کامل!"
-            val healthScore = uiState.dtiHealthReport?.obligationCoverageScore ?: 100
-            val paidInstCount = uiState.installments.count { it.statusEnum == InstallmentStatus.PAID }
-
-            TarazinoStaggeredReveal(index = 0) {
-                TarazinoMetalVaultCard(
-                    accentPrimary = cardAccentPrimary,
-                    accentSecondary = cardAccentSecondary,
-                    baseStart = cardBaseStart,
-                    baseMid = cardBaseMid,
-                    baseEnd = cardBaseEnd,
-                    isFlipped = isVaultCardFlipped,
-                    modifier = Modifier.tourSpotlightTarget("dashboard_monthly_summary"),
-                backContent = {
-                    // BACK OF THE 3D BLACK VAULT CARD
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 18.dp)
-                    ) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        // Authentic Obsidian Magnetic Security Stripe
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(30.dp)
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(
-                                            Color(0xFF020406),
-                                            Color(0xFF141B24),
-                                            Color(0xFF020406)
-                                        )
-                                    )
-                                ),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Text(
-                                text = "TARAZINO ULTRA • PRIVATE VAULT",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
-                                letterSpacing = 1.6.sp,
-                                color = cardAccentPrimary.copy(alpha = 0.65f),
-                                modifier = Modifier.padding(horizontal = 18.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Verified,
-                                        contentDescription = null,
-                                        tint = cardAccentPrimary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    TarazinoAutoSizeText(
-                                        text = "شناسنامه خزانه و آزادی مالی",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        minFontSize = 10.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = cardAccentPrimary.copy(alpha = 0.18f),
-                                    border = BorderStroke(0.8.dp, cardAccentPrimary.copy(alpha = 0.55f)),
-                                    modifier = Modifier.tarazinoPressScale(scaleDown = 0.92f) {
-                                        isVaultCardFlipped = false
-                                    }
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.FlipCameraAndroid,
-                                            contentDescription = "بازگشت به روی کارت",
-                                            tint = cardAccentPrimary,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "روی کارت",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = cardAccentPrimary
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.06f),
-                                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.12f)),
-                                    modifier = Modifier.weight(1.25f)
-                                ) {
-                                    Column(modifier = Modifier.padding(11.dp)) {
-                                        TarazinoAutoSizeText(
-                                            text = "تاریخ آزادی از بدهی",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = ext.heroOnSurfaceMuted,
-                                            maxLines = 1,
-                                            minFontSize = 8.5.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        TarazinoAutoSizeText(
-                                            text = freedomDateShort,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Black,
-                                            color = cardAccentPrimary,
-                                            maxLines = 1,
-                                            minFontSize = 10.sp
-                                        )
-                                    }
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color.White.copy(alpha = 0.06f),
-                                    border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.12f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(modifier = Modifier.padding(11.dp)) {
-                                        TarazinoAutoSizeText(
-                                            text = "امتیاز سلامت مالی",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = ext.heroOnSurfaceMuted,
-                                            maxLines = 1,
-                                            minFontSize = 8.5.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        TarazinoAutoSizeText(
-                                            text = "${PersianCurrencyEngine.toPersianDigits(healthScore.toString())} / ۱۰۰",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color(0xFFE8C67D),
-                                            maxLines = 1,
-                                            minFontSize = 10.sp
-                                        )
-                                    }
-                                }
-                            }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(13.dp))
-                                    .background(Color.White.copy(alpha = 0.05f))
-                                    .padding(horizontal = 12.dp, vertical = 9.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TarazinoAutoSizeText(
-                                    text = "${PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString())} پرونده فعال • ${PersianCurrencyEngine.toPersianDigits(paidInstCount.toString())} قسط تسویه",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = ext.heroOnSurface.copy(alpha = 0.88f),
-                                    maxLines = 1,
-                                    minFontSize = 8.5.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "آفلاین و امن",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontSize = 10.sp,
-                                    color = cardAccentPrimary,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    }
-                }
-            ) {
-                // FRONT OF THE 3D PLATINUM VAULT CARD
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp)
+        // =========================================================================
+        // DYNAMIC REORDERABLE DASHBOARD MODULES (USER-PRIORITIZED ORDER)
+        // =========================================================================
+        itemsIndexed(
+            items = visibleModules,
+            key = { _, moduleId -> "dashboard_module_${moduleId.name}" }
+        ) { rankIndex, moduleId ->
+            Box(modifier = Modifier.animateItem()) {
+                InlineReorderableModuleWrapper(
+                    moduleId = moduleId,
+                    rankIndex = rankIndex,
+                    totalVisible = visibleModules.size,
+                    isInlineReorderMode = isInlineReorderMode,
+                    onPinToTop = { onPinDashboardModuleToTop(moduleId) },
+                    onMoveUp = { onMoveDashboardModuleByDelta(moduleId, -1) },
+                    onMoveDown = { onMoveDashboardModuleByDelta(moduleId, 1) },
+                    onHideModule = { onToggleDashboardModuleVisibility(moduleId) }
                 ) {
-                    // Top Row: Mode Pill Switcher + 3D Flip Trigger (Clean spacing, zero horizontal collision)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White.copy(alpha = 0.075f),
-                            border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.16f)),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(3.dp),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                heroModes.forEachIndexed { idx, label ->
-                                    val selected = idx == heroModeIndex
-                                    val tabBg by animateColorAsState(
-                                        targetValue = if (selected) cardAccentPrimary else Color.Transparent,
-                                        label = "HeroModeBg_$idx"
-                                    )
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(11.dp))
-                                            .background(tabBg)
-                                            .tarazinoPressScale(scaleDown = 0.93f) { heroModeIndex = idx }
-                                            .padding(horizontal = 4.dp, vertical = 5.dp)
-                                    ) {
-                                        TarazinoAutoSizeText(
-                                            text = label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                                            color = if (selected) Color(0xFF041C19) else ext.heroOnSurface.copy(alpha = 0.88f),
-                                            textAlign = TextAlign.Center,
-                                            maxLines = 1,
-                                            minFontSize = 8.5.sp,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    }
-                                }
+                    when (moduleId) {
+                        DashboardModuleId.PLATINUM_VAULT_HERO -> {
+                            val heroModes = listOf(
+                                uiState.dtiHealthReport?.currentMonthYearLabelFa?.substringBefore(" ") ?: "این ماه",
+                                "کل بدهی",
+                                "مطالبات"
+                            )
+                            val displayedAmount = when (heroModeIndex) {
+                                0 -> currentMonthDue
+                                1 -> totalRem
+                                else -> receivablesRem
                             }
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.09f),
-                            border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.22f)),
-                            modifier = Modifier
-                                .size(32.dp)
-                                .tarazinoPressScale(scaleDown = 0.88f) {
-                                    isVaultCardFlipped = true
-                                }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.FlipCameraAndroid,
-                                    contentDescription = "چرخش سه‌بعدی پشت کارت",
-                                    tint = Color.White.copy(alpha = 0.88f),
-                                    modifier = Modifier.size(16.dp)
-                                )
+                            val displayedSubtitle = when (heroModeIndex) {
+                                0 -> "مجموع اقساط مانده در ماه جاری"
+                                1 -> "کل تعهدات و اقساط پرداخت‌نشده"
+                                else -> "مجموع طلب‌های دریافت‌نشده از دیگران"
                             }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Focal Balance Row with True Per-Digit Rolling Odometer Animation + 60fps Liquid Wave Orb
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            AnimatedContent(
-                                targetState = displayedSubtitle,
-                                transitionSpec = {
-                                    fadeIn(tween(220)) togetherWith fadeOut(tween(130))
-                                },
-                                label = "HeroSubtitleFade"
-                            ) { sub ->
-                                TarazinoAutoSizeText(
-                                    text = sub,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = ext.heroOnSurfaceMuted,
-                                    maxLines = 1,
-                                    minFontSize = 9.5.sp
-                                )
+                            val cardAccentPrimary = when (heroModeIndex) {
+                                0 -> ext.heroAccent
+                                1 -> Color(0xFFDEB14B)
+                                else -> Color(0xFF4DA6F0)
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            AnimatedOdometerMoneyText(
-                                amountToman = displayedAmount,
-                                unit = unit,
-                                privacyMasked = masked,
-                                style = MaterialTheme.typography.displayLarge,
-                                numberColor = Color.White,
-                                unitColor = cardAccentPrimary.copy(alpha = 0.95f),
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            AnimatedVisibility(visible = !masked && displayedAmount > 0L) {
-                                TarazinoAutoSizeText(
-                                    text = PersianCurrencyEngine.amountToPersianWords(displayedAmount, unit),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.68f),
-                                    maxLines = 2,
-                                    minFontSize = 8.5.sp,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 2.dp)
-                                )
+                            val cardAccentSecondary = when (heroModeIndex) {
+                                0 -> MaterialTheme.colorScheme.secondary
+                                1 -> Color(0xFFD9884B)
+                                else -> Color(0xFFA794E8)
                             }
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        // 60fps Animated Dual-Wave Liquid Settlement Orb
-                        LiquidWaveHealthOrb(
-                            progress = if (hasAnimatedIn) progressRatio else 0f,
-                            accentColor = cardAccentPrimary,
-                            centerPrimaryText = "${PersianCurrencyEngine.toPersianDigits(progressPercent.toString())}٪",
-                            centerSubText = "تسویه",
-                            size = 62.dp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Translucent Smoked-Glass Vault Footer Strip
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White.copy(alpha = 0.06f))
-                            .border(0.8.dp, Color.White.copy(alpha = 0.13f), RoundedCornerShape(16.dp))
-                            .padding(horizontal = 13.dp, vertical = 9.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            TarazinoAutoSizeText(
-                                text = "تسویه‌شده تا امروز",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = ext.heroOnSurfaceMuted,
-                                maxLines = 1,
-                                minFontSize = 8.5.sp
-                            )
-                            FormattedMoneyText(
-                                amountToman = totalPaid,
-                                unit = unit,
-                                privacyMasked = masked,
-                                style = MaterialTheme.typography.labelLarge,
-                                numberColor = Color(0xFF34D399),
-                                unitColor = Color(0xFFA7F3D0),
-                                minFontSize = 9.sp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .height(26.dp)
-                                .background(Color.White.copy(alpha = 0.14f))
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            TarazinoAutoSizeText(
-                                text = "کل بدهی مانده",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = ext.heroOnSurfaceMuted,
-                                textAlign = TextAlign.End,
-                                maxLines = 1,
-                                minFontSize = 8.5.sp,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            FormattedMoneyText(
-                                amountToman = totalRem,
-                                unit = unit,
-                                privacyMasked = masked,
-                                style = MaterialTheme.typography.labelLarge,
-                                numberColor = Color(0xFFDAB978),
-                                unitColor = Color(0xFFF7E7C4),
-                                minFontSize = 9.sp,
-                                textAlign = TextAlign.End,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-            }
-            }
-        }
-
-        // =========================================================================
-        // 1.2. AI-DRIVEN SPENDING PATTERN & DAILY PERSONALIZED FINANCIAL TIP CARD
-        // =========================================================================
-        item(key = "dashboard_ai_daily_financial_tip") {
-            TarazinoStaggeredReveal(index = 1) {
-                AiDailyFinancialTipCard(
-                    tipState = uiState.dailyAiTipState,
-                    snapshot = uiState.dailySpendingSnapshot,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onRefreshTip = onRefreshDailyAiTip
-                )
-            }
-        }
-
-        // =========================================================================
-        // 1.5. SHAMSI QUICK DEBT, MONTHLY SAVINGS GOAL & UPCOMING DEADLINES SUMMARY CARD
-        // =========================================================================
-        item {
-            TarazinoStaggeredReveal(index = 1) {
-                ShamsiQuickDebtAndDeadlineSummaryCard(
-                    uiState = uiState,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onQuickPay = onQuickPay,
-                    onOpenAllAlerts = { showAllAlertsModal = true },
-                    onOpenObligationInTree = onOpenObligationInTree,
-                    onQuickSavingsDepositDelta = onQuickSavingsDepositDelta,
-                    onUpdateMonthlySavingsGoal = onUpdateMonthlySavingsGoal
-                )
-            }
-        }
-
-        // =========================================================================
-        // 1.7. PAID VS. OUTSTANDING DEBT PROGRESS RING CHART
-        // =========================================================================
-        item {
-            val debtObIds = remember(uiState.obligations) {
-                uiState.obligations.filter { !it.categoryEnum.isReceivable }.map { it.id }.toSet()
-            }
-            val paidDebtInstCount = remember(uiState.installments, debtObIds) {
-                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum == InstallmentStatus.PAID }
-            }
-            val outstandingDebtInstCount = remember(uiState.installments, debtObIds) {
-                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum != InstallmentStatus.PAID }
-            }
-
-            TarazinoStaggeredReveal(index = 2) {
-                DebtPaidVsOutstandingRingCard(
-                    paidDebtToman = totalPaid,
-                    outstandingDebtToman = totalRem,
-                    paidInstallmentsCount = paidDebtInstCount,
-                    outstandingInstallmentsCount = outstandingDebtInstCount,
-                    currencyUnit = unit,
-                    privacyMasked = masked
-                )
-            }
-        }
-
-        // =========================================================================
-        // 2. BLUBANK-STYLE 4-COLUMN SQUIRCLE QUICK ACTIONS STRIP
-        // =========================================================================
-        item {
-            val mostUrgent = uiState.smartAlertQueue.firstOrNull()
-            TarazinoStaggeredReveal(index = 1) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TarazinoQuickActionTile(
-                    label = "ثبت قسط",
-                    icon = Icons.Default.AddCircle,
-                    accentColor = MaterialTheme.colorScheme.primary,
-                    onClick = onOpenNewObligationWizard,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("dashboard_add_obligation_btn")
-                )
-                TarazinoQuickActionTile(
-                    label = "تسویه فوری",
-                    icon = Icons.Default.Bolt,
-                    accentColor = ext.warning,
-                    badgeCount = urgentCount,
-                    onClick = {
-                        if (mostUrgent != null) {
-                            onQuickPay(mostUrgent.installment)
-                        } else {
-                            showAllAlertsModal = true
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("quick_bar_pay_urgent_btn")
-                )
-                TarazinoQuickActionTile(
-                    label = "بودجه و هوش",
-                    icon = Icons.Default.Insights,
-                    accentColor = ext.info,
-                    onClick = onOpenIntelligenceTab,
-                    modifier = Modifier.weight(1f)
-                )
-                TarazinoQuickActionTile(
-                    label = "گزارش A4",
-                    icon = Icons.Default.PictureAsPdf,
-                    accentColor = MaterialTheme.colorScheme.secondary,
-                    onClick = onOpenFullA4Report,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("dashboard_open_a4_report_btn")
-                )
-            }
-            }
-        }
-
-        // =========================================================================
-        // 2.1. CAMERA OCR LOAN CONTRACT & RECEIPT SCANNER ACTION CARD
-        // =========================================================================
-        item(key = "dashboard_contract_scanner_banner") {
-            TarazinoStaggeredReveal(index = 2) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(
-                        1.dp,
-                        Brush.horizontalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)
-                            )
-                        )
-                    ),
-                    shadowElevation = if (ext.isDark) 0.dp else 4.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .tarazinoPressScale(scaleDown = 0.98f) { onOpenContractScanner() }
-                        .testTag("dashboard_open_contract_scanner_btn")
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = if (ext.isDark) 0.16f else 0.08f),
-                                        MaterialTheme.colorScheme.secondary.copy(alpha = if (ext.isDark) 0.12f else 0.06f)
-                                    )
-                                )
-                            )
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        TarazinoIconBadge(
-                            icon = Icons.Default.DocumentScanner,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            size = 44.dp,
-                            iconSize = 22.dp,
-                            cornerRadius = 14.dp
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "اسکن قرارداد وام و رسید با دوربین",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(999.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                                ) {
-                                    Text(
-                                        text = "OCR",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
-                                    )
-                                }
+                            val cardBaseStart = when (heroModeIndex) {
+                                0 -> ext.heroStart
+                                1 -> if (ext.isDark) Color(0xFF2C2215) else Color(0xFF3B2B16)
+                                else -> if (ext.isDark) Color(0xFF102446) else Color(0xFF0E3254)
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "استخراج خودکار مبلغ قسط، تاریخ سررسید و نرخ سود از روی کاغذ یا تصویر",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-        }
+                            val cardBaseMid = when (heroModeIndex) {
+                                0 -> ext.heroMid
+                                1 -> if (ext.isDark) Color(0xFF1E1914) else Color(0xFF282019)
+                                else -> if (ext.isDark) Color(0xFF101C36) else Color(0xFF102640)
+                            }
+                            val cardBaseEnd = when (heroModeIndex) {
+                                0 -> ext.heroEnd
+                                1 -> if (ext.isDark) Color(0xFF13110E) else Color(0xFF1A1715)
+                                else -> if (ext.isDark) Color(0xFF0B1224) else Color(0xFF0E1B2E)
+                            }
 
-        // =========================================================================
-        // 2.2. APPLE WALLET × REVOLUT PHYSICAL MINI-CARD DECK (کیف کارت طرف‌های پرداخت)
-        // =========================================================================
-        if (uiState.counterparties.isNotEmpty()) {
-            item {
-                TarazinoStaggeredReveal(index = 2) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CreditCard,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "کیف کارت طرف‌های پرداخت",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
-                        Text(
-                            text = "${PersianCurrencyEngine.toPersianDigits(uiState.counterparties.size.toString())} کارت فعال",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                            val freedomDateShort = uiState.payoffSimulation?.projectedBaselineDateJalali?.let {
+                                JalaliCalendarEngine.formatJalaliShortText(it)
+                            } ?: "تسویه کامل!"
+                            val healthScore = uiState.dtiHealthReport?.obligationCoverageScore ?: 100
+                            val paidInstCount = uiState.installments.count { it.statusEnum == InstallmentStatus.PAID }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(11.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                    ) {
-                        uiState.counterparties.forEach { cp ->
-                            val cpObs = uiState.obligations.filter { it.counterpartyId == cp.id }
-                            val cpObIds = cpObs.map { it.id }.toSet()
-                            val cpInsts = uiState.installments.filter { it.obligationId in cpObIds }
-                            val cpTotalPayable = cpInsts.sumOf { it.effectiveTotalToman }
-                            val cpTotalPaid = cpInsts.sumOf { it.paidAmountToman }
-                            val cpRem = cpInsts.sumOf { it.remainingToman }
-                            val cpPending = cpInsts.count { it.statusEnum != InstallmentStatus.PAID }
-                            val cpProg = if (cpTotalPayable > 0L) {
-                                (cpTotalPaid.toFloat() / cpTotalPayable.toFloat()).coerceIn(0f, 1f)
-                            } else 1f
-                            val last4 = cp.cardNumber.filter { it.isDigit() }.takeLast(4).ifBlank { null }
-
-                            TarazinoMiniBrandCard(
-                                name = cp.name,
-                                categoryBadgeFa = cp.categoryEnum.badgeFa,
-                                remainingToman = cpRem,
-                                progressRatio = cpProg,
-                                pendingCount = cpPending,
-                                lastFourDigits = last4,
-                                accentColor = Color(cp.avatarColorHex),
-                                currencyUnit = unit,
-                                privacyMasked = masked,
-                                onClick = { onOpenCounterpartyInTree(cp) },
-                                modifier = Modifier.testTag("dashboard_quick_cp_${cp.id}")
-                            )
-                        }
-                    }
-                }
-                }
-            }
-        }
-
-        // =========================================================================
-        // 2.5. INTERACTIVE TAP-TO-INSPECT 7-DAY JALALI CASHFLOW PULSE STRIP
-        // =========================================================================
-        item {
-            TarazinoStaggeredReveal(index = 3) {
-                WeeklyJalaliCashflowStrip(
-                    alerts = uiState.smartAlertQueue,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onQuickPay = onQuickPay,
-                    onOpenCalendarTab = onOpenIntelligenceTab
-                )
-            }
-        }
-
-        // =========================================================================
-        // 3. INTERACTIVE ANIMATED DONUT CHART (CATEGORY BREAKDOWN)
-        // =========================================================================
-        item {
-            val activeSlice = categorySlices.find { it.category == selectedDonutCategory }
-
-            TarazinoGlassCard(
-                cornerRadius = 26.dp,
-                modifier = Modifier
-                    .tourSpotlightTarget("dashboard_category_donut")
-                    .testTag("dashboard_category_donut_card")
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    TarazinoSectionHeader(
-                        title = "ترکیب تعهدات بر اساس دسته",
-                        subtitle = "لمس هر دسته برای بزرگ‌نمایی یا ورود به پوشه",
-                        icon = Icons.Default.DonutLarge,
-                        accentColor = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Interactive Expanding Donut Ring (Properly inset so stroke NEVER overflows bounds!)
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(116.dp)
-                                .clickable { selectedDonutCategory = null }
-                        ) {
-                            Canvas(modifier = Modifier.size(114.dp)) {
-                                val baseStroke = 13.dp.toPx()
-                                val selectedStroke = 17.dp.toPx()
-                                val inset = selectedStroke / 2f + 1.dp.toPx()
-                                val arcSize = Size(
-                                    (size.width - inset * 2f).coerceAtLeast(10f),
-                                    (size.height - inset * 2f).coerceAtLeast(10f)
-                                )
-                                val arcTopLeft = Offset(inset, inset)
-
-                                drawArc(
-                                    color = Color.Gray.copy(alpha = 0.13f),
-                                    startAngle = 0f,
-                                    sweepAngle = 360f,
-                                    useCenter = false,
-                                    topLeft = arcTopLeft,
-                                    size = arcSize,
-                                    style = Stroke(width = baseStroke)
-                                )
-                                if (totalRem > 0L) {
-                                    var currentStartAngle = -90f
-                                    categorySlices.forEach { slice ->
-                                        val rawSweep = (slice.shareRatio * 360f)
-                                            .coerceAtLeast(if (slice.remainingToman > 0L) 9f else 0f)
-                                        val sweep = rawSweep * donutSweepScale
-                                        val isFocused = selectedDonutCategory == slice.category
-                                        val alpha = if (selectedDonutCategory == null || isFocused) 1f else 0.30f
-                                        if (sweep > 0f) {
-                                            drawArc(
-                                                color = slice.color.copy(alpha = alpha),
-                                                startAngle = currentStartAngle,
-                                                sweepAngle = (sweep - 4f).coerceAtLeast(2f),
-                                                useCenter = false,
-                                                topLeft = arcTopLeft,
-                                                size = arcSize,
-                                                style = Stroke(
-                                                    width = if (isFocused) selectedStroke else baseStroke,
-                                                    cap = StrokeCap.Round
+                            TarazinoStaggeredReveal(index = 0) {
+                                TarazinoMetalVaultCard(
+                                    accentPrimary = cardAccentPrimary,
+                                    accentSecondary = cardAccentSecondary,
+                                    baseStart = cardBaseStart,
+                                    baseMid = cardBaseMid,
+                                    baseEnd = cardBaseEnd,
+                                    isFlipped = isVaultCardFlipped,
+                                    modifier = Modifier.tourSpotlightTarget("dashboard_monthly_summary"),
+                                    backContent = {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 18.dp)
+                                        ) {
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(30.dp)
+                                                    .background(
+                                                        Brush.horizontalGradient(
+                                                            listOf(
+                                                                Color(0xFF020406),
+                                                                Color(0xFF141B24),
+                                                                Color(0xFF020406)
+                                                            )
+                                                        )
+                                                    ),
+                                                contentAlignment = Alignment.CenterEnd
+                                            ) {
+                                                Text(
+                                                    text = "TARAZINO ULTRA • PRIVATE VAULT",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontSize = 9.sp,
+                                                    letterSpacing = 1.6.sp,
+                                                    color = cardAccentPrimary.copy(alpha = 0.65f),
+                                                    modifier = Modifier.padding(horizontal = 18.dp)
                                                 )
-                                            )
-                                            currentStartAngle += sweep
-                                        }
-                                    }
-                                }
-                            }
-
-                            AnimatedContent(
-                                targetState = activeSlice,
-                                label = "DonutCenterContent"
-                            ) { focused ->
-                                if (focused != null) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp)
-                                    ) {
-                                        TarazinoAutoSizeText(
-                                            text = formatCompactPersianToman(
-                                                focused.remainingToman * unit.multiplierFromToman,
-                                                masked
-                                            ),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = focused.color,
-                                            textAlign = TextAlign.Center,
-                                            maxLines = 1,
-                                            minFontSize = 8.5.sp
-                                        )
-                                        Text(
-                                            text = "${PersianCurrencyEngine.toPersianDigits((focused.shareRatio * 100).toInt().toString())}٪",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1
-                                        )
-                                    }
-                                } else {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp)
-                                    ) {
-                                        TarazinoAutoSizeText(
-                                            text = PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString()),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            textAlign = TextAlign.Center,
-                                            maxLines = 1,
-                                            minFontSize = 13.sp
-                                        )
-                                        Text(
-                                            text = "پرونده",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Crisp Interactive Category Legend List (Clean unified surfaces + jewel focal accents)
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
-                        ) {
-                            categorySlices.forEach { slice ->
-                                val pct = (slice.shareRatio * 100).toInt()
-                                val isSel = selectedDonutCategory == slice.category
-                                val borderW by animateDpAsState(
-                                    targetValue = if (isSel) 1.4.dp else 0.85.dp,
-                                    label = "SliceBorder_${slice.category.name}"
-                                )
-                                val rowSurfaceColor by animateColorAsState(
-                                    targetValue = if (isSel) {
-                                        slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.10f)
-                                    } else {
-                                        ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.85f)
-                                    },
-                                    label = "SliceBg_${slice.category.name}"
-                                )
-                                val rowBorderColor by animateColorAsState(
-                                    targetValue = if (isSel) {
-                                        slice.color.copy(alpha = 0.78f)
-                                    } else {
-                                        ext.cardBorderTop
-                                    },
-                                    label = "SliceBorderCol_${slice.category.name}"
-                                )
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = rowSurfaceColor,
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                    border = BorderStroke(borderW, rowBorderColor),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .tarazinoPressScale(scaleDown = 0.96f) {
-                                            if (isSel) {
-                                                onOpenCategoryInTree(slice.category)
-                                            } else {
-                                                selectedDonutCategory = slice.category
+                                            }
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 20.dp),
+                                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Verified,
+                                                            contentDescription = null,
+                                                            tint = cardAccentPrimary,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        TarazinoAutoSizeText(
+                                                            text = "شناسنامه خزانه و آزادی مالی",
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = Color.White,
+                                                            maxLines = 1,
+                                                            minFontSize = 10.sp,
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Surface(
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        color = cardAccentPrimary.copy(alpha = 0.18f),
+                                                        border = BorderStroke(0.8.dp, cardAccentPrimary.copy(alpha = 0.55f)),
+                                                        modifier = Modifier.tarazinoPressScale(scaleDown = 0.92f) {
+                                                            isVaultCardFlipped = false
+                                                        }
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.FlipCameraAndroid,
+                                                                contentDescription = "بازگشت به روی کارت",
+                                                                tint = cardAccentPrimary,
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text(
+                                                                text = "روی کارت",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = cardAccentPrimary
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                                ) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(14.dp),
+                                                        color = Color.White.copy(alpha = 0.06f),
+                                                        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.12f)),
+                                                        modifier = Modifier.weight(1.25f)
+                                                    ) {
+                                                        Column(modifier = Modifier.padding(11.dp)) {
+                                                            TarazinoAutoSizeText(
+                                                                text = "تاریخ آزادی از بدهی",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = ext.heroOnSurfaceMuted,
+                                                                maxLines = 1,
+                                                                minFontSize = 8.5.sp
+                                                            )
+                                                            Spacer(modifier = Modifier.height(3.dp))
+                                                            TarazinoAutoSizeText(
+                                                                text = freedomDateShort,
+                                                                style = MaterialTheme.typography.titleSmall,
+                                                                fontWeight = FontWeight.Black,
+                                                                color = cardAccentPrimary,
+                                                                maxLines = 1,
+                                                                minFontSize = 10.sp
+                                                            )
+                                                        }
+                                                    }
+                                                    Surface(
+                                                        shape = RoundedCornerShape(14.dp),
+                                                        color = Color.White.copy(alpha = 0.06f),
+                                                        border = BorderStroke(0.8.dp, Color.White.copy(alpha = 0.12f)),
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Column(modifier = Modifier.padding(11.dp)) {
+                                                            TarazinoAutoSizeText(
+                                                                text = "امتیاز سلامت مالی",
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = ext.heroOnSurfaceMuted,
+                                                                maxLines = 1,
+                                                                minFontSize = 8.5.sp
+                                                            )
+                                                            Spacer(modifier = Modifier.height(3.dp))
+                                                            TarazinoAutoSizeText(
+                                                                text = "${PersianCurrencyEngine.toPersianDigits(healthScore.toString())} / ۱۰۰",
+                                                                style = MaterialTheme.typography.titleSmall,
+                                                                fontWeight = FontWeight.Black,
+                                                                color = Color(0xFFE8C67D),
+                                                                maxLines = 1,
+                                                                minFontSize = 10.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(13.dp))
+                                                        .background(Color.White.copy(alpha = 0.05f))
+                                                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    TarazinoAutoSizeText(
+                                                        text = "${PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString())} پرونده فعال • ${PersianCurrencyEngine.toPersianDigits(paidInstCount.toString())} قسط تسویه",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = ext.heroOnSurface.copy(alpha = 0.88f),
+                                                        maxLines = 1,
+                                                        minFontSize = 8.5.sp,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "آفلاین و امن",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontSize = 10.sp,
+                                                        color = cardAccentPrimary,
+                                                        maxLines = 1
+                                                    )
+                                                }
                                             }
                                         }
-                                        .testTag("donut_legend_${slice.category.name}")
+                                    }
                                 ) {
-                                    Row(
+                                    Column(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .padding(horizontal = 20.dp, vertical = 18.dp)
                                     ) {
                                         Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .clip(CircleShape)
-                                                    .background(slice.color.copy(alpha = 0.20f))
+                                            Surface(
+                                                shape = RoundedCornerShape(14.dp),
+                                                color = Color.White.copy(alpha = 0.075f),
+                                                border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.16f)),
+                                                modifier = Modifier.weight(1f)
                                             ) {
-                                                Box(
+                                                Row(
                                                     modifier = Modifier
-                                                        .size(8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(slice.color)
-                                                )
+                                                        .fillMaxWidth()
+                                                        .padding(3.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    heroModes.forEachIndexed { idx, label ->
+                                                        val selected = idx == heroModeIndex
+                                                        val tabBg by animateColorAsState(
+                                                            targetValue = if (selected) cardAccentPrimary else Color.Transparent,
+                                                            label = "HeroModeBg_$idx"
+                                                        )
+                                                        Box(
+                                                            contentAlignment = Alignment.Center,
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .clip(RoundedCornerShape(11.dp))
+                                                                .background(tabBg)
+                                                                .tarazinoPressScale(scaleDown = 0.93f) { heroModeIndex = idx }
+                                                                .padding(horizontal = 4.dp, vertical = 5.dp)
+                                                        ) {
+                                                            TarazinoAutoSizeText(
+                                                                text = label,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                                                                color = if (selected) Color(0xFF041C19) else ext.heroOnSurface.copy(alpha = 0.88f),
+                                                                textAlign = TextAlign.Center,
+                                                                maxLines = 1,
+                                                                minFontSize = 8.5.sp,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = Color.White.copy(alpha = 0.09f),
+                                                border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.22f)),
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .tarazinoPressScale(scaleDown = 0.88f) {
+                                                        isVaultCardFlipped = true
+                                                    }
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.FlipCameraAndroid,
+                                                        contentDescription = "چرخش سه‌بعدی پشت کارت",
+                                                        tint = Color.White.copy(alpha = 0.88f),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                AnimatedContent(
+                                                    targetState = displayedSubtitle,
+                                                    transitionSpec = {
+                                                        fadeIn(tween(220)) togetherWith fadeOut(tween(130))
+                                                    },
+                                                    label = "HeroSubtitleFade"
+                                                ) { sub ->
+                                                    TarazinoAutoSizeText(
+                                                        text = sub,
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        color = ext.heroOnSurfaceMuted,
+                                                        maxLines = 1,
+                                                        minFontSize = 9.5.sp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                AnimatedOdometerMoneyText(
+                                                    amountToman = displayedAmount,
+                                                    unit = unit,
+                                                    privacyMasked = masked,
+                                                    style = MaterialTheme.typography.displayLarge,
+                                                    numberColor = Color.White,
+                                                    unitColor = cardAccentPrimary.copy(alpha = 0.95f),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                AnimatedVisibility(visible = !masked && displayedAmount > 0L) {
+                                                    TarazinoAutoSizeText(
+                                                        text = PersianCurrencyEngine.amountToPersianWords(displayedAmount, unit),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = Color.White.copy(alpha = 0.68f),
+                                                        maxLines = 2,
+                                                        minFontSize = 8.5.sp,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(top = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            LiquidWaveHealthOrb(
+                                                progress = if (hasAnimatedIn) progressRatio else 0f,
+                                                accentColor = cardAccentPrimary,
+                                                centerPrimaryText = "${PersianCurrencyEngine.toPersianDigits(progressPercent.toString())}٪",
+                                                centerSubText = "تسویه",
+                                                size = 62.dp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color.White.copy(alpha = 0.06f))
+                                                .border(0.8.dp, Color.White.copy(alpha = 0.13f), RoundedCornerShape(16.dp))
+                                                .padding(horizontal = 13.dp, vertical = 9.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
                                             Column(modifier = Modifier.weight(1f)) {
                                                 TarazinoAutoSizeText(
-                                                    text = slice.category.badgeFa,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    minFontSize = 9.5.sp
-                                                )
-                                                TarazinoAutoSizeText(
-                                                    text = if (isSel) "لمس مجدد برای باز کردن" else slice.subProvidersPreviewFa,
+                                                    text = "تسویه‌شده تا امروز",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = if (isSel) slice.color else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    color = ext.heroOnSurfaceMuted,
                                                     maxLines = 1,
                                                     minFontSize = 8.5.sp
                                                 )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.12f),
-                                            border = BorderStroke(0.65.dp, slice.color.copy(alpha = 0.35f))
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = slice.color,
-                                                    maxLines = 1
+                                                FormattedMoneyText(
+                                                    amountToman = totalPaid,
+                                                    unit = unit,
+                                                    privacyMasked = masked,
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    numberColor = Color(0xFF34D399),
+                                                    unitColor = Color(0xFFA7F3D0),
+                                                    minFontSize = 9.sp,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                    contentDescription = null,
-                                                    tint = slice.color,
-                                                    modifier = Modifier.size(13.dp)
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(1.dp)
+                                                    .height(26.dp)
+                                                    .background(Color.White.copy(alpha = 0.14f))
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column(
+                                                horizontalAlignment = Alignment.End,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                TarazinoAutoSizeText(
+                                                    text = "کل بدهی مانده",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = ext.heroOnSurfaceMuted,
+                                                    textAlign = TextAlign.End,
+                                                    maxLines = 1,
+                                                    minFontSize = 8.5.sp,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                FormattedMoneyText(
+                                                    amountToman = totalRem,
+                                                    unit = unit,
+                                                    privacyMasked = masked,
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    numberColor = Color(0xFFDAB978),
+                                                    unitColor = Color(0xFFF7E7C4),
+                                                    minFontSize = 9.sp,
+                                                    textAlign = TextAlign.End,
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
                                             }
                                         }
@@ -1413,287 +897,771 @@ fun DashboardScreen(
                                 }
                             }
                         }
-                    }
-                }
-            }
-        }
 
-        // =========================================================================
-        // 3.2. D3 FINANCIAL HEALTH RADAR (DEBT CATEGORY DISTRIBUTION & BUDGET CAPACITY IMPACT)
-        // =========================================================================
-        item {
-            FinancialHealthRadarChartCard(
-                obligations = uiState.obligations,
-                installments = uiState.installments,
-                counterparties = uiState.counterparties,
-                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
-                livingExpensePercent = uiState.preferences.livingExpensePercent,
-                currencyUnit = unit,
-                privacyMasked = masked
-            )
-        }
-
-        // =========================================================================
-        // 3.5. INTERACTIVE DEBT CATEGORY & CUSTOM TAG FILTER VIEW
-        //      (Filter Dashboard by 'Bank Loan', 'Credit Card', 'Personal', 'Check & Housing', 'Receivable' or #tags)
-        // =========================================================================
-        item {
-            DashboardDebtCategoryTagFilterSection(
-                obligations = uiState.obligations,
-                installments = uiState.installments,
-                counterparties = uiState.counterparties,
-                alerts = uiState.smartAlertQueue,
-                currencyUnit = unit,
-                privacyMasked = masked,
-                onQuickPay = onQuickPay,
-                onOpenObligationInTree = onOpenObligationInTree
-            )
-        }
-
-        // =========================================================================
-        // 4. TOP 3 URGENT INSTALLMENTS RADAR WITH KINETIC SLIDE-TO-SETTLE BARS
-        // =========================================================================
-        item {
-            TarazinoSectionHeader(
-                title = "۳ سررسید فوری پیش‌رو",
-                subtitle = "برای تسویه، دکمه سبز را به چپ بکشید یا لمس کنید",
-                icon = Icons.Default.NotificationsActive,
-                accentColor = MaterialTheme.colorScheme.secondary,
-                trailing = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        if (urgentCount > 0) {
-                            TarazinoLivePulseDot(
-                                color = ext.danger,
-                                size = 7.dp
+                        DashboardModuleId.AI_DAILY_FINANCIAL_TIP -> {
+                            AiDailyFinancialTipCard(
+                                tipState = uiState.dailyAiTipState,
+                                snapshot = uiState.dailySpendingSnapshot,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onRefreshTip = onRefreshDailyAiTip
                             )
                         }
-                        if (uiState.smartAlertQueue.size > 3) {
-                            Surface(
-                                shape = RoundedCornerShape(11.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(11.dp))
-                                    .tarazinoPressScale(scaleDown = 0.94f) { showAllAlertsModal = true }
-                                    .testTag("dashboard_view_all_alerts_btn")
-                            ) {
-                                Text(
-                                    text = "همه (${PersianCurrencyEngine.toPersianDigits(uiState.smartAlertQueue.size.toString())}) ‹",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
+
+                        DashboardModuleId.DEBT_SNOWBALL_TRACKER -> {
+                            DashboardDebtSnowballCard(
+                                simulation = uiState.payoffSimulation,
+                                extraBudgetToman = uiState.extraPayoffBudgetToman,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onUpdateExtraBudget = onUpdateExtraPayoffBudget,
+                                onOpenStrategyTab = { selectedSubTab = DashboardSubTab.STRATEGY },
+                                onOpenIntelligenceTab = onOpenIntelligenceTab
+                            )
                         }
-                    }
-                }
-            )
-        }
 
-        if (top3UrgentAlerts.isEmpty()) {
-            item {
-                TarazinoGlassCard(
-                    accentBorderColor = ext.positive,
-                    modifier = Modifier.tourSpotlightTarget("dashboard_urgent_alerts")
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(22.dp)
-                    ) {
-                        TarazinoIconBadge(
-                            icon = Icons.Default.CheckCircle,
-                            accentColor = ext.positive,
-                            size = 50.dp,
-                            iconSize = 26.dp
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "عالی! هیچ قسط فوری یا معوقه‌ای ندارید.",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "تمامی تعهدات نزدیک شما با موفقیت مدیریت شده‌اند.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        } else {
-            items(top3UrgentAlerts, key = { "top_alert_${it.installment.id}" }) { alert ->
-                val isFirstAlert = alert.installment.id == top3UrgentAlerts.first().installment.id
-                SmartAlertRadarCard(
-                    alert = alert,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onQuickPay = { onQuickPay(alert.installment) },
-                    onSnoozeTomorrow = { onSnoozeTomorrow(alert.installment) },
-                    onOpenInTree = {
-                        onOpenObligationInTree(alert.obligation, alert.counterparty?.categoryEnum)
-                    },
-                    modifier = if (isFirstAlert) {
-                        Modifier.tourSpotlightTarget("dashboard_urgent_alerts")
-                    } else Modifier
-                )
-            }
-        }
+                        DashboardModuleId.FINANCIAL_HEALTH_RADAR -> {
+                            FinancialHealthRadarChartCard(
+                                obligations = uiState.obligations,
+                                installments = uiState.installments,
+                                counterparties = uiState.counterparties,
+                                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                                livingExpensePercent = uiState.preferences.livingExpensePercent,
+                                currencyUnit = unit,
+                                privacyMasked = masked
+                            )
+                        }
 
-        // =========================================================================
-        // 5. LIVING LIQUID-ORB FINANCIAL HEALTH & SAFE CAPACITY CARD
-        // =========================================================================
-        uiState.dtiHealthReport?.let { dti ->
-            item {
-                val statusColor = Color(dti.statusColorHex)
-                val capacityRatio = if (dti.safeMaxTotalDebtBudgetToman > 0L) {
-                    (dti.safeNewInstallmentCapacityToman.toFloat() / dti.safeMaxTotalDebtBudgetToman.toFloat())
-                        .coerceIn(0f, 1f)
-                } else 0f
+                        DashboardModuleId.SHAMSI_DEBT_AND_SAVINGS -> {
+                            ShamsiQuickDebtAndDeadlineSummaryCard(
+                                uiState = uiState,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onQuickPay = onQuickPay,
+                                onOpenAllAlerts = { showAllAlertsModal = true },
+                                onOpenObligationInTree = onOpenObligationInTree,
+                                onQuickSavingsDepositDelta = onQuickSavingsDepositDelta,
+                                onUpdateMonthlySavingsGoal = onUpdateMonthlySavingsGoal
+                            )
+                        }
 
-                TarazinoGlassCard(
-                    cornerRadius = 24.dp,
-                    accentBorderColor = statusColor,
-                    onClick = onOpenIntelligenceTab
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                TarazinoIconBadge(
-                                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                                    accentColor = statusColor,
-                                    size = 42.dp,
-                                    iconSize = 20.dp
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "سقف امن افزودن قسط جدید",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        DashboardModuleId.PAID_VS_OUTSTANDING_RING -> {
+                            val debtObIds = remember(uiState.obligations) {
+                                uiState.obligations.filter { !it.categoryEnum.isReceivable }.map { it.id }.toSet()
+                            }
+                            val paidDebtInstCount = remember(uiState.installments, debtObIds) {
+                                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum == InstallmentStatus.PAID }
+                            }
+                            val outstandingDebtInstCount = remember(uiState.installments, debtObIds) {
+                                uiState.installments.count { it.obligationId in debtObIds && it.statusEnum != InstallmentStatus.PAID }
+                            }
+                            DebtPaidVsOutstandingRingCard(
+                                paidDebtToman = totalPaid,
+                                outstandingDebtToman = totalRem,
+                                paidInstallmentsCount = paidDebtInstCount,
+                                outstandingInstallmentsCount = outstandingDebtInstCount,
+                                currencyUnit = unit,
+                                privacyMasked = masked
+                            )
+                        }
+
+                        DashboardModuleId.QUICK_ACTIONS_AND_SCANNER -> {
+                            val mostUrgent = uiState.smartAlertQueue.firstOrNull()
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    TarazinoQuickActionTile(
+                                        label = "ثبت قسط",
+                                        icon = Icons.Default.AddCircle,
+                                        accentColor = MaterialTheme.colorScheme.primary,
+                                        onClick = onOpenNewObligationWizard,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("dashboard_add_obligation_btn")
                                     )
-                                    FormattedMoneyText(
-                                        amountToman = dti.safeNewInstallmentCapacityToman,
-                                        unit = unit,
-                                        privacyMasked = masked,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        numberColor = statusColor,
-                                        unitColor = statusColor.copy(alpha = 0.78f)
+                                    TarazinoQuickActionTile(
+                                        label = "تسویه فوری",
+                                        icon = Icons.Default.Bolt,
+                                        accentColor = ext.warning,
+                                        badgeCount = urgentCount,
+                                        onClick = {
+                                            if (mostUrgent != null) {
+                                                onQuickPay(mostUrgent.installment)
+                                            } else {
+                                                showAllAlertsModal = true
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("quick_bar_pay_urgent_btn")
+                                    )
+                                    TarazinoQuickActionTile(
+                                        label = "بودجه و هوش",
+                                        icon = Icons.Default.Insights,
+                                        accentColor = ext.info,
+                                        onClick = onOpenIntelligenceTab,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TarazinoQuickActionTile(
+                                        label = "گزارش A4",
+                                        icon = Icons.Default.PictureAsPdf,
+                                        accentColor = MaterialTheme.colorScheme.secondary,
+                                        onClick = onOpenFullA4Report,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("dashboard_open_a4_report_btn")
                                     )
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Living Liquid Sphere showing Financial Health Score / 100
-                            LiquidWaveHealthOrb(
-                                progress = (dti.obligationCoverageScore / 100f).coerceIn(0.08f, 1f),
-                                accentColor = statusColor,
-                                centerPrimaryText = PersianCurrencyEngine.toPersianDigits(dti.obligationCoverageScore.toString()),
-                                centerSubText = "از ۱۰۰",
-                                size = 58.dp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        TarazinoLuminousProgressBar(
-                            progress = capacityRatio,
-                            color = statusColor,
-                            height = 7.dp
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TarazinoAutoSizeText(
-                                text = "نقدینگی آزاد: ${
-                                    PersianCurrencyEngine.formatAmount(
-                                        dti.freeCashflowToman,
-                                        unit,
-                                        privacyMasked = masked
-                                    )
-                                }",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                minFontSize = 8.5.sp,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "بودجه و پیش‌بینی ML ‹",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
-                        }
-
-                        // Proactive ML Deficit Early-Warning Strip right on the Dashboard
-                        uiState.mlForecastReport?.let { forecast ->
-                            val hasDeficit = forecast.deficitMonths.isNotEmpty()
-                            val stripColor = if (hasDeficit) ext.danger else ext.positive
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = stripColor.copy(alpha = if (ext.isDark) 0.14f else 0.09f),
-                                border = BorderStroke(0.8.dp, stripColor.copy(alpha = 0.36f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("dashboard_ml_deficit_alert_strip")
-                            ) {
-                                Row(
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.40f)
+                                            )
+                                        )
+                                    ),
+                                    shadowElevation = if (ext.isDark) 0.dp else 4.dp,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .tarazinoPressScale(scaleDown = 0.98f) { onOpenContractScanner() }
+                                        .testTag("dashboard_open_contract_scanner_btn")
                                 ) {
                                     Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = if (ext.isDark) 0.16f else 0.08f),
+                                                        MaterialTheme.colorScheme.secondary.copy(alpha = if (ext.isDark) 0.12f else 0.06f)
+                                                    )
+                                                )
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        TarazinoLivePulseDot(
-                                            color = stripColor,
-                                            size = 6.dp
+                                        TarazinoIconBadge(
+                                            icon = Icons.Default.DocumentScanner,
+                                            accentColor = MaterialTheme.colorScheme.primary,
+                                            size = 44.dp,
+                                            iconSize = 22.dp,
+                                            cornerRadius = 14.dp
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        TarazinoAutoSizeText(
-                                            text = if (hasDeficit) {
-                                                val firstDef = forecast.firstDeficitMonth?.monthShortFa ?: ""
-                                                "هشدار ML: ${
-                                                    PersianCurrencyEngine.toPersianDigits(forecast.deficitMonths.size.toString())
-                                                } ماه کسری در پیش است (نزدیک‌ترین: $firstDef)"
-                                            } else {
-                                                "پیش‌بینی ML: ۱۲ ماه آینده بدون کسری بودجه (امتیاز ${
-                                                    PersianCurrencyEngine.toPersianDigits(forecast.averageProjectedHealthScore.toString())
-                                                })"
-                                            },
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "اسکن قرارداد وام و رسید با دوربین",
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(999.dp),
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                                ) {
+                                                    Text(
+                                                        text = "OCR",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "استخراج خودکار مبلغ قسط، تاریخ سررسید و نرخ سود از روی کاغذ یا تصویر",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        DashboardModuleId.COUNTERPARTY_WALLET_DECK -> {
+                            if (uiState.counterparties.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.CreditCard,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "کیف کارت طرف‌های پرداخت",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                        }
+                                        Text(
+                                            text = "${PersianCurrencyEngine.toPersianDigits(uiState.counterparties.size.toString())} کارت فعال",
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = stripColor,
-                                            maxLines = 2,
-                                            minFontSize = 9.sp,
-                                            modifier = Modifier.weight(1f)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(11.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState())
+                                    ) {
+                                        uiState.counterparties.forEach { cp ->
+                                            val cpObs = uiState.obligations.filter { it.counterpartyId == cp.id }
+                                            val cpObIds = cpObs.map { it.id }.toSet()
+                                            val cpInsts = uiState.installments.filter { it.obligationId in cpObIds }
+                                            val cpTotalPayable = cpInsts.sumOf { it.effectiveTotalToman }
+                                            val cpTotalPaid = cpInsts.sumOf { it.paidAmountToman }
+                                            val cpRem = cpInsts.sumOf { it.remainingToman }
+                                            val cpPending = cpInsts.count { it.statusEnum != InstallmentStatus.PAID }
+                                            val cpProg = if (cpTotalPayable > 0L) {
+                                                (cpTotalPaid.toFloat() / cpTotalPayable.toFloat()).coerceIn(0f, 1f)
+                                            } else 1f
+                                            val last4 = cp.cardNumber.filter { it.isDigit() }.takeLast(4).ifBlank { null }
+
+                                            TarazinoMiniBrandCard(
+                                                name = cp.name,
+                                                categoryBadgeFa = cp.categoryEnum.badgeFa,
+                                                remainingToman = cpRem,
+                                                progressRatio = cpProg,
+                                                pendingCount = cpPending,
+                                                lastFourDigits = last4,
+                                                accentColor = Color(cp.avatarColorHex),
+                                                currencyUnit = unit,
+                                                privacyMasked = masked,
+                                                onClick = { onOpenCounterpartyInTree(cp) },
+                                                modifier = Modifier.testTag("dashboard_quick_cp_${cp.id}")
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        DashboardModuleId.WEEKLY_CASHFLOW_STRIP -> {
+                            WeeklyJalaliCashflowStrip(
+                                alerts = uiState.smartAlertQueue,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onQuickPay = onQuickPay,
+                                onOpenCalendarTab = onOpenIntelligenceTab
+                            )
+                        }
+
+                        DashboardModuleId.CATEGORY_DONUT_CHART -> {
+                            val activeSlice = categorySlices.find { it.category == selectedDonutCategory }
+                            TarazinoGlassCard(
+                                cornerRadius = 26.dp,
+                                modifier = Modifier
+                                    .tourSpotlightTarget("dashboard_category_donut")
+                                    .testTag("dashboard_category_donut_card")
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    TarazinoSectionHeader(
+                                        title = "ترکیب تعهدات بر اساس دسته",
+                                        subtitle = "لمس هر دسته برای بزرگ‌نمایی یا ورود به پوشه",
+                                        icon = Icons.Default.DonutLarge,
+                                        accentColor = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(116.dp)
+                                                .clickable { selectedDonutCategory = null }
+                                        ) {
+                                            Canvas(modifier = Modifier.size(114.dp)) {
+                                                val baseStroke = 13.dp.toPx()
+                                                val selectedStroke = 17.dp.toPx()
+                                                val inset = selectedStroke / 2f + 1.dp.toPx()
+                                                val arcSize = Size(
+                                                    (size.width - inset * 2f).coerceAtLeast(10f),
+                                                    (size.height - inset * 2f).coerceAtLeast(10f)
+                                                )
+                                                val arcTopLeft = Offset(inset, inset)
+                                                drawArc(
+                                                    color = Color.Gray.copy(alpha = 0.13f),
+                                                    startAngle = 0f,
+                                                    sweepAngle = 360f,
+                                                    useCenter = false,
+                                                    topLeft = arcTopLeft,
+                                                    size = arcSize,
+                                                    style = Stroke(width = baseStroke)
+                                                )
+                                                if (totalRem > 0L) {
+                                                    var currentStartAngle = -90f
+                                                    categorySlices.forEach { slice ->
+                                                        val rawSweep = (slice.shareRatio * 360f)
+                                                            .coerceAtLeast(if (slice.remainingToman > 0L) 9f else 0f)
+                                                        val sweep = rawSweep * donutSweepScale
+                                                        val isFocused = selectedDonutCategory == slice.category
+                                                        val alpha = if (selectedDonutCategory == null || isFocused) 1f else 0.30f
+                                                        if (sweep > 0f) {
+                                                            drawArc(
+                                                                color = slice.color.copy(alpha = alpha),
+                                                                startAngle = currentStartAngle,
+                                                                sweepAngle = (sweep - 4f).coerceAtLeast(2f),
+                                                                useCenter = false,
+                                                                topLeft = arcTopLeft,
+                                                                size = arcSize,
+                                                                style = Stroke(
+                                                                    width = if (isFocused) selectedStroke else baseStroke,
+                                                                    cap = StrokeCap.Round
+                                                                )
+                                                            )
+                                                            currentStartAngle += sweep
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            AnimatedContent(
+                                                targetState = activeSlice,
+                                                label = "DonutCenterContent"
+                                            ) { focused ->
+                                                if (focused != null) {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 16.dp)
+                                                    ) {
+                                                        TarazinoAutoSizeText(
+                                                            text = formatCompactPersianToman(
+                                                                focused.remainingToman * unit.multiplierFromToman,
+                                                                masked
+                                                            ),
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = focused.color,
+                                                            textAlign = TextAlign.Center,
+                                                            maxLines = 1,
+                                                            minFontSize = 8.5.sp
+                                                        )
+                                                        Text(
+                                                            text = "${PersianCurrencyEngine.toPersianDigits((focused.shareRatio * 100).toInt().toString())}٪",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                } else {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 16.dp)
+                                                    ) {
+                                                        TarazinoAutoSizeText(
+                                                            text = PersianCurrencyEngine.toPersianDigits(uiState.obligations.size.toString()),
+                                                            style = MaterialTheme.typography.titleLarge,
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            textAlign = TextAlign.Center,
+                                                            maxLines = 1,
+                                                            minFontSize = 13.sp
+                                                        )
+                                                        Text(
+                                                            text = "پرونده",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                                        ) {
+                                            categorySlices.forEach { slice ->
+                                                val pct = (slice.shareRatio * 100).toInt()
+                                                val isSel = selectedDonutCategory == slice.category
+                                                val borderW by animateDpAsState(
+                                                    targetValue = if (isSel) 1.4.dp else 0.85.dp,
+                                                    label = "SliceBorder_${slice.category.name}"
+                                                )
+                                                val rowSurfaceColor by animateColorAsState(
+                                                    targetValue = if (isSel) {
+                                                        slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.10f)
+                                                    } else {
+                                                        ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.85f)
+                                                    },
+                                                    label = "SliceBg_${slice.category.name}"
+                                                )
+                                                val rowBorderColor by animateColorAsState(
+                                                    targetValue = if (isSel) {
+                                                        slice.color.copy(alpha = 0.78f)
+                                                    } else {
+                                                        ext.cardBorderTop
+                                                    },
+                                                    label = "SliceBorderCol_${slice.category.name}"
+                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    color = rowSurfaceColor,
+                                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                                    border = BorderStroke(borderW, rowBorderColor),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(14.dp))
+                                                        .tarazinoPressScale(scaleDown = 0.96f) {
+                                                            if (isSel) {
+                                                                onOpenCategoryInTree(slice.category)
+                                                            } else {
+                                                                selectedDonutCategory = slice.category
+                                                            }
+                                                        }
+                                                        .testTag("donut_legend_${slice.category.name}")
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.weight(1f)
+                                                        ) {
+                                                            Box(
+                                                                contentAlignment = Alignment.Center,
+                                                                modifier = Modifier
+                                                                    .size(16.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(slice.color.copy(alpha = 0.20f))
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(8.dp)
+                                                                        .clip(CircleShape)
+                                                                        .background(slice.color)
+                                                                )
+                                                            }
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Column(modifier = Modifier.weight(1f)) {
+                                                                TarazinoAutoSizeText(
+                                                                    text = slice.category.badgeFa,
+                                                                    style = MaterialTheme.typography.labelMedium,
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                                    maxLines = 1,
+                                                                    minFontSize = 9.5.sp
+                                                                )
+                                                                TarazinoAutoSizeText(
+                                                                    text = if (isSel) "لمس مجدد برای باز کردن" else slice.subProvidersPreviewFa,
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = if (isSel) slice.color else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    maxLines = 1,
+                                                                    minFontSize = 8.5.sp
+                                                                )
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        Surface(
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            color = slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.12f),
+                                                            border = BorderStroke(0.65.dp, slice.color.copy(alpha = 0.35f))
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    color = slice.color,
+                                                                    maxLines = 1
+                                                                )
+                                                                Icon(
+                                                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                                    contentDescription = null,
+                                                                    tint = slice.color,
+                                                                    modifier = Modifier.size(13.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        DashboardModuleId.DEBT_TAG_FILTER_VIEW -> {
+                            DashboardDebtCategoryTagFilterSection(
+                                obligations = uiState.obligations,
+                                installments = uiState.installments,
+                                counterparties = uiState.counterparties,
+                                alerts = uiState.smartAlertQueue,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onQuickPay = onQuickPay,
+                                onOpenObligationInTree = onOpenObligationInTree
+                            )
+                        }
+
+                        DashboardModuleId.URGENT_ALERTS_RADAR -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                TarazinoSectionHeader(
+                                    title = "۳ سررسید فوری پیش‌رو",
+                                    subtitle = "برای تسویه، دکمه سبز را به چپ بکشید یا لمس کنید",
+                                    icon = Icons.Default.NotificationsActive,
+                                    accentColor = MaterialTheme.colorScheme.secondary,
+                                    trailing = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            if (urgentCount > 0) {
+                                                TarazinoLivePulseDot(color = ext.danger, size = 7.dp)
+                                            }
+                                            if (uiState.smartAlertQueue.size > 3) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(11.dp),
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                                    border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(11.dp))
+                                                        .tarazinoPressScale(scaleDown = 0.94f) { showAllAlertsModal = true }
+                                                        .testTag("dashboard_view_all_alerts_btn")
+                                                ) {
+                                                    Text(
+                                                        text = "همه (${PersianCurrencyEngine.toPersianDigits(uiState.smartAlertQueue.size.toString())}) ‹",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        maxLines = 1,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+
+                                if (top3UrgentAlerts.isEmpty()) {
+                                    TarazinoGlassCard(
+                                        accentBorderColor = ext.positive,
+                                        modifier = Modifier.tourSpotlightTarget("dashboard_urgent_alerts")
+                                    ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(22.dp)
+                                        ) {
+                                            TarazinoIconBadge(
+                                                icon = Icons.Default.CheckCircle,
+                                                accentColor = ext.positive,
+                                                size = 50.dp,
+                                                iconSize = 26.dp
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Text(
+                                                text = "عالی! هیچ قسط فوری یا معوقه‌ای ندارید.",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "تمامی تعهدات نزدیک شما با موفقیت مدیریت شده‌اند.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    top3UrgentAlerts.forEachIndexed { idx, alert ->
+                                        SmartAlertRadarCard(
+                                            alert = alert,
+                                            currencyUnit = unit,
+                                            privacyMasked = masked,
+                                            onQuickPay = { onQuickPay(alert.installment) },
+                                            onSnoozeTomorrow = { onSnoozeTomorrow(alert.installment) },
+                                            onOpenInTree = {
+                                                onOpenObligationInTree(alert.obligation, alert.counterparty?.categoryEnum)
+                                            },
+                                            modifier = if (idx == 0) {
+                                                Modifier.tourSpotlightTarget("dashboard_urgent_alerts")
+                                            } else Modifier
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        DashboardModuleId.SAFE_CAPACITY_ML_FORECAST -> {
+                            uiState.dtiHealthReport?.let { dti ->
+                                val statusColor = Color(dti.statusColorHex)
+                                val capacityRatio = if (dti.safeMaxTotalDebtBudgetToman > 0L) {
+                                    (dti.safeNewInstallmentCapacityToman.toFloat() / dti.safeMaxTotalDebtBudgetToman.toFloat())
+                                        .coerceIn(0f, 1f)
+                                } else 0f
+
+                                TarazinoGlassCard(
+                                    cornerRadius = 24.dp,
+                                    accentBorderColor = statusColor,
+                                    onClick = onOpenIntelligenceTab
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                TarazinoIconBadge(
+                                                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                                    accentColor = statusColor,
+                                                    size = 42.dp,
+                                                    iconSize = 20.dp
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "سقف امن افزودن قسط جدید",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    FormattedMoneyText(
+                                                        amountToman = dti.safeNewInstallmentCapacityToman,
+                                                        unit = unit,
+                                                        privacyMasked = masked,
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        numberColor = statusColor,
+                                                        unitColor = statusColor.copy(alpha = 0.78f)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            LiquidWaveHealthOrb(
+                                                progress = (dti.obligationCoverageScore / 100f).coerceIn(0.08f, 1f),
+                                                accentColor = statusColor,
+                                                centerPrimaryText = PersianCurrencyEngine.toPersianDigits(dti.obligationCoverageScore.toString()),
+                                                centerSubText = "از ۱۰۰",
+                                                size = 58.dp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        TarazinoLuminousProgressBar(
+                                            progress = capacityRatio,
+                                            color = statusColor,
+                                            height = 7.dp
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TarazinoAutoSizeText(
+                                                text = "نقدینگی آزاد: ${
+                                                    PersianCurrencyEngine.formatAmount(
+                                                        dti.freeCashflowToman,
+                                                        unit,
+                                                        privacyMasked = masked
+                                                    )
+                                                }",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                minFontSize = 8.5.sp,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = "بودجه و پیش‌بینی هوشمند ‹",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        uiState.mlForecastReport?.let { forecast ->
+                                            val hasDeficit = forecast.deficitMonths.isNotEmpty()
+                                            val stripColor = if (hasDeficit) ext.danger else ext.positive
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = stripColor.copy(alpha = if (ext.isDark) 0.14f else 0.09f),
+                                                border = BorderStroke(0.8.dp, stripColor.copy(alpha = 0.36f)),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .testTag("dashboard_ml_deficit_alert_strip")
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        TarazinoLivePulseDot(color = stripColor, size = 6.dp)
+                                                        Spacer(modifier = Modifier.width(6.dp))
+                                                        TarazinoAutoSizeText(
+                                                            text = if (hasDeficit) {
+                                                                val firstDef = forecast.firstDeficitMonth?.monthShortFa ?: ""
+                                                                "هشدار پیش‌بینی هوشمند: ${
+                                                                    PersianCurrencyEngine.toPersianDigits(forecast.deficitMonths.size.toString())
+                                                                } ماه کسری در پیش است (نزدیک‌ترین: $firstDef)"
+                                                            } else {
+                                                                "پیش‌بینی هوشمند: ۱۲ ماه آینده بدون کسری بودجه (امتیاز ${
+                                                                    PersianCurrencyEngine.toPersianDigits(forecast.averageProjectedHealthScore.toString())
+                                                                })"
+                                                            },
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = stripColor,
+                                                            maxLines = 2,
+                                                            minFontSize = 9.sp,
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1705,7 +1673,20 @@ fun DashboardScreen(
         }
     }
 
-        // Modal Sheet for Viewing All Alerts & Filtering by Bucket
+    // Full-Screen 2-Column Drag-and-Drop Reorderable Grid Modal
+    if (showReorderGridModal) {
+        DashboardReorderableGridModal(
+            layoutConfig = layoutConfig,
+            onMoveModule = onMoveDashboardModule,
+            onPinModuleToTop = onPinDashboardModuleToTop,
+            onToggleVisibility = onToggleDashboardModuleVisibility,
+            onApplyPreset = onApplyDashboardFocusPreset,
+            onResetDefault = onResetDashboardLayout,
+            onDismiss = { showReorderGridModal = false }
+        )
+    }
+
+    // Modal Sheet for Viewing All Alerts & Filtering by Bucket
     if (showAllAlertsModal) {
         AllAlertsModalDialog(
             alerts = uiState.smartAlertQueue,

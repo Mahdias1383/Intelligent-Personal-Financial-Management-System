@@ -502,11 +502,12 @@ fun DebtConsolidationSimulatorSection(
                     val savingsPositive = report.netTotalSavingsToman >= 0L
                     ConsolidationKpiTile(
                         label = if (savingsPositive) "صرفه‌جویی خالص کل" else "افزایش هزینه کل",
-                        valueText = if (savingsPositive) {
-                            "+${formatCompactPersianToman(report.netTotalSavingsToman, privacyMasked)}"
-                        } else {
-                            "-${formatCompactPersianToman(abs(report.netTotalSavingsToman), privacyMasked)}"
-                        },
+                        valueText = PersianCurrencyEngine.formatCompactAmount(
+                            amountToman = report.netTotalSavingsToman,
+                            includeUnit = false,
+                            privacyMasked = privacyMasked,
+                            showPlusSign = true
+                        ),
                         subText = "با احتساب کارمزد وام",
                         accentColor = if (savingsPositive) tealAccent else dangerAccent,
                         modifier = Modifier.weight(1f)
@@ -515,11 +516,12 @@ fun DebtConsolidationSimulatorSection(
                     val reliefPositive = report.monthlyCashflowReliefToman >= 0L
                     ConsolidationKpiTile(
                         label = if (reliefPositive) "کاهش قسط ماهانه" else "افزایش قسط ماهانه",
-                        valueText = if (reliefPositive) {
-                            "-${formatCompactPersianToman(report.monthlyCashflowReliefToman, privacyMasked)}"
-                        } else {
-                            "+${formatCompactPersianToman(abs(report.monthlyCashflowReliefToman), privacyMasked)}"
-                        },
+                        valueText = PersianCurrencyEngine.formatCompactAmount(
+                            amountToman = -report.monthlyCashflowReliefToman,
+                            includeUnit = false,
+                            privacyMasked = privacyMasked,
+                            showPlusSign = true
+                        ),
                         subText = "قسط جدید: ${formatCompactPersianToman(report.consolidatedMonthlyPaymentToman, privacyMasked)}",
                         accentColor = if (reliefPositive) tealAccent else goldAccent,
                         modifier = Modifier.weight(1f)
@@ -794,7 +796,7 @@ private fun ConsolidatableDebtSelectionRow(
                     minFontSize = 9.sp
                 )
                 Text(
-                    text = "${formatCompactPersianToman(item.currentMonthlyPaymentToman, privacyMasked)}/ماه",
+                    text = "${formatCompactPersianToman(item.currentMonthlyPaymentToman, privacyMasked)} در ماه",
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -1223,6 +1223,74 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    // Dashboard Reorderable Grid & Module Prioritization Controls
+    fun moveDashboardModule(fromIndex: Int, toIndex: Int) {
+        repository.updatePreferences { prefs ->
+            prefs.copy(
+                dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.moveModule(
+                    config = prefs.dashboardLayoutConfig,
+                    fromIndex = fromIndex,
+                    toIndex = toIndex
+                )
+            )
+        }
+    }
+
+    fun moveDashboardModuleByDelta(moduleId: com.example.domain.DashboardModuleId, delta: Int) {
+        repository.updatePreferences { prefs ->
+            prefs.copy(
+                dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.moveModuleByDelta(
+                    config = prefs.dashboardLayoutConfig,
+                    moduleId = moduleId,
+                    delta = delta
+                )
+            )
+        }
+    }
+
+    fun pinDashboardModuleToTop(moduleId: com.example.domain.DashboardModuleId) {
+        repository.updatePreferences { prefs ->
+            prefs.copy(
+                dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.pinModuleToTop(
+                    config = prefs.dashboardLayoutConfig,
+                    moduleId = moduleId
+                )
+            )
+        }
+        showToast("ماژول «${moduleId.shortTitleFa}» به بالاترین اولویت داشبورد منتقل شد.")
+    }
+
+    fun toggleDashboardModuleVisibility(moduleId: com.example.domain.DashboardModuleId) {
+        val current = repository.preferencesState.value.dashboardLayoutConfig
+        val updated = com.example.domain.DashboardLayoutGridEngine.toggleModuleVisibility(current, moduleId)
+        if (updated == current) {
+            showToast("حداقل یک ماژول باید در داشبورد فعال باقی بماند.")
+            return
+        }
+        repository.updatePreferences { it.copy(dashboardLayoutConfig = updated) }
+    }
+
+    fun applyDashboardFocusPreset(preset: com.example.domain.DashboardFocusPreset) {
+        repository.updatePreferences { prefs ->
+            prefs.copy(
+                dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.applyFocusPreset(
+                    preset = preset,
+                    preserveHidden = prefs.dashboardLayoutConfig.hiddenModules
+                )
+            )
+        }
+        showToast("چیدمان داشبورد به حالت «${preset.labelFa}» تغییر کرد.")
+    }
+
+    fun resetDashboardLayoutToDefault() {
+        repository.updatePreferences { prefs ->
+            prefs.copy(
+                dashboardLayoutConfig = com.example.domain.DashboardLayoutGridEngine.defaultConfig()
+            )
+        }
+        showToast("چیدمان داشبورد به ترتیب استاندارد ترازینو بازنشانی شد.")
+    }
+
     // Data Seed, Reset & JSON Backup
     fun clearAllDataToZero() {
         viewModelScope.launch {

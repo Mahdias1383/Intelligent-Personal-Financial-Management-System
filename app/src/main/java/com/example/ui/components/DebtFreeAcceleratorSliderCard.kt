@@ -85,11 +85,11 @@ private enum class AcceleratorInputMode(val labelFa: String) {
 
 private val EXTRA_PRESET_STEPS_TOMAN = listOf(
     0L to "۰",
-    1_000_000L to "+۱ م",
-    2_000_000L to "+۲ م",
-    5_000_000L to "+۵ م",
-    10_000_000L to "+۱۰ م",
-    20_000_000L to "+۲۰ م"
+    1_000_000L to "${PersianCurrencyEngine.isolateLtr("+۱")} میلیون",
+    2_000_000L to "${PersianCurrencyEngine.isolateLtr("+۲")} میلیون",
+    5_000_000L to "${PersianCurrencyEngine.isolateLtr("+۵")} میلیون",
+    10_000_000L to "${PersianCurrencyEngine.isolateLtr("+۱۰")} میلیون",
+    20_000_000L to "${PersianCurrencyEngine.isolateLtr("+۲۰")} میلیون"
 )
 
 /**
@@ -1183,7 +1183,7 @@ private fun WhatIfComparisonRow(
                     color = if (isSelected) tealAccent else goldAccent.copy(alpha = 0.18f)
                 ) {
                     Text(
-                        text = "+${formatCompactPersianToman(step.extraMonthlyToman, false)}/ماه",
+                        text = "${PersianCurrencyEngine.formatCompactAmount(step.extraMonthlyToman, showPlusSign = true)} در ماه",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else goldAccent,

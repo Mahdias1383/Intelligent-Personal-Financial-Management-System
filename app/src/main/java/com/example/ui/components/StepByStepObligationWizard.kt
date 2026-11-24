@@ -898,7 +898,7 @@ private fun WizardStep1CategoryAndProvider(
 ) {
     val ext = LocalTarazinoColors.current
     val quickSubProviderPresets = when (selectedCategory) {
-        EntityCategory.BNPL_PLATFORM -> listOf("اسنپ‌پی (SnappPay)", "دیجی‌پی (DigiPay)", "تارا (Tara)", "ازکی‌وام (AzkiVam)", "لندو (Lendo)")
+        EntityCategory.BNPL_PLATFORM -> listOf("اسنپ‌پی", "دیجی‌پی", "تارا", "ازکی‌وام", "لندو")
         EntityCategory.BANK -> listOf("بانک مهر ایران", "بانک ملت", "بلوبانک", "بانک ملی", "بانک رسالت", "بانک مسکن")
         EntityCategory.INSTITUTION -> listOf("صندوق قرض‌الحسنه امید", "تعاونی اداره", "شرکت کارفرما")
         EntityCategory.PERSON -> listOf("دوست / همکار", "صاحب‌خانه (اجاره/چک)", "اعضای خانواده")
@@ -923,7 +923,7 @@ private fun WizardStep1CategoryAndProvider(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ParentCategoryChoiceCard(
-                    title = "خرید اقساطی (BNPL)",
+                    title = "خرید اقساطی",
                     subtitle = "اسنپ‌پی، دیجی‌پی، تارا...",
                     icon = Icons.Default.CreditScore,
                     color = ext.info,

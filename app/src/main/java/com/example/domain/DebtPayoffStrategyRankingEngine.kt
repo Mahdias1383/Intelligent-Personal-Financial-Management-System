@@ -28,7 +28,7 @@ enum class PayoffRankingMode(
     MAX_INTEREST_SAVINGS(
         labelFa = "بیشترین صرفه‌جویی سود (بهمن)",
         shortLabelFa = "بیشترین سود",
-        descriptionFa = "اولویت مطلق با بالاترین نرخ سود سالانه (APR) برای حداقل کردن کل هزینه سود"
+        descriptionFa = "اولویت مطلق با بالاترین نرخ سود سالانه برای حداقل کردن کل هزینه سود"
     ),
     URGENCY_FIRST(
         labelFa = "اولویت فوریت و سررسید",

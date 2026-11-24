@@ -22,7 +22,7 @@ enum class ForeignDebtCurrency(
 ) {
     USD(
         code = "USD",
-        labelFa = "دلار آمریکا (USD)",
+        labelFa = "دلار آمریکا (\u2066USD\u2069)",
         shortLabelFa = "دلار",
         symbol = "$",
         defaultManualRateToman = 72_000L,
@@ -31,7 +31,7 @@ enum class ForeignDebtCurrency(
     ),
     EUR(
         code = "EUR",
-        labelFa = "یورو اروپا (EUR)",
+        labelFa = "یورو اروپا (\u2066EUR\u2069)",
         shortLabelFa = "یورو",
         symbol = "€",
         defaultManualRateToman = 76_500L,
@@ -40,7 +40,7 @@ enum class ForeignDebtCurrency(
     ),
     AED(
         code = "AED",
-        labelFa = "درهم امارات (AED)",
+        labelFa = "درهم امارات (\u2066AED\u2069)",
         shortLabelFa = "درهم",
         symbol = "د.إ",
         defaultManualRateToman = 19_700L,
@@ -58,7 +58,7 @@ enum class ForeignDebtCurrency(
     ),
     USDT(
         code = "USDT",
-        labelFa = "تتر / دلار دیجیتال (USDT)",
+        labelFa = "تتر / دلار دیجیتال (\u2066USDT\u2069)",
         shortLabelFa = "تتر",
         symbol = "₮",
         defaultManualRateToman = 72_300L,
@@ -67,7 +67,7 @@ enum class ForeignDebtCurrency(
     ),
     TRY(
         code = "TRY",
-        labelFa = "لیر ترکیه (TRY)",
+        labelFa = "لیر ترکیه (\u2066TRY\u2069)",
         shortLabelFa = "لیر",
         symbol = "₺",
         defaultManualRateToman = 2_150L,

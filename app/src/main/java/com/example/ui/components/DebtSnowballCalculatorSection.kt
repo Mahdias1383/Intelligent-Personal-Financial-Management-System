@@ -205,10 +205,10 @@ fun DebtSnowballCalculatorSection(
     val extraPresets = remember {
         listOf(
             "۰" to 0L,
-            "+۲ م" to 2_000_000L,
-            "+۵ م" to 5_000_000L,
-            "+۱۰ م" to 10_000_000L,
-            "+۲۰ م" to 20_000_000L
+            "${PersianCurrencyEngine.isolateLtr("+۲")} میلیون" to 2_000_000L,
+            "${PersianCurrencyEngine.isolateLtr("+۵")} میلیون" to 5_000_000L,
+            "${PersianCurrencyEngine.isolateLtr("+۱۰")} میلیون" to 10_000_000L,
+            "${PersianCurrencyEngine.isolateLtr("+۲۰")} میلیون" to 20_000_000L
         )
     }
 
@@ -226,7 +226,7 @@ fun DebtSnowballCalculatorSection(
         ) {
             // 1. Header with Psychological Momentum Score Pill
             TarazinoSectionHeader(
-                title = "ماشین‌حساب استراتژی گلوله برفی (Debt Snowball)",
+                title = "ماشین‌حساب استراتژی گلوله برفی",
                 subtitle = "اولویت‌بندی از کوچک‌ترین مانده بدهی برای پیروزی سریع و شتاب روانی",
                 icon = Icons.Default.AcUnit,
                 accentColor = tealAccent,
@@ -986,7 +986,7 @@ private fun SnowballDecayCanvasCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "منحنی کاهش مانده بدهی و نقاط حذف سریع (Quick Wins)",
+                    text = "منحنی کاهش مانده بدهی و نقاط حذف سریع",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

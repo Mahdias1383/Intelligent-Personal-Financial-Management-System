@@ -159,8 +159,8 @@ fun MlFinancialForecastSection(
         Column(modifier = Modifier.padding(16.dp)) {
             // Header with ML Model Confidence Pill
             TarazinoSectionHeader(
-                title = "پیش‌بینی هوشمند سلامت مالی (ML)",
-                subtitle = "رگرسیون Ridge و طبقه‌بندی احتمال کسری ماهانه",
+                title = "پیش‌بینی هوشمند سلامت مالی",
+                subtitle = "تحلیل روند اقساط و برآورد احتمال کسری ماهانه",
                 icon = Icons.Default.AutoGraph,
                 accentColor = if (hasDeficits) ext.danger else MaterialTheme.colorScheme.primary,
                 trailing = {
@@ -540,20 +540,24 @@ fun MlFinancialForecastSection(
                                     modifier = Modifier.weight(1f)
                                 )
                                 MlMiniMetricCell(
-                                    labelFa = "حاشیه ریسک ML",
+                                    labelFa = "حاشیه ریسک پیش‌بینی",
                                     valueText = PersianCurrencyEngine.formatAmount(m.behavioralRiskBufferToman, unit, privacyMasked = privacyMasked),
                                     valueColor = if (m.behavioralRiskBufferToman > 0L) ext.warning else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
                                 val netPrefix = if (m.projectedNetBalanceToman < 0L) "−" else "+"
-                                val netAbsFormatted = PersianCurrencyEngine.formatAmount(
-                                    abs(m.projectedNetBalanceToman),
-                                    unit,
-                                    privacyMasked = privacyMasked
-                                )
+                                val netSignedText = if (privacyMasked) {
+                                    PersianCurrencyEngine.formatAmount(0L, unit, privacyMasked = true)
+                                } else {
+                                    val netDigits = PersianCurrencyEngine.formatNumberWithCommas(
+                                        abs(m.projectedNetBalanceToman) * unit.multiplierFromToman,
+                                        usePersianDigits = true
+                                    )
+                                    "${PersianCurrencyEngine.isolateLtr("$netPrefix$netDigits")} ${unit.labelFa}"
+                                }
                                 MlMiniMetricCell(
                                     labelFa = if (m.projectedNetBalanceToman < 0L) "کسری پیش‌بینی" else "تراز مازاد",
-                                    valueText = if (privacyMasked) netAbsFormatted else "$netPrefix$netAbsFormatted",
+                                    valueText = netSignedText,
                                     valueColor = if (m.projectedNetBalanceToman < 0L) ext.danger else ext.positive,
                                     modifier = Modifier.weight(1f)
                                 )

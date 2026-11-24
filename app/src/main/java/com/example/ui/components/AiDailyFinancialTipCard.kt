@@ -387,7 +387,7 @@ private fun AiTipLoadingSkeleton(shimmerAlpha: Float) {
             trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
         )
         Text(
-            text = "در حال تحلیل الگوی مخارج اخیر و ساختار بدهی‌های شما با Gemini...",
+            text = "در حال تحلیل الگوی مخارج اخیر و ساختار بدهی‌های شما با هوش مصنوعی...",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -458,7 +458,7 @@ private fun AiTipSuccessBody(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
             ) {
                 Text(
-                    text = tip.focusBadgeFa,
+                    text = PersianCurrencyEngine.formatRtlBidiSafe(tip.focusBadgeFa),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -480,7 +480,7 @@ private fun AiTipSuccessBody(
 
         // Personalized Headline
         Text(
-            text = tip.headlineFa,
+            text = PersianCurrencyEngine.formatRtlBidiSafe(tip.headlineFa),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -516,7 +516,7 @@ private fun AiTipSuccessBody(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = tip.spendingPatternInsightFa,
+                            text = PersianCurrencyEngine.formatRtlBidiSafe(tip.spendingPatternInsightFa),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             lineHeight = 20.sp
@@ -561,7 +561,7 @@ private fun AiTipSuccessBody(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = tip.dailyTipFa,
+                        text = PersianCurrencyEngine.formatRtlBidiSafe(tip.dailyTipFa),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -598,7 +598,7 @@ private fun AiTipSuccessBody(
                                     .size(16.dp)
                             )
                             Text(
-                                text = "اقدام پیشنهادی امروز: ${tip.concreteActionStepFa}",
+                                text = PersianCurrencyEngine.formatRtlBidiSafe("اقدام پیشنهادی امروز: ${tip.concreteActionStepFa}"),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -618,7 +618,7 @@ private fun AiTipSuccessBody(
                                 modifier = Modifier.size(15.dp)
                             )
                             Text(
-                                text = "اثر مالی برآوردی: ${tip.estimatedImpactFa}",
+                                text = PersianCurrencyEngine.formatRtlBidiSafe("اثر مالی برآوردی: ${tip.estimatedImpactFa}"),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = ext.positive

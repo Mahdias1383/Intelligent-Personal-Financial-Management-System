@@ -459,7 +459,7 @@ object DebtConsolidationEngine {
             notes.add("قسط ماهانه ${PersianCurrencyEngine.formatAmount(-monthlyRelief)} بیشتر می‌شود، اما در کل ${PersianCurrencyEngine.formatAmount(netTotalSavings)} کمتر سود می‌پردازید.")
         }
         if (dtiBefore != null && dtiAfter != null) {
-            notes.add("نسبت قسط به درآمد (DTI) این بدهی‌ها از ${PersianCurrencyEngine.toPersianDigits(dtiBefore.toString())}٪ به ${PersianCurrencyEngine.toPersianDigits(dtiAfter.toString())}٪ تغییر می‌کند.")
+            notes.add("نسبت قسط به درآمد این بدهی‌ها از ${PersianCurrencyEngine.toPersianDigits(dtiBefore.toString())}٪ به ${PersianCurrencyEngine.toPersianDigits(dtiAfter.toString())}٪ تغییر می‌کند.")
         }
 
         return DebtConsolidationReport(

@@ -90,6 +90,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
@@ -1000,18 +1001,19 @@ fun TarazinoMiniBrandCard(
                                 maxLines = 1,
                                 minFontSize = 8.sp
                             )
-                            val compactCombined = if (privacyMasked) {
-                                formatCompactPersianToman(displayAmount, true)
-                            } else {
-                                "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
-                            }
+                            val compactCombined = PersianCurrencyEngine.formatCompactAmount(
+                                amountToman = remainingToman,
+                                unit = currencyUnit,
+                                includeUnit = true,
+                                privacyMasked = privacyMasked
+                            )
                             TarazinoAutoSizeText(
                                 text = compactCombined,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 color = ext.miniCardOnSurface,
                                 maxLines = 1,
-                                minFontSize = 10.sp
+                                minFontSize = 8.5.sp
                             )
                         }
 
@@ -1282,16 +1284,17 @@ fun findFittingFontSizeSp(
 }
 
 /**
- * Isolates a numeric run (digits, commas, decimal points, minus/plus sign) in LTR bidi context
- * so thousands separators and negative signs never invert inside RTL Persian layouts.
+ * Isolates a numeric or Latin run in LTR bidi context so thousands separators, negative signs,
+ * and embedded English tokens never invert inside RTL Persian layouts.
  */
-fun ltrIsolateDigits(raw: String): String = "\u2066$raw\u2069"
+fun ltrIsolateDigits(raw: String): String = PersianCurrencyEngine.isolateLtr(raw)
 
 /**
  * Zero-flicker, container-aware auto-sizing Persian Text renderer.
  * Uses [BoxWithConstraints] + [rememberTextMeasurer] binary search with [EstedadFontFamily]
  * before the first draw so long sentences, headers, badges, and financial figures adapt cleanly
  * on every screen width (320dp mini -> 600dp+ foldable) and every system/app font scale.
+ * Automatically applies BiDi isolation to any embedded Latin tokens inside Persian text.
  */
 @Composable
 fun TarazinoAutoSizeText(
@@ -1307,6 +1310,7 @@ fun TarazinoAutoSizeText(
     overflow: TextOverflow = TextOverflow.Ellipsis,
     softWrap: Boolean = maxLines > 1
 ) {
+    val safeText = remember(text) { PersianCurrencyEngine.formatRtlBidiSafe(text) }
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val resolvedFontFamily = style.fontFamily ?: com.example.ui.theme.EstedadFontFamily
@@ -1330,7 +1334,7 @@ fun TarazinoAutoSizeText(
         }
 
         val fittedSp = remember(
-            text,
+            safeText,
             maxWidthPx,
             density.density,
             density.fontScale,
@@ -1341,7 +1345,7 @@ fun TarazinoAutoSizeText(
             resolvedFontFamily,
             softWrap
         ) {
-            if (maxWidthPx <= 0 || text.isEmpty()) {
+            if (maxWidthPx <= 0 || safeText.isEmpty()) {
                 baseMaxSp
             } else {
                 findFittingFontSizeSp(
@@ -1354,12 +1358,13 @@ fun TarazinoAutoSizeText(
                         (candidateSp * 1.32f).sp
                     }
                     val result = textMeasurer.measure(
-                        text = text,
+                        text = safeText,
                         style = style.copy(
                             fontFamily = resolvedFontFamily,
                             fontWeight = resolvedWeight,
                             fontSize = candidateSp.sp,
-                            lineHeight = scaledLineHeight
+                            lineHeight = scaledLineHeight,
+                            textDirection = TextDirection.Rtl
                         ),
                         maxLines = maxLines,
                         softWrap = softWrap,
@@ -1384,13 +1389,14 @@ fun TarazinoAutoSizeText(
         }
 
         Text(
-            text = text,
+            text = safeText,
             color = resolvedColor,
             style = style.copy(
                 fontFamily = resolvedFontFamily,
                 fontWeight = resolvedWeight,
                 fontSize = fittedSp.sp,
-                lineHeight = finalLineHeight
+                lineHeight = finalLineHeight,
+                textDirection = TextDirection.Rtl
             ),
             textAlign = textAlign,
             maxLines = maxLines,
@@ -1749,33 +1755,17 @@ fun FormattedMoneyText(
 }
 
 /**
- * Compact Persian short amount for charts & tight badges (e.g., "۱۵.۴ م" or "۸۵۰ ه").
+ * Unambiguous compact Persian amount for charts, badges, and summary cards using full Persian
+ * scale names ("هزار", "میلیون", "میلیارد", "تریلیون") with numeric-only LTR BiDi isolation
+ * so values never suffer from ambiguous "م" abbreviations or reversed RTL word ordering.
  */
-fun formatCompactPersianToman(amountToman: Long, privacyMasked: Boolean): String {
-    if (privacyMasked) return "•••"
-    val isNeg = amountToman < 0L
-    val absVal = kotlin.math.abs(amountToman)
-    val raw = when {
-        absVal >= 1_000_000_000_000L -> {
-            val t = absVal / 1_000_000_000_000.0
-            String.format(java.util.Locale.US, "%.1f", t).removeSuffix(".0") + " همت"
-        }
-        absVal >= 1_000_000_000L -> {
-            val b = absVal / 1_000_000_000.0
-            String.format(java.util.Locale.US, "%.1f", b).removeSuffix(".0") + " م‌د"
-        }
-        absVal >= 1_000_000L -> {
-            val m = absVal / 1_000_000.0
-            String.format(java.util.Locale.US, "%.1f", m).removeSuffix(".0") + " م"
-        }
-        absVal >= 1_000L -> {
-            "${absVal / 1_000L} ه"
-        }
-        else -> absVal.toString()
-    }
-    val signed = if (isNeg && absVal > 0L) "−$raw" else raw
-    return PersianCurrencyEngine.toPersianDigits(signed)
-}
+fun formatCompactPersianToman(amountToman: Long, privacyMasked: Boolean): String =
+    PersianCurrencyEngine.formatCompactAmount(
+        amountToman = amountToman,
+        unit = CurrencyUnit.TOMAN,
+        includeUnit = false,
+        privacyMasked = privacyMasked
+    )
 
 /**
  * Editorial fintech section header with tinted rounded icon badge, auto-fitting title/subtitle, and optional trailing action.

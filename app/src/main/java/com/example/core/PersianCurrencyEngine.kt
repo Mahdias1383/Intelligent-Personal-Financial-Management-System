@@ -65,9 +65,82 @@ object PersianCurrencyEngine {
         return if (usePersianDigits) toPersianDigits(formatted) else formatted
     }
 
+    const val LRI: String = "\u2066"
+    const val RLI: String = "\u2067"
+    const val PDI: String = "\u2069"
+    const val RLM: String = "\u200F"
+
+    private val persianLetterRegex = Regex("[\u0600-\u06FF]")
+    private val embeddedLatinRunRegex = Regex(
+        """(?:\.?[A-Za-z][A-Za-z0-9._+-]*(?:\s+[A-Za-z0-9][A-Za-z0-9._+-]*)*)"""
+    )
+
+    /**
+     * Wraps a purely LTR run (digits, signs, Latin acronyms, filenames, or model codes) in
+     * Unicode Bidirectional LRI...PDI isolate characters so it never leaks LTR ordering into
+     * surrounding Persian RTL words, colons, parentheses, or Persian digits (۰-۹).
+     */
+    fun isolateLtr(raw: String): String {
+        if (raw.isEmpty()) return raw
+        if (raw.startsWith(LRI) && raw.endsWith(PDI)) return raw
+        return "$LRI$raw$PDI"
+    }
+
+    /**
+     * Protects Persian RTL sentences containing one or more embedded English words, acronyms,
+     * file extensions, or alphanumeric codes (e.g. "PDF", "A4", "Galaxy A55", ".xls", "SHA-256")
+     * from UAX #9 Bidirectional reordering bugs (such as colons or Persian digits jumping before
+     * an English word). Purely Persian or purely Latin strings are returned unchanged, and the
+     * function is strictly idempotent.
+     */
+    fun formatRtlBidiSafe(text: String): String {
+        if (text.isEmpty() || !persianLetterRegex.containsMatchIn(text)) return text
+        var hasLatin = false
+        for (ch in text) {
+            if ((ch in 'A'..'Z') || (ch in 'a'..'z')) {
+                hasLatin = true
+                break
+            }
+        }
+        if (!hasLatin) return text
+
+        val result = StringBuilder(text.length + 12)
+        var i = 0
+        var insideIsolateDepth = 0
+        while (i < text.length) {
+            val ch = text[i]
+            if (ch == '\u2066' || ch == '\u2067' || ch == '\u2068') {
+                insideIsolateDepth++
+                result.append(ch)
+                i++
+                continue
+            }
+            if (ch == '\u2069') {
+                if (insideIsolateDepth > 0) insideIsolateDepth--
+                result.append(ch)
+                i++
+                continue
+            }
+            if (insideIsolateDepth == 0) {
+                val match = embeddedLatinRunRegex.matchAt(text, i)
+                if (match != null) {
+                    val token = match.value.trimEnd('.', '-', '+')
+                    if (token.isNotEmpty() && token.any { (it in 'A'..'Z') || (it in 'a'..'z') }) {
+                        result.append(LRI).append(token).append(PDI)
+                        i += token.length
+                        continue
+                    }
+                }
+            }
+            result.append(ch)
+            i++
+        }
+        return result.toString()
+    }
+
     /**
      * Formats an internal Toman amount in the requested display unit (Toman or Rial),
-     * optionally applying the Privacy Mask ("•••••••").
+     * optionally applying the Privacy Mask ("•••,•••").
      */
     fun formatAmount(
         amountToman: Long,
@@ -81,6 +154,81 @@ object PersianCurrencyEngine {
         val displayVal = amountToman * unit.multiplierFromToman
         val formatted = formatNumberWithCommas(displayVal, usePersianDigits = true)
         return if (includeUnit) "$formatted ${unit.labelFa}" else formatted
+    }
+
+    /**
+     * Formats an internal Toman amount into a crystal-clear, unambiguous Persian compact figure
+     * using full scale names ("هزار", "میلیون", "میلیارد", "تریلیون") instead of ambiguous
+     * single-letter abbreviations like "م" or "ه".
+     *
+     * ONLY the numeric digits + optional sign are wrapped in LTR isolate (\u2066...\u2069),
+     * keeping the Persian scale word and currency unit in strict RTL flow so values always render
+     * naturally right-to-left (e.g. "۱۳۷.۲ میلیون تومان", "۱.۲۵ میلیارد تومان", "۸۵۰ هزار تومان").
+     */
+    fun formatCompactAmount(
+        amountToman: Long,
+        unit: CurrencyUnit = CurrencyUnit.TOMAN,
+        includeUnit: Boolean = false,
+        privacyMasked: Boolean = false,
+        showPlusSign: Boolean = false
+    ): String {
+        if (privacyMasked) {
+            return if (includeUnit) "••• ${unit.labelFa}" else "•••"
+        }
+        val displayVal = amountToman * unit.multiplierFromToman
+        val signPrefix = when {
+            displayVal < 0L -> "−"
+            showPlusSign && displayVal > 0L -> "+"
+            else -> ""
+        }
+        val absVal = kotlin.math.abs(displayVal)
+
+        val (numStr, scaleWord) = when {
+            absVal >= 1_000_000_000_000L -> {
+                formatTrimmedDecimal(absVal / 1_000_000_000_000.0, maxDecimals = 2) to "تریلیون"
+            }
+            absVal >= 1_000_000_000L -> {
+                val b = absVal / 1_000_000_000.0
+                val rounded = kotlin.math.round(b * 100.0) / 100.0
+                if (rounded >= 1000.0) {
+                    formatTrimmedDecimal(rounded / 1000.0, maxDecimals = 2) to "تریلیون"
+                } else {
+                    formatTrimmedDecimal(rounded, maxDecimals = 2) to "میلیارد"
+                }
+            }
+            absVal >= 1_000_000L -> {
+                val m = absVal / 1_000_000.0
+                val rounded = kotlin.math.round(m * 10.0) / 10.0
+                if (rounded >= 1000.0) {
+                    formatTrimmedDecimal(rounded / 1000.0, maxDecimals = 2) to "میلیارد"
+                } else {
+                    formatTrimmedDecimal(rounded, maxDecimals = 1) to "میلیون"
+                }
+            }
+            absVal >= 1_000L -> {
+                val k = absVal / 1_000.0
+                val rounded = kotlin.math.round(k * 10.0) / 10.0
+                if (rounded >= 1000.0) {
+                    formatTrimmedDecimal(rounded / 1000.0, maxDecimals = 1) to "میلیون"
+                } else {
+                    formatTrimmedDecimal(rounded, maxDecimals = 1) to "هزار"
+                }
+            }
+            else -> absVal.toString() to ""
+        }
+
+        val isolatedNumeric = isolateLtr(toPersianDigits("$signPrefix$numStr"))
+        val withScale = if (scaleWord.isNotEmpty()) "$isolatedNumeric $scaleWord" else isolatedNumeric
+        return if (includeUnit) "$withScale ${unit.labelFa}" else withScale
+    }
+
+    private fun formatTrimmedDecimal(value: Double, maxDecimals: Int): String {
+        val pattern = if (maxDecimals <= 1) "%.1f" else "%.2f"
+        var formatted = String.format(Locale.US, pattern, value)
+        if (formatted.contains('.')) {
+            formatted = formatted.trimEnd('0').trimEnd('.')
+        }
+        return formatted
     }
 
     /**

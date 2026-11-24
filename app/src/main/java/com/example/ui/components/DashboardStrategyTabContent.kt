@@ -75,10 +75,10 @@ import kotlin.math.roundToLong
 
 private val STRATEGY_EXTRA_PRESETS = listOf(
     0L to "۰",
-    1_000_000L to "+۱ م",
-    3_000_000L to "+۳ م",
-    5_000_000L to "+۵ م",
-    10_000_000L to "+۱۰ م"
+    1_000_000L to "${PersianCurrencyEngine.isolateLtr("+۱")} میلیون",
+    3_000_000L to "${PersianCurrencyEngine.isolateLtr("+۳")} میلیون",
+    5_000_000L to "${PersianCurrencyEngine.isolateLtr("+۵")} میلیون",
+    10_000_000L to "${PersianCurrencyEngine.isolateLtr("+۱۰")} میلیون"
 )
 
 /**
@@ -338,7 +338,7 @@ fun DashboardStrategyTabContent(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ترتیب پیشنهادی تسویه (Pay-Off Order)",
+                        text = "ترتیب پیشنهادی تسویه",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface

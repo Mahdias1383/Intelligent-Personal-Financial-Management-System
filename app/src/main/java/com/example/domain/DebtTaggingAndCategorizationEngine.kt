@@ -41,7 +41,7 @@ enum class DebtCategoryTag(
     CREDIT_CARD(
         id = "CREDIT_CARD",
         labelFa = "کارت اعتباری و خرید اقساطی",
-        shortBadgeFa = "کارت اعتباری / BNPL",
+        shortBadgeFa = "کارت اعتباری و اقساطی",
         labelEn = "Credit Card",
         descriptionFa = "کارت‌های اعتباری، اسنپ‌پی، دیجی‌پی و خریدهای اقساطی",
         colorHex = 0xFF4DA3B8

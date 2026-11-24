@@ -1543,16 +1543,17 @@ private fun CategoryBentoTile(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 TarazinoAutoSizeText(
-                    text = if (privacyMasked) {
-                        formatCompactPersianToman(displayAmount, true)
-                    } else {
-                        "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
-                    },
+                    text = PersianCurrencyEngine.formatCompactAmount(
+                        amountToman = totalRem,
+                        unit = currencyUnit,
+                        includeUnit = true,
+                        privacyMasked = privacyMasked
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = accent,
                     maxLines = 1,
-                    minFontSize = 10.sp,
+                    minFontSize = 8.5.sp,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -1655,16 +1656,17 @@ private fun CounterpartyQuickDeckCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             TarazinoAutoSizeText(
-                text = if (privacyMasked) {
-                    formatCompactPersianToman(displayAmount, true)
-                } else {
-                    "${ltrIsolateDigits(formatCompactPersianToman(displayAmount, false))} ${currencyUnit.labelFa}"
-                },
+                text = PersianCurrencyEngine.formatCompactAmount(
+                    amountToman = remainingToman,
+                    unit = currencyUnit,
+                    includeUnit = true,
+                    privacyMasked = privacyMasked
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Black,
                 color = accent,
                 maxLines = 1,
-                minFontSize = 9.5.sp,
+                minFontSize = 8.5.sp,
                 modifier = Modifier.fillMaxWidth()
             )
         }

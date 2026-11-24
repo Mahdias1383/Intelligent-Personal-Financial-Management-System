@@ -372,7 +372,7 @@ fun SecurityLockOverlay(
                     Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = primaryAccent)
                     Spacer(modifier = Modifier.size(8.dp))
                     TarazinoAutoSizeText(
-                        text = "بازگشایی با BiometricPrompt (اثر انگشت / تشخیص چهره)",
+                        text = "بازگشایی با اثر انگشت یا تشخیص چهره",
                         style = MaterialTheme.typography.labelLarge,
                         color = primaryAccent,
                         fontWeight = FontWeight.SemiBold,

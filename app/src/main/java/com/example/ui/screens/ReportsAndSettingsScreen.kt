@@ -426,7 +426,11 @@ fun ReportsAndSettingsScreen(
                             currencyUnit = uiState.preferences.currencyUnit
                         )
                         val file = ReportExportEngine.saveAndSharePdfFile(context, payload)
-                        onShowToast("فایل PDF دسته «${categoryTag.labelFa}» (${file.name}) آماده شد")
+                        onShowToast(
+                            PersianCurrencyEngine.formatRtlBidiSafe(
+                                "فایل PDF دسته «${categoryTag.labelFa}» (${file.name}) آماده شد"
+                            )
+                        )
                     },
                     onExportCategoryFilteredExcel = { categoryTag, obIds ->
                         val filteredObs = if (categoryTag == DebtCategoryTag.ALL) {
@@ -541,7 +545,7 @@ fun ReportsAndSettingsScreen(
 
                                 Text(
                                     text = if (isHighContrastNightSelected) {
-                                        "حالت تاریک پُرکنتراست OLED فعال است؛ بهینه‌شده برای مدیریت مالی در شب با کنتراست حداکثری و محافظت از چشم."
+                                        "حالت تاریک پُرکنتراست شبانه فعال است؛ بهینه‌شده برای مدیریت مالی در شب با کنتراست حداکثری و محافظت از چشم."
                                     } else {
                                         "جابه‌جایی آنی بین پوسته روشن فیروزه تیره و حالت تاریک پُرکنتراست شبانه (همچنین از نوار بالای صفحه در دسترس است)."
                                     },
@@ -720,7 +724,7 @@ fun ReportsAndSettingsScreen(
                                                     minFontSize = 9.5.sp
                                                 )
                                                 Text(
-                                                    text = "شبانه • OLED کنتراست بالا",
+                                                    text = "شبانه • کنتراست حداکثری",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = if (isHighContrastNightSelected) {
                                                         Color(0xFFF5D28A)
@@ -883,7 +887,7 @@ fun ReportsAndSettingsScreen(
                                 ThemePreviewSwatchCard(
                                     mode = TarazinoThemeMode.HIGH_CONTRAST_NIGHT_DARK,
                                     titleFa = "تاریک پُرکنتراست شبانه",
-                                    subtitleFa = "OLED • کنتراست WCAG AAA",
+                                    subtitleFa = "شبانه • کنتراست حداکثری",
                                     isLightTheme = false,
                                     bgPreview = Color(0xFF020506),
                                     surfacePreview = Color(0xFF0A1114),
@@ -1136,8 +1140,8 @@ fun ReportsAndSettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         TarazinoSectionHeader(
-                            title = "خزانه امنیتی آفلاین (PIN + بیومتریک)",
-                            subtitle = if (isPinActive) "قفل رمز عبور فعال با هش SHA-256" else "محافظت از اطلاعات مالی در دستگاه",
+                            title = "خزانه امنیتی آفلاین (رمز پین و بیومتریک)",
+                            subtitle = if (isPinActive) "قفل رمز عبور فعال با رمزنگاری امن" else "محافظت از اطلاعات مالی در دستگاه",
                             icon = Icons.Default.Shield,
                             accentColor = if (isPinActive) ext.positive else MaterialTheme.colorScheme.secondary,
                             trailing = if (isPinActive) {
@@ -1222,7 +1226,7 @@ fun ReportsAndSettingsScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "ورود بیومتریک با BiometricPrompt (اثر انگشت / چهره)",
+                                            text = "ورود بیومتریک با اثر انگشت یا تشخیص چهره",
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1255,7 +1259,7 @@ fun ReportsAndSettingsScreen(
                                                     }
                                                     is BiometricAuthResult.FallbackToTouchSheet -> {
                                                         bioEnabled = true
-                                                        onShowToast("BiometricPrompt آماده شد (${res.reasonFa})")
+                                                        onShowToast("احراز هویت بیومتریک آماده شد (${res.reasonFa})")
                                                     }
                                                     is BiometricAuthResult.CancelledOrFailed -> {
                                                         onShowToast(res.errorMessageFa)
@@ -1270,7 +1274,7 @@ fun ReportsAndSettingsScreen(
                                         .testTag("test_biometric_prompt_btn")
                                 ) {
                                     TarazinoAutoSizeText(
-                                        text = "آزمایش و فراخوانی مستقیم حسگر BiometricPrompt اندروید",
+                                        text = "آزمایش و فراخوانی مستقیم حسگر بیومتریک دستگاه",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
@@ -2009,7 +2013,7 @@ fun ReportsAndSettingsScreen(
                             onClick = {
                                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                                 cm?.setPrimaryClip(ClipData.newPlainText("TarazinoBackupJson", json))
-                                onShowToast("پشتیبان JSON در کلیپ‌بورد کپی شد.")
+                                onShowToast(PersianCurrencyEngine.formatRtlBidiSafe("پشتیبان JSON در کلیپ‌بورد کپی شد."))
                                 backupJsonDialogContent = null
                             },
                             shape = RoundedCornerShape(13.dp),
@@ -2055,7 +2059,13 @@ fun ReportsAndSettingsScreen(
                     OutlinedTextField(
                         value = importJsonInput,
                         onValueChange = { importJsonInput = it },
-                        label = { Text("متن JSON پشتیبان", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        label = {
+                            Text(
+                                text = PersianCurrencyEngine.formatRtlBidiSafe("متن JSON پشتیبان"),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
                         maxLines = 8,
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth()

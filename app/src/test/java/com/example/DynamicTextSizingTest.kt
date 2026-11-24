@@ -106,13 +106,87 @@ class DynamicTextSizingTest {
     }
 
     @Test
-    fun `formatCompactPersianToman formats thousands millions billions trillions negatives and privacy mask`() {
+    fun `formatCompactPersianToman formats unambiguous full Persian scales with numeric-only BiDi isolation`() {
         assertEquals("•••", formatCompactPersianToman(125_000_000L, privacyMasked = true))
-        assertEquals("۴۵۰ ه", formatCompactPersianToman(450_000L, privacyMasked = false))
-        assertEquals("۲۵ م", formatCompactPersianToman(25_000_000L, privacyMasked = false))
-        assertEquals("۱۲.۵ م", formatCompactPersianToman(12_500_000L, privacyMasked = false))
-        assertEquals("۲.۵ م‌د", formatCompactPersianToman(2_500_000_000L, privacyMasked = false))
-        assertEquals("۱.۲ همت", formatCompactPersianToman(1_200_000_000_000L, privacyMasked = false))
-        assertEquals("−۱۵ م", formatCompactPersianToman(-15_000_000L, privacyMasked = false))
+        assertEquals("\u2066۴۵۰\u2069 هزار", formatCompactPersianToman(450_000L, privacyMasked = false))
+        assertEquals("\u2066۲۵\u2069 میلیون", formatCompactPersianToman(25_000_000L, privacyMasked = false))
+        assertEquals("\u2066۱۲.۵\u2069 میلیون", formatCompactPersianToman(12_500_000L, privacyMasked = false))
+        assertEquals("\u2066۱۳۷.۲\u2069 میلیون", formatCompactPersianToman(137_200_000L, privacyMasked = false))
+        assertEquals("\u2066۲.۵\u2069 میلیارد", formatCompactPersianToman(2_500_000_000L, privacyMasked = false))
+        assertEquals("\u2066۱.۲۵\u2069 میلیارد", formatCompactPersianToman(1_250_000_000L, privacyMasked = false))
+        assertEquals("\u2066۱.۲\u2069 تریلیون", formatCompactPersianToman(1_200_000_000_000L, privacyMasked = false))
+        assertEquals("\u2066−۱۵\u2069 میلیون", formatCompactPersianToman(-15_000_000L, privacyMasked = false))
+        // Must NEVER contain ambiguous single-letter "م", "ه", "م‌د", or "همت" abbreviations
+        val samples = listOf(450_000L, 12_500_000L, 137_200_000L, 2_500_000_000L, 1_200_000_000_000L)
+        samples.forEach { amount ->
+            val out = formatCompactPersianToman(amount, privacyMasked = false)
+            assertTrue("Output '$out' must isolate numeric part only", out.startsWith("\u2066") && out.contains("\u2069 "))
+            assertTrue("Scale word must stay outside LTR isolate in '$out'", !out.endsWith("\u2069"))
+        }
+    }
+
+    @Test
+    fun `formatCompactAmount formats Toman and Rial with unit in strict RTL order and handles rounding promotions`() {
+        val toman = com.example.core.PersianCurrencyEngine.formatCompactAmount(
+            amountToman = 137_200_000L,
+            unit = com.example.core.CurrencyUnit.TOMAN,
+            includeUnit = true
+        )
+        assertEquals("\u2066۱۳۷.۲\u2069 میلیون تومان", toman)
+
+        val rial = com.example.core.PersianCurrencyEngine.formatCompactAmount(
+            amountToman = 137_200_000L,
+            unit = com.example.core.CurrencyUnit.RIAL,
+            includeUnit = true
+        )
+        assertEquals("\u2066۱.۳۷\u2069 میلیارد ریال", rial)
+
+        val positiveDelta = com.example.core.PersianCurrencyEngine.formatCompactAmount(
+            amountToman = 5_000_000L,
+            unit = com.example.core.CurrencyUnit.TOMAN,
+            includeUnit = false,
+            showPlusSign = true
+        )
+        assertEquals("\u2066+۵\u2069 میلیون", positiveDelta)
+
+        // Rounding boundary promotion: 999_990_000 Toman -> 1 میلیارد (never "1000 میلیون")
+        val promoted = com.example.core.PersianCurrencyEngine.formatCompactAmount(
+            amountToman = 999_990_000L,
+            includeUnit = true
+        )
+        assertEquals("\u2066۱\u2069 میلیارد تومان", promoted)
+    }
+
+    @Test
+    fun `formatRtlBidiSafe isolates embedded Latin words in Persian sentences without flipping colons or Persian digits`() {
+        val mlAlert = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "هشدار ML: ۲ ماه کسری در پیش است (نزدیک‌ترین: آذر)"
+        )
+        assertEquals(
+            "هشدار \u2066ML\u2069: ۲ ماه کسری در پیش است (نزدیک‌ترین: آذر)",
+            mlAlert
+        )
+        // Strictly idempotent
+        assertEquals(mlAlert, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(mlAlert))
+
+        val pdfLine = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "خروجی PDF استاندارد A4 (.xls)"
+        )
+        assertEquals(
+            "خروجی \u2066PDF\u2069 استاندارد \u2066A4\u2069 (\u2066.xls\u2069)",
+            pdfLine
+        )
+
+        val productModel = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "خرید گوشی سامسونگ Galaxy A55 با گارانتی"
+        )
+        assertEquals(
+            "خرید گوشی سامسونگ \u2066Galaxy A55\u2069 با گارانتی",
+            productModel
+        )
+
+        // Pure Persian remains completely untouched
+        val pureFa = "هشدار پیش‌بینی هوشمند: ۲ ماه کسری در پیش است"
+        assertEquals(pureFa, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(pureFa))
     }
 }

@@ -326,7 +326,7 @@ internal fun LoanContractCameraViewport(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "اسکنر هوشمند قرارداد و رسید (OCR)",
+                        text = "اسکنر هوشمند قرارداد و رسید",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

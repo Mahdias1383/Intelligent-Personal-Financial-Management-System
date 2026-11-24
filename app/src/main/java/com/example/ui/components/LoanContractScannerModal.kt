@@ -419,7 +419,7 @@ fun LoanContractScannerModal(
                                                         modifier = Modifier.size(16.dp)
                                                     )
                                                     Text(
-                                                        text = "خلاصه تحلیل خودکار متن (OCR)",
+                                                        text = "خلاصه تحلیل خودکار متن قرارداد",
                                                         style = MaterialTheme.typography.labelLarge,
                                                         fontWeight = FontWeight.ExtraBold,
                                                         color = MaterialTheme.colorScheme.primary
@@ -848,7 +848,7 @@ fun LoanContractScannerModal(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "پردازش کاملاً آفلاین روی دستگاه شما (ML Kit OCR)",
+                                    text = "پردازش کاملاً آفلاین و امن روی دستگاه شما",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -164,7 +164,7 @@ fun FinancialHealthRadarChartCard(
         ) {
             // 1. Header with Composite Radar Health Score Badge
             TarazinoSectionHeader(
-                title = "رادار سلامت مالی و توازن دسته‌های بدهی (D3 Radar)",
+                title = "رادار سلامت مالی و توازن دسته‌های بدهی",
                 subtitle = "توزیع دسته‌ها (وام بانکی، شخصی، اعتباری) و اثر بر ظرفیت بودجه ${radarReport.shamsiMonthNameFa}",
                 icon = Icons.Default.Radar,
                 accentColor = debtDistributionColor,

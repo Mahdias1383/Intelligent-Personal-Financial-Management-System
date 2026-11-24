@@ -332,7 +332,7 @@ object ComprehensiveFinancialPdfReportEngine {
                 remainingAmountToman = report.cashflowSummary.netMonthlyFreeCashflowToman.coerceAtLeast(0L),
                 statusLabelFa = "امتیاز سلامت ${PersianCurrencyEngine.toPersianDigits(report.cashflowSummary.financialHealthScore.toString())}",
                 statusEnum = InstallmentStatus.PAID,
-                trackingOrNote = "DTI: ${PersianCurrencyEngine.toPersianDigits(report.cashflowSummary.debtToIncomePercent.toString())}٪"
+                trackingOrNote = "نسبت قسط به درآمد: ${PersianCurrencyEngine.toPersianDigits(report.cashflowSummary.debtToIncomePercent.toString())}٪"
             )
         )
 

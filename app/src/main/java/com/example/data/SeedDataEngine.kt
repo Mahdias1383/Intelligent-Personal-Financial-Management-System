@@ -19,7 +19,7 @@ object SeedDataEngine {
         // Category: BNPL_PLATFORM (خرید اقساطی -> اسنپ‌پی، دیجی‌پی)
         val snappPayId = dao.insertCounterparty(
             CounterpartyEntity(
-                name = "اسنپ‌پی (SnappPay)",
+                name = "اسنپ‌پی",
                 category = EntityCategory.BNPL_PLATFORM.name,
                 avatarColorHex = 0xFF4DA3B8,
                 cardNumber = "6219861045127890",
@@ -33,7 +33,7 @@ object SeedDataEngine {
 
         val digiPayId = dao.insertCounterparty(
             CounterpartyEntity(
-                name = "دیجی‌پی (DigiPay)",
+                name = "دیجی‌پی",
                 category = EntityCategory.BNPL_PLATFORM.name,
                 avatarColorHex = 0xFF5E96AE,
                 cardNumber = "6221061987654321",
@@ -137,7 +137,7 @@ object SeedDataEngine {
         val snappLaptopId = dao.insertObligation(
             ObligationEntity(
                 counterpartyId = snappPayId,
-                title = "خرید اقساطی لپ‌تاپ ایسوس Vivobook",
+                title = "خرید اقساطی لپ‌تاپ ایسوس \u2066Vivobook\u2069",
                 category = ObligationCategory.BNPL_PURCHASE.name,
                 scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
                 principalAmountToman = 38_000_000L,
@@ -190,7 +190,7 @@ object SeedDataEngine {
         val digiPhoneId = dao.insertObligation(
             ObligationEntity(
                 counterpartyId = digiPayId,
-                title = "خرید گوشی سامسونگ Galaxy A55",
+                title = "خرید گوشی سامسونگ \u2066Galaxy A55\u2069",
                 category = ObligationCategory.BNPL_PURCHASE.name,
                 scheduleMode = ScheduleMode.AUTO_SCHEDULE.name,
                 principalAmountToman = 24_000_000L,

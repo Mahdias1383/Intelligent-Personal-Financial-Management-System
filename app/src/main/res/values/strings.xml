@@ -5,13 +5,13 @@
     <string name="nav_entities">طرف‌حساب‌ها</string>
     <string name="nav_obligations">اقساط و بدهی</string>
     <string name="nav_intelligence">هوش مالی</string>
-    <string name="nav_reports">گزارش A4 و تنظیمات</string>
+    <string name="nav_reports">گزارش &#x2066;A4&#x2069; و تنظیمات</string>
     <string name="privacy_mask_toggle">مخفی‌سازی ارقام مالی</string>
     <string name="start_interactive_tour">اجرای تور آموزشی تعاملی</string>
     <string name="lock_app_now">قفل آنی برنامه</string>
-    <string name="export_a4_pdf">خروجی PDF استاندارد A4</string>
-    <string name="export_rtl_excel">خروجی اکسل راست‌به‌چپ (.xls)</string>
-    <string name="export_csv_bom">خروجی اکسل جهانی (.csv)</string>
+    <string name="export_a4_pdf">خروجی &#x2066;PDF&#x2069; استاندارد &#x2066;A4&#x2069;</string>
+    <string name="export_rtl_excel">خروجی اکسل راست‌به‌چپ (&#x2066;.xls&#x2069;)</string>
+    <string name="export_csv_bom">خروجی اکسل جهانی (&#x2066;.csv&#x2069;)</string>
     <string name="widget_quick_log_title">ترازینو • ثبت سریع</string>
     <string name="widget_quick_log_description">ثبت سریع هزینه یا پرداخت قسط بدهی مستقیم از صفحه اصلی بدون باز کردن برنامه</string>
     <string name="widget_loading_summary">در حال بارگذاری وضعیت بدهی‌ها…</string>

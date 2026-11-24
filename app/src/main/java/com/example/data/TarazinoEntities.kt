@@ -9,7 +9,7 @@ enum class EntityCategory(
     val defaultColorHex: Long
 ) {
     BANK("بانک‌های عامل", "بانک", 0xFF35B8AB),
-    BNPL_PLATFORM("پلتفرم خرید اقساطی (BNPL)", "اقساطی / BNPL", 0xFF4DA3B8),
+    BNPL_PLATFORM("پلتفرم خرید اقساطی", "خرید اقساطی", 0xFF4DA3B8),
     INSTITUTION("صندوق قرض‌الحسنه / موسسه", "صندوق و موسسه", 0xFF689EB8),
     PERSON("اشخاص حقیقی (دوست، خانواده، صاحب‌خانه)", "شخص حقیقی", 0xFFDAB978)
 }
@@ -31,7 +31,7 @@ enum class ObligationCategory(
     val colorHex: Long
 ) {
     INSTALLMENT_LOAN("وام و تسهیلات اقساطی بانکی/صندوقی", "وام اقساطی", false, 0xFF35B8AB),
-    BNPL_PURCHASE("خرید اقساطی کالا و خدمات (BNPL)", "خرید اقساطی", false, 0xFF4DA3B8),
+    BNPL_PURCHASE("خرید اقساطی کالا و خدمات", "خرید اقساطی", false, 0xFF4DA3B8),
     PERSONAL_DEBT("بدهی و قرض دریافتی از اشخاص/موسسات", "قرض و بدهی", false, 0xFFDAB978),
     PERSONAL_RECEIVABLE("طلب و قرض داده‌شده به دیگران", "طلب از دیگران", true, 0xFF53C9BD),
     CHECK_OR_BILL("چک صیادی، اجاره‌بها یا تعهدات دوره‌ای", "چک صیادی / اجاره", false, 0xFFC99B68)

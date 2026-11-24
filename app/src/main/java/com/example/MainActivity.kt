@@ -784,7 +784,19 @@ fun TarazinoAppRoot(
                                     onSaveAutomatedSchedule = { enabled, primaryDay, secondaryDay ->
                                         viewModel.saveAutomatedPaymentSchedule(enabled, primaryDay, secondaryDay)
                                     },
-                                    onRefreshDailyAiTip = { viewModel.refreshDailyAiFinancialTip(forceRefresh = true) }
+                                    onRefreshDailyAiTip = { viewModel.refreshDailyAiFinancialTip(forceRefresh = true) },
+                                    onMoveDashboardModule = { from, to -> viewModel.moveDashboardModule(from, to) },
+                                    onMoveDashboardModuleByDelta = { id, delta ->
+                                        viewModel.moveDashboardModuleByDelta(id, delta)
+                                    },
+                                    onPinDashboardModuleToTop = { id -> viewModel.pinDashboardModuleToTop(id) },
+                                    onToggleDashboardModuleVisibility = { id ->
+                                        viewModel.toggleDashboardModuleVisibility(id)
+                                    },
+                                    onApplyDashboardFocusPreset = { preset ->
+                                        viewModel.applyDashboardFocusPreset(preset)
+                                    },
+                                    onResetDashboardLayout = { viewModel.resetDashboardLayoutToDefault() }
                                 )
 
                                 TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(
