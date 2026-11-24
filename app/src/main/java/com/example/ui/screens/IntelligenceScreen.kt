@@ -96,6 +96,7 @@ import com.example.core.PersianCurrencyEngine
 import com.example.data.InstallmentEntity
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.DebtAmortizationCalculatorSection
+import com.example.ui.components.DebtConsolidationSimulatorSection
 import com.example.ui.components.DebtFreeAcceleratorSliderCard
 import com.example.ui.components.DebtSnowballCalculatorSection
 import com.example.ui.components.FinancialHealthRadarChartCard
@@ -1007,7 +1008,21 @@ fun IntelligenceScreen(
         }
 
         // =========================================================================
-        // 6. SHAMSI DEBT AMORTIZATION CALCULATOR (ماشین‌حساب استهلاک وام و اقساط شمسی)
+        // 6. DEBT CONSOLIDATION SIMULATOR (شبیه‌ساز تجمیع بدهی‌ها با وام کم‌بهره)
+        // =========================================================================
+        item {
+            DebtConsolidationSimulatorSection(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                currencyUnit = unit,
+                privacyMasked = masked
+            )
+        }
+
+        // =========================================================================
+        // 7. SHAMSI DEBT AMORTIZATION CALCULATOR (ماشین‌حساب استهلاک وام و اقساط شمسی)
         // =========================================================================
         item {
             DebtAmortizationCalculatorSection(
