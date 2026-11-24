@@ -107,6 +107,7 @@ import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DashboardDebtCategoryTagFilterSection
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
+import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MetallicSmartChipEmblem
@@ -1146,6 +1147,21 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+
+        // =========================================================================
+        // 3.2. D3 FINANCIAL HEALTH RADAR (DEBT CATEGORY DISTRIBUTION & BUDGET CAPACITY IMPACT)
+        // =========================================================================
+        item {
+            FinancialHealthRadarChartCard(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                livingExpensePercent = uiState.preferences.livingExpensePercent,
+                currencyUnit = unit,
+                privacyMasked = masked
+            )
         }
 
         // =========================================================================

@@ -96,6 +96,7 @@ import com.example.core.PersianCurrencyEngine
 import com.example.domain.CalendarHeatmapDay
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.DebtAmortizationCalculatorSection
+import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MlFinancialForecastSection
@@ -481,6 +482,21 @@ fun IntelligenceScreen(
                     }
                 }
             }
+        }
+
+        // =========================================================================
+        // 1A. D3 FINANCIAL HEALTH RADAR (DEBT CATEGORIES & MONTHLY BUDGET CAPACITY IMPACT)
+        // =========================================================================
+        item {
+            FinancialHealthRadarChartCard(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                livingExpensePercent = uiState.preferences.livingExpensePercent,
+                currencyUnit = unit,
+                privacyMasked = masked
+            )
         }
 
         // =========================================================================
