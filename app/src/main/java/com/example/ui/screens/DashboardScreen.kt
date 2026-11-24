@@ -2483,7 +2483,7 @@ private fun AllAlertsModalDialog(
         if (selectedBucket == null) alerts else alerts.filter { it.bucket == selectedBucket }
     }
 
-    Dialog(
+    com.example.ui.components.TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

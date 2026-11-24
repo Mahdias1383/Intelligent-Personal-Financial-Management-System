@@ -61,7 +61,7 @@ fun A4ReportPreviewModal(
     onExportRtlExcel: () -> Unit,
     onExportCsv: () -> Unit
 ) {
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -577,7 +577,7 @@ private fun A4KpiMiniBox(
         )
         Spacer(modifier = Modifier.height(2.dp))
         TarazinoAutoSizeText(
-            text = ltrIsolateDigits(value),
+            text = value,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = borderColor,

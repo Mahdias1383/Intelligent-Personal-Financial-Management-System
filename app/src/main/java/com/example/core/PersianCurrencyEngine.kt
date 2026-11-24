@@ -72,13 +72,19 @@ object PersianCurrencyEngine {
 
     private val persianLetterRegex = Regex("[\u0600-\u06FF]")
     private val embeddedLatinRunRegex = Regex(
-        """(?:\.?[A-Za-z][A-Za-z0-9._+-]*(?:\s+[A-Za-z0-9][A-Za-z0-9._+-]*)*)"""
+        """(?:\.?[A-Za-z][A-Za-z0-9\u06F0-\u06F9._+-]*(?:\s+[A-Za-z0-9][A-Za-z0-9\u06F0-\u06F9._+-]*)*)"""
+    )
+    private val currencySymbolAmountRegex = Regex(
+        """(?:[$€£¥₮₺]\s*[0-9\u06F0-\u06F9][0-9\u06F0-\u06F9,.\u066B\u066C]*)"""
+    )
+    private val signedNumberRegex = Regex(
+        """(?:[+\-\u2212][0-9\u06F0-\u06F9][0-9\u06F0-\u06F9,.\u066B\u066C]*(?:[%٪])?)"""
     )
 
     /**
-     * Wraps a purely LTR run (digits, signs, Latin acronyms, filenames, or model codes) in
-     * Unicode Bidirectional LRI...PDI isolate characters so it never leaks LTR ordering into
-     * surrounding Persian RTL words, colons, parentheses, or Persian digits (۰-۹).
+     * Wraps a purely LTR run (digits, signs, Latin acronyms, currency codes/symbols, card numbers,
+     * Sheba/tracking codes, or filenames) in Unicode Bidirectional LRI...PDI isolate characters so
+     * it never leaks LTR ordering into surrounding Persian RTL words, colons, parentheses, or digits.
      */
     fun isolateLtr(raw: String): String {
         if (raw.isEmpty()) return raw
@@ -87,24 +93,28 @@ object PersianCurrencyEngine {
     }
 
     /**
-     * Protects Persian RTL sentences containing one or more embedded English words, acronyms,
-     * file extensions, or alphanumeric codes (e.g. "PDF", "A4", "Galaxy A55", ".xls", "SHA-256")
-     * from UAX #9 Bidirectional reordering bugs (such as colons or Persian digits jumping before
-     * an English word). Purely Persian or purely Latin strings are returned unchanged, and the
-     * function is strictly idempotent.
+     * Protects Persian RTL sentences containing embedded English words, currency codes/symbols,
+     * alphanumeric tracking codes (including Persian digits like "SNP-۷۷۴۱۲۰" or "IR۸۲۰۵۶۰..."),
+     * file extensions (".xls", "PDF", "A4", "SHA-256"), or signed numbers ("+۵٪", "−۲,۵۰۰,۰۰۰")
+     * from UAX #9 Bidirectional reordering bugs. Purely unsigned Persian strings or purely Latin
+     * strings are returned unchanged, and the function is strictly idempotent.
      */
     fun formatRtlBidiSafe(text: String): String {
         if (text.isEmpty() || !persianLetterRegex.containsMatchIn(text)) return text
-        var hasLatin = false
+        var needsIsolation = false
         for (ch in text) {
-            if ((ch in 'A'..'Z') || (ch in 'a'..'z')) {
-                hasLatin = true
+            if (
+                (ch in 'A'..'Z') || (ch in 'a'..'z') ||
+                ch == '$' || ch == '€' || ch == '£' || ch == '¥' || ch == '₮' || ch == '₺' ||
+                ch == '+' || ch == '-' || ch == '\u2212'
+            ) {
+                needsIsolation = true
                 break
             }
         }
-        if (!hasLatin) return text
+        if (!needsIsolation) return text
 
-        val result = StringBuilder(text.length + 12)
+        val result = StringBuilder(text.length + 16)
         var i = 0
         var insideIsolateDepth = 0
         while (i < text.length) {
@@ -122,13 +132,34 @@ object PersianCurrencyEngine {
                 continue
             }
             if (insideIsolateDepth == 0) {
-                val match = embeddedLatinRunRegex.matchAt(text, i)
-                if (match != null) {
-                    val token = match.value.trimEnd('.', '-', '+')
+                val latinMatch = embeddedLatinRunRegex.matchAt(text, i)
+                if (latinMatch != null) {
+                    val token = latinMatch.value.trimEnd('.', '-', '+')
                     if (token.isNotEmpty() && token.any { (it in 'A'..'Z') || (it in 'a'..'z') }) {
                         result.append(LRI).append(token).append(PDI)
                         i += token.length
                         continue
+                    }
+                }
+                val currencyMatch = currencySymbolAmountRegex.matchAt(text, i)
+                if (currencyMatch != null) {
+                    val token = currencyMatch.value.trimEnd('.', ',')
+                    if (token.isNotEmpty()) {
+                        result.append(LRI).append(token).append(PDI)
+                        i += token.length
+                        continue
+                    }
+                }
+                val prevIsDigit = i > 0 && (text[i - 1] in '0'..'9' || text[i - 1] in '\u06F0'..'\u06F9')
+                if (!prevIsDigit) {
+                    val signedMatch = signedNumberRegex.matchAt(text, i)
+                    if (signedMatch != null) {
+                        val token = signedMatch.value.trimEnd('.', ',')
+                        if (token.isNotEmpty()) {
+                            result.append(LRI).append(token).append(PDI)
+                            i += token.length
+                            continue
+                        }
                     }
                 }
             }
@@ -140,7 +171,8 @@ object PersianCurrencyEngine {
 
     /**
      * Formats an internal Toman amount in the requested display unit (Toman or Rial),
-     * optionally applying the Privacy Mask ("•••,•••").
+     * isolating ONLY the numeric run in LTR BiDi context so the Persian currency unit ("تومان"/"ریال")
+     * always stays in strict RTL order to the left of the digits.
      */
     fun formatAmount(
         amountToman: Long,
@@ -152,8 +184,35 @@ object PersianCurrencyEngine {
             return if (includeUnit) "•••,••• ${unit.labelFa}" else "•••,•••"
         }
         val displayVal = amountToman * unit.multiplierFromToman
-        val formatted = formatNumberWithCommas(displayVal, usePersianDigits = true)
-        return if (includeUnit) "$formatted ${unit.labelFa}" else formatted
+        val signPrefix = if (displayVal < 0L) "−" else ""
+        val formattedDigits = formatNumberWithCommas(kotlin.math.abs(displayVal), usePersianDigits = true)
+        val isolatedDigits = isolateLtr("$signPrefix$formattedDigits")
+        return if (includeUnit) "$isolatedDigits ${unit.labelFa}" else isolatedDigits
+    }
+
+    /**
+     * Formats a signed Toman amount (e.g. "+۴,۰۰۰,۰۰۰ تومان" or "−۲,۵۰۰,۰۰۰ تومان") with the sign
+     * and digits isolated together in an LTR BiDi run while the Persian currency unit stays RTL.
+     */
+    fun formatSignedAmount(
+        amountToman: Long,
+        unit: CurrencyUnit = CurrencyUnit.TOMAN,
+        forcePositiveSign: Boolean = false,
+        includeUnit: Boolean = true,
+        privacyMasked: Boolean = false
+    ): String {
+        if (privacyMasked) {
+            return if (includeUnit) "•••,••• ${unit.labelFa}" else "•••,•••"
+        }
+        val displayVal = amountToman * unit.multiplierFromToman
+        val signPrefix = when {
+            displayVal < 0L -> "−"
+            forcePositiveSign && displayVal > 0L -> "+"
+            else -> ""
+        }
+        val formattedDigits = formatNumberWithCommas(kotlin.math.abs(displayVal), usePersianDigits = true)
+        val isolatedDigits = isolateLtr("$signPrefix$formattedDigits")
+        return if (includeUnit) "$isolatedDigits ${unit.labelFa}" else isolatedDigits
     }
 
     /**

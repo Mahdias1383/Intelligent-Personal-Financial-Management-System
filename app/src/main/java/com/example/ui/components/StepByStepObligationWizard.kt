@@ -256,7 +256,7 @@ fun StepByStepObligationWizardModal(
         }
     }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -768,7 +768,7 @@ fun StepByStepObligationWizardModal(
             var editedDate by remember(row) { mutableStateOf(row.dueDateJalali) }
             var editedNote by remember(row) { mutableStateOf(row.note) }
 
-            Dialog(
+            TarazinoRtlDialog(
                 onDismissRequest = { editingRowIndex = null },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
             ) {
@@ -1496,7 +1496,7 @@ private fun WizardStep3GranularInstallmentTable(
 
                         if (diffToman != 0L) {
                             TarazinoStatusPill(
-                                text = "اختلاف: ${ltrIsolateDigits(PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit))}",
+                                text = "اختلاف: ${PersianCurrencyEngine.formatAmount(kotlin.math.abs(diffToman), currencyUnit)}",
                                 accentColor = ext.warning
                             )
                         } else {
@@ -1669,7 +1669,7 @@ private fun WizardStep3GranularInstallmentTable(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
                                 TarazinoAutoSizeText(
-                                    text = ltrIsolateDigits(PersianCurrencyEngine.formatAmount(row.amountToman, currencyUnit)),
+                                    text = PersianCurrencyEngine.formatAmount(row.amountToman, currencyUnit),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary,

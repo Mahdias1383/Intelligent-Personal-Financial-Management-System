@@ -303,7 +303,8 @@ object OfflineCurrencyDebtConverterEngine {
         } else {
             raw
         }
-        return if (includeUnit) "$localized ${currency.shortLabelFa}" else localized
+        val isolatedNumeric = PersianCurrencyEngine.isolateLtr(localized)
+        return if (includeUnit) "$isolatedNumeric ${currency.shortLabelFa}" else isolatedNumeric
     }
 
     fun formatExchangeRate(

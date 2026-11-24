@@ -118,11 +118,11 @@ import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
 import com.example.ui.components.TarazinoLuminousProgressBar
 import com.example.ui.components.TarazinoMiniBrandCard
+import com.example.ui.components.TarazinoRtlDialog
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.formatCompactPersianToman
-import com.example.ui.components.ltrIsolateDigits
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
 import com.example.ui.theme.LocalTarazinoColors
@@ -710,14 +710,11 @@ fun TreePortfolioScreen(
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
                                             TarazinoAutoSizeText(
-                                                text = ltrIsolateDigits(
-                                                    "${if (isCharge) "+" else "-"} ${
-                                                        PersianCurrencyEngine.formatAmount(
-                                                            sr.amountToman,
-                                                            unit,
-                                                            privacyMasked = masked
-                                                        )
-                                                    }"
+                                                text = PersianCurrencyEngine.formatSignedAmount(
+                                                    amountToman = if (isCharge) sr.amountToman else -sr.amountToman,
+                                                    unit = unit,
+                                                    forcePositiveSign = isCharge,
+                                                    privacyMasked = masked
                                                 ),
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
@@ -2035,8 +2032,10 @@ private fun SubProviderDetailHubHeaderCard(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = PersianCurrencyEngine.toPersianDigits(
-                                        PersianCurrencyEngine.formatCardNumber(counterparty.cardNumber)
+                                    text = PersianCurrencyEngine.isolateLtr(
+                                        PersianCurrencyEngine.toPersianDigits(
+                                            PersianCurrencyEngine.formatCardNumber(counterparty.cardNumber)
+                                        )
                                     ),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
@@ -2079,7 +2078,9 @@ private fun SubProviderDetailHubHeaderCard(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = PersianCurrencyEngine.formatSheba(counterparty.shebaNumber),
+                                    text = PersianCurrencyEngine.isolateLtr(
+                                        PersianCurrencyEngine.formatSheba(counterparty.shebaNumber)
+                                    ),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1
@@ -2248,13 +2249,11 @@ private fun ObligationSummaryRowCard(
             ) {
                 if (nextUnpaid != null) {
                     TarazinoAutoSizeText(
-                        text = "قسط بعدی: ${PersianCurrencyEngine.toPersianDigits(nextUnpaid.dueDateJalali)} (${
-                            ltrIsolateDigits(
-                                PersianCurrencyEngine.formatAmount(
-                                    nextUnpaid.remainingToman,
-                                    currencyUnit,
-                                    privacyMasked = privacyMasked
-                                )
+                        text = "قسط بعدی: ${PersianCurrencyEngine.isolateLtr(PersianCurrencyEngine.toPersianDigits(nextUnpaid.dueDateJalali))} (${
+                            PersianCurrencyEngine.formatAmount(
+                                nextUnpaid.remainingToman,
+                                currencyUnit,
+                                privacyMasked = privacyMasked
                             )
                         })",
                         style = MaterialTheme.typography.labelSmall,
@@ -2647,20 +2646,16 @@ private fun GranularInstallmentItemCard(
                         if (installment.paidAmountToman > 0L && !isPaid) {
                             TarazinoAutoSizeText(
                                 text = "پرداخت جزئی: ${
-                                    ltrIsolateDigits(
-                                        PersianCurrencyEngine.formatAmount(
-                                            installment.paidAmountToman,
-                                            currencyUnit,
-                                            privacyMasked = privacyMasked
-                                        )
+                                    PersianCurrencyEngine.formatAmount(
+                                        installment.paidAmountToman,
+                                        currencyUnit,
+                                        privacyMasked = privacyMasked
                                     )
                                 } • مانده: ${
-                                    ltrIsolateDigits(
-                                        PersianCurrencyEngine.formatAmount(
-                                            installment.remainingToman,
-                                            currencyUnit,
-                                            privacyMasked = privacyMasked
-                                        )
+                                    PersianCurrencyEngine.formatAmount(
+                                        installment.remainingToman,
+                                        currencyUnit,
+                                        privacyMasked = privacyMasked
                                     )
                                 }",
                                 style = MaterialTheme.typography.labelSmall,
@@ -2672,7 +2667,11 @@ private fun GranularInstallmentItemCard(
                         }
                         if (installment.trackingCode.isNotBlank()) {
                             TarazinoAutoSizeText(
-                                text = "کد رهگیری: ${PersianCurrencyEngine.toPersianDigits(installment.trackingCode)}",
+                                text = "کد رهگیری: ${
+                                    PersianCurrencyEngine.isolateLtr(
+                                        PersianCurrencyEngine.toPersianDigits(installment.trackingCode)
+                                    )
+                                }",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -2740,7 +2739,7 @@ private fun EditObligationDetailsModal(
     var trackingOrCheckCode by remember { mutableStateOf(obligation.trackingOrCheckCode) }
     var notes by remember { mutableStateOf(obligation.notes) }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -2918,7 +2917,7 @@ private fun GranularInstallmentEditModal(
     val effectivePayable = (customBaseAmount + lateFee - discount).coerceAtLeast(0L)
 
     val ext = LocalTarazinoColors.current
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -3111,7 +3110,7 @@ private fun AddSingleCustomInstallmentModal(
     var isPaid by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -3223,7 +3222,7 @@ private fun SubProviderFormDialog(
     var shebaNumber by remember { mutableStateOf(initialEntity?.shebaNumber ?: "") }
     var description by remember { mutableStateOf(initialEntity?.description ?: "") }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -3365,7 +3364,7 @@ private fun AddSubRecordDialog(
     var recordType by remember { mutableStateOf(SubRecordType.CHARGE) }
     var receiptCode by remember { mutableStateOf("") }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

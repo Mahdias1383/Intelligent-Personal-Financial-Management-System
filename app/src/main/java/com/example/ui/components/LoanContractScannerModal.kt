@@ -235,7 +235,7 @@ fun LoanContractScannerModal(
         }
     }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

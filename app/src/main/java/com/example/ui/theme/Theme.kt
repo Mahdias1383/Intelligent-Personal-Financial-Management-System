@@ -1,6 +1,7 @@
 package com.example.ui.theme
 
 import android.app.Activity
+import android.view.View
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -722,6 +723,9 @@ fun TarazinoTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
+                if (window.decorView.layoutDirection != View.LAYOUT_DIRECTION_RTL) {
+                    window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
+                }
                 val controller = WindowCompat.getInsetsController(window, view)
                 controller.isAppearanceLightStatusBars = !targetExtendedColors.isDark
                 controller.isAppearanceLightNavigationBars = !targetExtendedColors.isDark

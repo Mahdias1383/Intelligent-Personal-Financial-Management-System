@@ -248,7 +248,7 @@ fun OfflineCurrencyDebtConverterSection(
                                     color = if (isSelected) cAccent else MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "(${curr.symbol})",
+                                    text = "(${PersianCurrencyEngine.isolateLtr(curr.symbol)})",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -347,10 +347,10 @@ fun OfflineCurrencyDebtConverterSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         listOf(
-                            -0.05 to "۵٪-",
-                            -0.01 to "۱٪-",
-                            0.01 to "+۱٪",
-                            0.05 to "+۵٪"
+                            -0.05 to PersianCurrencyEngine.isolateLtr("−۵٪"),
+                            -0.01 to PersianCurrencyEngine.isolateLtr("−۱٪"),
+                            0.01 to PersianCurrencyEngine.isolateLtr("+۱٪"),
+                            0.05 to PersianCurrencyEngine.isolateLtr("+۵٪")
                         ).forEach { (pctDelta, labelFa) ->
                             Surface(
                                 shape = RoundedCornerShape(9.dp),
@@ -700,7 +700,9 @@ fun OfflineCurrencyDebtConverterSection(
                                     ) {
                                         Text(
                                             text = "${row.currency.labelFa} (نرخ: ${
-                                                PersianCurrencyEngine.formatNumberWithCommas(row.manualRateToman)
+                                                PersianCurrencyEngine.isolateLtr(
+                                                    PersianCurrencyEngine.formatNumberWithCommas(row.manualRateToman)
+                                                )
                                             })",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -939,7 +941,9 @@ fun OfflineCurrencyDebtConverterSection(
                                         )
                                         Text(
                                             text = "${pos.counterpartyNameFa} • نرخ ثبت: ${
-                                                PersianCurrencyEngine.formatNumberWithCommas(pos.entryExchangeRateToman)
+                                                PersianCurrencyEngine.isolateLtr(
+                                                    PersianCurrencyEngine.formatNumberWithCommas(pos.entryExchangeRateToman)
+                                                )
                                             } تومان",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -979,8 +983,8 @@ fun OfflineCurrencyDebtConverterSection(
                             ) {
                                 val pctText = when {
                                     pos.isSettled -> "تسویه‌شده ✨"
-                                    item.fxChangePercent > 0 -> "+${PersianCurrencyEngine.toPersianDigits(item.fxChangePercent.toString())}٪ افزایش نرخ نسبت به زمان ثبت"
-                                    item.fxChangePercent < 0 -> "${PersianCurrencyEngine.toPersianDigits(item.fxChangePercent.toString())}٪ کاهش نرخ نسبت به زمان ثبت"
+                                    item.fxChangePercent > 0 -> "${PersianCurrencyEngine.isolateLtr("+${PersianCurrencyEngine.toPersianDigits(item.fxChangePercent.toString())}٪")} افزایش نرخ نسبت به زمان ثبت"
+                                    item.fxChangePercent < 0 -> "${PersianCurrencyEngine.isolateLtr("−${PersianCurrencyEngine.toPersianDigits(kotlin.math.abs(item.fxChangePercent).toString())}٪")} کاهش نرخ نسبت به زمان ثبت"
                                     else -> "بدون تغییر نرخ نسبت به زمان ثبت"
                                 }
                                 val pctColor = when {

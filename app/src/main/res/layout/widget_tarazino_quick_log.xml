@@ -29,6 +29,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_quick_log_title"
                 android:textColor="#35B8AB"
+                android:textDirection="rtl"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -40,6 +41,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_loading_summary"
                 android:textColor="#F3F8F9"
+                android:textDirection="rtl"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -55,6 +57,7 @@
             android:paddingEnd="10dp"
             android:text="@string/widget_refresh_label"
             android:textColor="#A8C5CC"
+            android:textDirection="rtl"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -84,6 +87,7 @@
                 android:maxLines="1"
                 android:text="@string/widget_no_pending_debt"
                 android:textColor="#F3F8F9"
+                android:textDirection="rtl"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -96,6 +100,7 @@
                 android:maxLines="1"
                 android:text=""
                 android:textColor="#DAB978"
+                android:textDirection="rtl"
                 android:textSize="11sp" />
         </LinearLayout>
 
@@ -112,6 +117,7 @@
             android:paddingEnd="10dp"
             android:text="@string/widget_one_tap_pay_label"
             android:textColor="#041C19"
+            android:textDirection="rtl"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -137,6 +143,7 @@
             android:paddingEnd="6dp"
             android:text="@string/widget_log_expense_label"
             android:textColor="#16120A"
+            android:textDirection="rtl"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -154,6 +161,7 @@
             android:paddingEnd="6dp"
             android:text="@string/widget_log_payment_label"
             android:textColor="#041C19"
+            android:textDirection="rtl"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>

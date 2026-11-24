@@ -677,15 +677,27 @@ private fun ObligationTagAssignmentModal(
     var customTags by remember(target) { mutableStateOf(target.customLabels) }
     var newTagInput by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "دسته‌بندی و برچسب‌گذاری «${target.obligation.title}»",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.ExtraBold
-            )
-        },
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Rtl
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                val dialogView = androidx.compose.ui.platform.LocalView.current
+                if (!dialogView.isInEditMode) {
+                    androidx.compose.runtime.SideEffect {
+                        val dialogWindow = (dialogView.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                        if (dialogWindow != null && dialogWindow.decorView.layoutDirection != android.view.View.LAYOUT_DIRECTION_RTL) {
+                            dialogWindow.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
+                        }
+                    }
+                }
+                Text(
+                    text = "دسته‌بندی و برچسب‌گذاری «${target.obligation.title}»",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -836,6 +848,7 @@ private fun ObligationTagAssignmentModal(
             }
         }
     )
+    }
 }
 
 /**

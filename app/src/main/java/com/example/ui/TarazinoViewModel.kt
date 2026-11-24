@@ -234,7 +234,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             descriptionFa = "با باز کردن هر پوشه یا لمس چیپ زیرمجموعه (مثل اسنپ‌پی یا دیجی‌پی)، لیست خریدها و جدول اقساط آن باز شده و می‌توانید چند قسط را یکجا تسویه کنید.",
             highlightFeaturesFa = listOf(
                 "ویرایش سریع پرونده وام/خرید و افزودن زیرمجموعه جدید در هر دسته",
-                "امکان انتخاب چند قسط با هم و تسویه گروهی یکجا (Batch Pay)"
+                "امکان انتخاب چند قسط با هم و تسویه گروهی یکجا"
             )
         ),
         InteractiveTourStep(
@@ -268,12 +268,12 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             targetTab = TarazinoNavTab.REPORTS_SETTINGS,
             targetElementId = "reports_a4_export_studio",
             scrollItemIndex = 0,
-            badgeTitleFa = "گام ۹ از ۹ — استودیو چاپ A4، اکسل و امنیت",
-            headlineFa = "گزارش رسمی A4 رنگی، اکسل راست‌به‌چپ و شخصی‌سازی",
-            descriptionFa = "در تب پایانی می‌توانید پیش‌نمایش برگه A4 رنگی را ببینید و چاپ کنید، خروجی اکسل بگیرید، پوسته روشن/تیره و قفل پین/بیومتریک را تنظیم نمایید.",
+            badgeTitleFa = PersianCurrencyEngine.formatRtlBidiSafe("گام ۹ از ۹ — استودیو چاپ A4، اکسل و امنیت"),
+            headlineFa = PersianCurrencyEngine.formatRtlBidiSafe("گزارش رسمی A4 رنگی، اکسل راست‌به‌چپ و شخصی‌سازی"),
+            descriptionFa = PersianCurrencyEngine.formatRtlBidiSafe("در تب پایانی می‌توانید پیش‌نمایش برگه A4 رنگی را ببینید و چاپ کنید، خروجی اکسل بگیرید، پوسته روشن/تیره و قفل پین/بیومتریک را تنظیم نمایید."),
             highlightFeaturesFa = listOf(
-                "دکمه‌های مجزا برای پیش‌نمایش A4، فایل PDF، اکسل (.xls) و CSV",
-                "پاکسازی داده‌های نمونه برای شروع از صفر یا پشتیبان‌گیری کامل JSON"
+                PersianCurrencyEngine.formatRtlBidiSafe("دکمه‌های مجزا برای پیش‌نمایش A4، فایل PDF، اکسل (.xls) و CSV"),
+                PersianCurrencyEngine.formatRtlBidiSafe("پاکسازی داده‌های نمونه برای شروع از صفر یا پشتیبان‌گیری کامل JSON")
             )
         )
     )
@@ -739,7 +739,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
     // Toast & Celebration Banner
     fun showToast(msg: String) {
-        _toastMessage.value = msg
+        _toastMessage.value = PersianCurrencyEngine.formatRtlBidiSafe(msg)
     }
 
     fun clearToast() {

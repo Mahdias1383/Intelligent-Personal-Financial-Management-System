@@ -545,7 +545,7 @@ fun DashboardReorderableGridModal(
         }
     }
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

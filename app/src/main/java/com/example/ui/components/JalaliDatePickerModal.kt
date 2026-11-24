@@ -83,7 +83,7 @@ fun JalaliDatePickerModal(
 
     val currentPreviewStr = JalaliDate(selectedYear, selectedMonth, selectedDay).formatCanonical()
 
-    Dialog(
+    TarazinoRtlDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

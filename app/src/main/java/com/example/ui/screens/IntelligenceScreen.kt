@@ -1054,7 +1054,7 @@ fun IntelligenceScreen(
         var newLivingPct by remember { mutableFloatStateOf(uiState.preferences.livingExpensePercent.toFloat()) }
         var newAlertDays by remember { mutableFloatStateOf(uiState.preferences.alertAdvanceDays.toFloat()) }
 
-        Dialog(
+        com.example.ui.components.TarazinoRtlDialog(
             onDismissRequest = { showBudgetConfigModal = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {

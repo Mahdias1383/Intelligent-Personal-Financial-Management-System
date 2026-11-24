@@ -189,4 +189,71 @@ class DynamicTextSizingTest {
         val pureFa = "هشدار پیش‌بینی هوشمند: ۲ ماه کسری در پیش است"
         assertEquals(pureFa, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(pureFa))
     }
+
+    @Test
+    fun `formatRtlBidiSafe isolates currency codes symbols tracking codes and signed percentages`() {
+        val currencyCodes = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "نرخ تبدیل دلار آمریکا (USD) و تتر (USDT) معادل $1,250.50 است"
+        )
+        assertEquals(
+            "نرخ تبدیل دلار آمریکا (\u2066USD\u2069) و تتر (\u2066USDT\u2069) معادل \u2066$1,250.50\u2069 است",
+            currencyCodes
+        )
+        assertEquals(currencyCodes, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(currencyCodes))
+
+        val trackingCode = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "کد رهگیری: SNP-۷۷۴۱۲۰ ثبت شد"
+        )
+        assertEquals(
+            "کد رهگیری: \u2066SNP-۷۷۴۱۲۰\u2069 ثبت شد",
+            trackingCode
+        )
+
+        val signedDelta = com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(
+            "تغییر نرخ ارز +۵٪ افزایش و −۲.۵٪ کاهش داشت"
+        )
+        assertEquals(
+            "تغییر نرخ ارز \u2066+۵٪\u2069 افزایش و \u2066−۲.۵٪\u2069 کاهش داشت",
+            signedDelta
+        )
+        assertEquals(signedDelta, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(signedDelta))
+
+        // Hyphenated Persian digit ranges must NOT be split as negative numbers
+        val rangeText = "بازه سررسید ۵-۱۰ هر ماه"
+        assertEquals(rangeText, com.example.core.PersianCurrencyEngine.formatRtlBidiSafe(rangeText))
+    }
+
+    @Test
+    fun `formatAmount formatSignedAmount and formatForeignAmount isolate numeric runs while keeping Persian units RTL`() {
+        assertEquals(
+            "\u2066۴,۰۰۰,۰۰۰\u2069 تومان",
+            com.example.core.PersianCurrencyEngine.formatAmount(4_000_000L, com.example.core.CurrencyUnit.TOMAN)
+        )
+        assertEquals(
+            "\u2066−۲,۵۰۰,۰۰۰\u2069 تومان",
+            com.example.core.PersianCurrencyEngine.formatAmount(-2_500_000L, com.example.core.CurrencyUnit.TOMAN)
+        )
+        assertEquals(
+            "\u2066+۱,۲۰۰,۰۰۰\u2069 تومان",
+            com.example.core.PersianCurrencyEngine.formatSignedAmount(
+                amountToman = 1_200_000L,
+                unit = com.example.core.CurrencyUnit.TOMAN,
+                forcePositiveSign = true
+            )
+        )
+        assertEquals(
+            "\u2066۸۵۰\u2069 دلار",
+            com.example.domain.OfflineCurrencyDebtConverterEngine.formatForeignAmount(
+                850.0,
+                com.example.domain.ForeignDebtCurrency.USD
+            )
+        )
+        assertEquals(
+            "\u2066۴٫۵\u2069 گرم طلا",
+            com.example.domain.OfflineCurrencyDebtConverterEngine.formatForeignAmount(
+                4.5,
+                com.example.domain.ForeignDebtCurrency.GOLD_GRAM
+            )
+        )
+    }
 }

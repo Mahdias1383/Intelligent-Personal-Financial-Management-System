@@ -406,7 +406,7 @@ fun SecurityLockOverlay(
     }
 
     if (showBiometricTouchSheet) {
-        androidx.compose.ui.window.Dialog(
+        TarazinoRtlDialog(
             onDismissRequest = { showBiometricTouchSheet = false },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {
@@ -508,7 +508,7 @@ fun SecurityLockOverlay(
     }
 
     if (showRecoveryModal) {
-        androidx.compose.ui.window.Dialog(
+        TarazinoRtlDialog(
             onDismissRequest = { showRecoveryModal = false },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {

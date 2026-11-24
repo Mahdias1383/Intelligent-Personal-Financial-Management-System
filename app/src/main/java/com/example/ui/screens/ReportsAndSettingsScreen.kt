@@ -1964,7 +1964,7 @@ fun ReportsAndSettingsScreen(
 
     // Backup JSON Copy Modal (Specular Glass Dialog)
     backupJsonDialogContent?.let { json ->
-        androidx.compose.ui.window.Dialog(
+        com.example.ui.components.TarazinoRtlDialog(
             onDismissRequest = { backupJsonDialogContent = null },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {
@@ -2031,7 +2031,7 @@ fun ReportsAndSettingsScreen(
 
     // Import JSON Modal (Specular Glass Dialog)
     if (showImportJsonDialog) {
-        androidx.compose.ui.window.Dialog(
+        com.example.ui.components.TarazinoRtlDialog(
             onDismissRequest = { showImportJsonDialog = false },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {

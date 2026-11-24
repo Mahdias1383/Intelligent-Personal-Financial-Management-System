@@ -52,8 +52,11 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import android.view.View
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,7 +85,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -100,9 +109,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 import com.example.ui.theme.LocalTarazinoColors
@@ -1290,6 +1296,37 @@ fun findFittingFontSizeSp(
 fun ltrIsolateDigits(raw: String): String = PersianCurrencyEngine.isolateLtr(raw)
 
 /**
+ * RTL-hardened Dialog wrapper for Tarazino.
+ * Compose [Dialog] creates a separate Android Window whose decorView can default to LTR on
+ * non-Persian system locales. This wrapper enforces both [View.LAYOUT_DIRECTION_RTL] on the
+ * dialog's Android Window and [LocalLayoutDirection] = [LayoutDirection.Rtl] in Compose.
+ */
+@Composable
+fun TarazinoRtlDialog(
+    onDismissRequest: () -> Unit,
+    properties: DialogProperties = DialogProperties(),
+    content: @Composable () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = properties
+    ) {
+        val dialogView = LocalView.current
+        if (!dialogView.isInEditMode) {
+            SideEffect {
+                val dialogWindow = (dialogView.parent as? DialogWindowProvider)?.window
+                if (dialogWindow != null && dialogWindow.decorView.layoutDirection != View.LAYOUT_DIRECTION_RTL) {
+                    dialogWindow.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
+                }
+            }
+        }
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            content()
+        }
+    }
+}
+
+/**
  * Zero-flicker, container-aware auto-sizing Persian Text renderer.
  * Uses [BoxWithConstraints] + [rememberTextMeasurer] binary search with [EstedadFontFamily]
  * before the first draw so long sentences, headers, badges, and financial figures adapt cleanly
@@ -1488,7 +1525,8 @@ fun TarazinoAutoSizeText(
                         style = style.copy(
                             fontFamily = resolvedFontFamily,
                             fontSize = candidateSp.sp,
-                            lineHeight = scaledLineHeight
+                            lineHeight = scaledLineHeight,
+                            textDirection = TextDirection.Rtl
                         ),
                         maxLines = maxLines,
                         softWrap = softWrap,
@@ -1517,7 +1555,8 @@ fun TarazinoAutoSizeText(
             style = style.copy(
                 fontFamily = resolvedFontFamily,
                 fontSize = fittedSp.sp,
-                lineHeight = finalLineHeight
+                lineHeight = finalLineHeight,
+                textDirection = TextDirection.Rtl
             ),
             textAlign = textAlign,
             maxLines = maxLines,
