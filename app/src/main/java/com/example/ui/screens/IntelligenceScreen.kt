@@ -101,6 +101,7 @@ import com.example.ui.components.LiquidWaveHealthOrb
 import com.example.ui.components.MlFinancialForecastSection
 import com.example.ui.components.MoneyInputField
 import com.example.ui.components.OfflineCurrencyDebtConverterSection
+import com.example.ui.components.RecurringCashflowHealthSection
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
@@ -497,6 +498,25 @@ fun IntelligenceScreen(
                     privacyMasked = masked
                 )
             }
+        }
+
+        // =========================================================================
+        // 1.9. RECURRING MONTHLY INCOME & NON-LOAN EXPENSE TRACKER (Holistic Financial Health)
+        // =========================================================================
+        item {
+            RecurringCashflowHealthSection(
+                currencyUnit = unit,
+                privacyMasked = masked,
+                currentMonthLoanInstallmentsToman = uiState.dtiHealthReport?.currentMonthDebtDueToman ?: 0L,
+                monthlySavingsTargetToman = uiState.preferences.monthlySavingsTargetToman,
+                onSyncWithBudgetPlanner = { totalIncomeToman, livingExpensePercent ->
+                    onUpdateBudgetPlannerSettings(
+                        totalIncomeToman,
+                        livingExpensePercent,
+                        uiState.preferences.alertAdvanceDays
+                    )
+                }
+            )
         }
 
         // =========================================================================
