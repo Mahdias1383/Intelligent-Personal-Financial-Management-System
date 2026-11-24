@@ -54,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +63,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.core.BiometricAuthResult
+import com.example.core.BiometricPromptAuthenticator
 import com.example.core.PersianCurrencyEngine
 import com.example.ui.theme.LocalTarazinoColors
 import kotlinx.coroutines.launch
@@ -76,11 +80,45 @@ fun SecurityLockOverlay(
     onBiometricUnlock: () -> Unit,
     onVerifyRecoveryAnswer: (String) -> Boolean
 ) {
+    val context = LocalContext.current
     var enteredPin by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showRecoveryModal by remember { mutableStateOf(false) }
     var recoveryInput by remember { mutableStateOf("") }
     var showBiometricTouchSheet by remember { mutableStateOf(false) }
+    var biometricFallbackReason by remember { mutableStateOf<String?>(null) }
+
+    val biometricHardwareStatus = remember(context) {
+        BiometricPromptAuthenticator.queryHardwareStatus(context)
+    }
+
+    fun triggerNativeOrFallbackBiometricPrompt() {
+        errorMessage = null
+        BiometricPromptAuthenticator.authenticateWithBiometricPrompt(
+            context = context,
+            onResult = { result ->
+                when (result) {
+                    is BiometricAuthResult.Success -> {
+                        showBiometricTouchSheet = false
+                        onBiometricUnlock()
+                    }
+                    is BiometricAuthResult.FallbackToTouchSheet -> {
+                        biometricFallbackReason = result.reasonFa
+                        showBiometricTouchSheet = true
+                    }
+                    is BiometricAuthResult.CancelledOrFailed -> {
+                        errorMessage = result.errorMessageFa
+                    }
+                }
+            }
+        )
+    }
+
+    LaunchedEffect(biometricEnabled) {
+        if (biometricEnabled && biometricHardwareStatus.isReadyToAuthenticate) {
+            triggerNativeOrFallbackBiometricPrompt()
+        }
+    }
 
     val shakeOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -279,7 +317,7 @@ fun SecurityLockOverlay(
                                 CircleShape
                             )
                             .clickable(enabled = biometricEnabled) {
-                                showBiometricTouchSheet = true
+                                triggerNativeOrFallbackBiometricPrompt()
                             }
                             .testTag("biometric_keypad_btn")
                     ) {
@@ -326,14 +364,15 @@ fun SecurityLockOverlay(
 
             if (biometricEnabled) {
                 OutlinedButton(
-                    onClick = { showBiometricTouchSheet = true },
+                    onClick = { triggerNativeOrFallbackBiometricPrompt() },
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.45f))
+                    border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.45f)),
+                    modifier = Modifier.testTag("biometric_prompt_unlock_btn")
                 ) {
                     Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null, tint = primaryAccent)
                     Spacer(modifier = Modifier.size(8.dp))
                     TarazinoAutoSizeText(
-                        text = "لمس سنسور اثر انگشت / تشخیص چهره",
+                        text = "بازگشایی با BiometricPrompt (اثر انگشت / تشخیص چهره)",
                         style = MaterialTheme.typography.labelLarge,
                         color = primaryAccent,
                         fontWeight = FontWeight.SemiBold,
@@ -342,6 +381,13 @@ fun SecurityLockOverlay(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                TarazinoStatusPill(
+                    text = biometricHardwareStatus.statusBadgeFa,
+                    accentColor = if (biometricHardwareStatus.isReadyToAuthenticate) ext.positive else MaterialTheme.colorScheme.secondary
+                )
             }
 
             if (hasRecoveryConfigured) {

@@ -100,6 +100,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.core.BiometricAuthResult
+import com.example.core.BiometricPromptAuthenticator
 import com.example.core.CurrencyUnit
 import com.example.core.PersianCurrencyEngine
 import com.example.data.CounterpartyEntity
@@ -111,6 +113,7 @@ import com.example.export.ReportExportEngine
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DetailedCategorySpendingReportSection
+import com.example.ui.components.PrintableFinancialSummaryPdfStudioCard
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoSectionHeader
@@ -186,6 +189,17 @@ fun ReportsAndSettingsScreen(
         // SECTION 0: A4 PDF & RTL EXCEL EXPORT STUDIO
         // =========================================================================
         if (activeSectionIndex == 0) {
+            item {
+                PrintableFinancialSummaryPdfStudioCard(
+                    obligations = uiState.obligations,
+                    installments = uiState.installments,
+                    counterparties = uiState.counterparties,
+                    preferences = uiState.preferences,
+                    onOpenA4PreviewPayload = onOpenCustomA4ReportPayload,
+                    onShowToast = onShowToast
+                )
+            }
+
             item {
                 TarazinoGlassCard(
                     modifier = Modifier
@@ -810,27 +824,83 @@ fun ReportsAndSettingsScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
+                        val biometricStatus = remember(context) {
+                            BiometricPromptAuthenticator.queryHardwareStatus(context)
+                        }
+
                         Surface(
                             shape = RoundedCornerShape(13.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(
-                                    text = "ورود سریع با اثر انگشت / تشخیص چهره",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Switch(
-                                    checked = bioEnabled,
-                                    onCheckedChange = { bioEnabled = it }
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "ورود بیومتریک با BiometricPrompt (اثر انگشت / چهره)",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${biometricStatus.statusBadgeFa} • ${biometricStatus.detailDescriptionFa}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (biometricStatus.isReadyToAuthenticate) {
+                                                ext.positive
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
+                                        )
+                                    }
+                                    Switch(
+                                        checked = bioEnabled,
+                                        onCheckedChange = { bioEnabled = it },
+                                        modifier = Modifier.testTag("security_biometric_enable_switch")
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        BiometricPromptAuthenticator.authenticateWithBiometricPrompt(
+                                            context = context,
+                                            onResult = { res ->
+                                                when (res) {
+                                                    is BiometricAuthResult.Success -> {
+                                                        bioEnabled = true
+                                                        onShowToast(res.methodDescriptionFa)
+                                                    }
+                                                    is BiometricAuthResult.FallbackToTouchSheet -> {
+                                                        bioEnabled = true
+                                                        onShowToast("BiometricPrompt آماده شد (${res.reasonFa})")
+                                                    }
+                                                    is BiometricAuthResult.CancelledOrFailed -> {
+                                                        onShowToast(res.errorMessageFa)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(11.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("test_biometric_prompt_btn")
+                                ) {
+                                    TarazinoAutoSizeText(
+                                        text = "آزمایش و فراخوانی مستقیم حسگر BiometricPrompt اندروید",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        minFontSize = 9.sp
+                                    )
+                                }
                             }
                         }
 

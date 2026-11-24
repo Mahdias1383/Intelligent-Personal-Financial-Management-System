@@ -840,16 +840,31 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         filterObligationId: Long? = null
     ) {
         val state = uiState.value
-        val payload = ReportExportEngine.buildReportPayload(
-            reportTitleFa = reportTitleFa,
-            subtitleFa = subtitleFa,
-            obligations = state.obligations,
-            installments = state.installments,
-            counterparties = state.counterparties,
-            currencyUnit = state.preferences.currencyUnit,
-            filterCounterpartyId = filterCounterpartyId,
-            filterObligationId = filterObligationId
-        )
+        val payload = if (filterCounterpartyId == null && filterObligationId == null) {
+            val compReport = com.example.export.ComprehensiveFinancialPdfReportEngine.buildComprehensiveSummaryReport(
+                obligations = state.obligations,
+                installments = state.installments,
+                counterparties = state.counterparties,
+                monthlyIncomeToman = state.preferences.monthlyIncomeToman,
+                livingExpensePercent = state.preferences.livingExpensePercent,
+                savingsGoalTitleFa = state.preferences.monthlySavingsGoalTitle,
+                savingsTargetToman = state.preferences.monthlySavingsTargetToman,
+                savingsSavedToman = state.preferences.monthlySavingsSavedToman,
+                currencyUnit = state.preferences.currencyUnit
+            )
+            com.example.export.ComprehensiveFinancialPdfReportEngine.toA4PreviewPayload(compReport)
+        } else {
+            ReportExportEngine.buildReportPayload(
+                reportTitleFa = reportTitleFa,
+                subtitleFa = subtitleFa,
+                obligations = state.obligations,
+                installments = state.installments,
+                counterparties = state.counterparties,
+                currencyUnit = state.preferences.currencyUnit,
+                filterCounterpartyId = filterCounterpartyId,
+                filterObligationId = filterObligationId
+            )
+        }
         _activeA4Report.value = payload
     }
 
@@ -863,8 +878,25 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
     fun exportA4Pdf(context: Context, payload: A4ReportPayload) {
         viewModelScope.launch {
+            val state = uiState.value
+            val compReport = com.example.export.ComprehensiveFinancialPdfReportEngine.buildComprehensiveSummaryReport(
+                obligations = state.obligations,
+                installments = state.installments,
+                counterparties = state.counterparties,
+                monthlyIncomeToman = state.preferences.monthlyIncomeToman,
+                livingExpensePercent = state.preferences.livingExpensePercent,
+                savingsGoalTitleFa = state.preferences.monthlySavingsGoalTitle,
+                savingsTargetToman = state.preferences.monthlySavingsTargetToman,
+                savingsSavedToman = state.preferences.monthlySavingsSavedToman,
+                currencyUnit = state.preferences.currencyUnit,
+                fixedDocumentId = payload.trackingId
+            )
+            com.example.export.ComprehensiveFinancialPdfReportEngine.generateAndSavePrintablePdfFile(
+                context = context,
+                report = compReport
+            )
             val file = ReportExportEngine.saveAndSharePdfFile(context, payload)
-            showToast("فایل PDF استاندارد A4 (${file.name}) آماده اشتراک‌گذاری و چاپ شد.")
+            showToast("فایل PDF استاندارد A4 (${file.name}) در بایگانی ذخیره و آماده چاپ شد.")
         }
     }
 
@@ -888,10 +920,11 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun lockAppImmediately() {
-        if (repository.preferencesState.value.pinHash.isNotBlank()) {
+        val prefs = repository.preferencesState.value
+        if (prefs.pinHash.isNotBlank() || prefs.biometricEnabled) {
             _isVaultLocked.value = true
         } else {
-            showToast("ابتدا از بخش تنظیمات امنیت یک رمز پین ۴ یا ۶ رقمی تعریف کنید.")
+            showToast("ابتدا از بخش تنظیمات امنیت یک رمز پین ۴ یا ۶ رقمی یا احراز هویت بیومتریک تعریف کنید.")
         }
     }
 
@@ -902,6 +935,28 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         recoveryQuestion: String,
         recoveryAnswer: String
     ) {
+        val existingHash = repository.preferencesState.value.pinHash
+        if (newPin.isBlank() && existingHash.isNotBlank()) {
+            repository.updatePreferences {
+                it.copy(
+                    biometricEnabled = biometricEnabled,
+                    recoveryQuestion = recoveryQuestion.ifBlank { it.recoveryQuestion },
+                    recoveryAnswerHash = if (recoveryAnswer.isNotBlank()) {
+                        SecurityVaultEngine.hashWithSalt(recoveryAnswer)
+                    } else {
+                        it.recoveryAnswerHash
+                    }
+                )
+            }
+            showToast(
+                if (biometricEnabled) {
+                    "احراز هویت بیومتریک (اثر انگشت / تشخیص چهره) برای خزانه مالی فعال شد."
+                } else {
+                    "تنظیمات خزانه امنیتی به‌روزرسانی شد."
+                }
+            )
+            return
+        }
         if (!SecurityVaultEngine.isValidPinFormat(newPin)) {
             showToast("رمز پین باید دقیقاً ۴ یا ۶ رقم عددی باشد.")
             return
