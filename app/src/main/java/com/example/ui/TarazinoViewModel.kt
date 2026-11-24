@@ -766,6 +766,9 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 alertAdvanceDays = alertDays.coerceIn(1, 30)
             )
         }
+        com.example.notification.GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+            getApplication()
+        )
         showToast("برنامه بودجه ماهانه و سقف مجاز اقساط به‌روزرسانی شد.")
     }
 
@@ -784,8 +787,17 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 monthlySavingsSavedToman = safeSaved
             )
         }
+        com.example.notification.GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+            getApplication()
+        )
+        val thresholdPct = com.example.notification.GoalThresholdNotificationManager.getSavingsThresholdPercent(
+            getApplication()
+        )
+        val actualPct = if (safeTarget > 0L) ((safeSaved * 100L) / safeTarget).toInt() else 0
         if (safeTarget > 0L && safeSaved >= safeTarget) {
             _celebrationMessage.value = "تبریک! هدف پس‌انداز ماهانه «$cleanTitle» به طور کامل محقق شد ✨"
+        } else if (safeTarget > 0L && actualPct >= thresholdPct) {
+            _celebrationMessage.value = "اعلان آستانه هدف: به ${PersianCurrencyEngine.toPersianDigits(actualPct.toString())}٪ از هدف پس‌انداز «$cleanTitle» رسیدید!"
         } else {
             showToast("هدف پس‌انداز ماهانه «$cleanTitle» ذخیره و به‌روزرسانی شد.")
         }
@@ -798,12 +810,21 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         repository.updatePreferences {
             it.copy(monthlySavingsSavedToman = newSaved)
         }
+        com.example.notification.GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+            getApplication()
+        )
+        val thresholdPct = com.example.notification.GoalThresholdNotificationManager.getSavingsThresholdPercent(
+            getApplication()
+        )
+        val actualPct = if (target > 0L) ((newSaved * 100L) / target).toInt() else 0
         val formattedDelta = PersianCurrencyEngine.formatAmount(
             amountToman = kotlin.math.abs(deltaAmountToman),
             unit = currentPrefs.currencyUnit
         )
         if (deltaAmountToman > 0L && target > 0L && newSaved >= target && currentPrefs.monthlySavingsSavedToman < target) {
             _celebrationMessage.value = "تبریک! با افزودن $formattedDelta به هدف پس‌انداز ماهانه رسیدید ✨"
+        } else if (deltaAmountToman > 0L && target > 0L && actualPct >= thresholdPct) {
+            _celebrationMessage.value = "عبور از آستانه ${PersianCurrencyEngine.toPersianDigits(thresholdPct.toString())}٪ هدف پس‌انداز (${PersianCurrencyEngine.toPersianDigits(actualPct.toString())}٪ محقق شد)!"
         } else if (deltaAmountToman >= 0L) {
             showToast("مبلغ $formattedDelta به پس‌انداز ماه جاری اضافه شد.")
         } else {
@@ -829,6 +850,10 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             filterCounterpartyId = filterCounterpartyId,
             filterObligationId = filterObligationId
         )
+        _activeA4Report.value = payload
+    }
+
+    fun openCustomA4ReportPayload(payload: A4ReportPayload) {
         _activeA4Report.value = payload
     }
 

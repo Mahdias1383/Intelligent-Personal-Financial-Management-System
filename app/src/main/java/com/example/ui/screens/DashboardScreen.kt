@@ -105,6 +105,7 @@ import com.example.ui.TarazinoUiState
 import com.example.domain.MonthlySavingsGoalEngine
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
+import com.example.ui.components.DashboardDebtCategoryTagFilterSection
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FormattedMoneyText
 import com.example.ui.components.LiquidWaveHealthOrb
@@ -1145,6 +1146,23 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+
+        // =========================================================================
+        // 3.5. INTERACTIVE DEBT CATEGORY & CUSTOM TAG FILTER VIEW
+        //      (Filter Dashboard by 'Bank Loan', 'Credit Card', 'Personal', 'Check & Housing', 'Receivable' or #tags)
+        // =========================================================================
+        item {
+            DashboardDebtCategoryTagFilterSection(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                alerts = uiState.smartAlertQueue,
+                currencyUnit = unit,
+                privacyMasked = masked,
+                onQuickPay = onQuickPay,
+                onOpenObligationInTree = onOpenObligationInTree
+            )
         }
 
         // =========================================================================

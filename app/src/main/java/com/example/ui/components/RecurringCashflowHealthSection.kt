@@ -109,6 +109,10 @@ fun RecurringCashflowHealthSection(
                 RecurringCashflowHealthEngine.serializeItems(updated)
             )
             .apply()
+        com.example.notification.GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+            context = context,
+            forceEvenIfBelowThreshold = false
+        )
     }
 
     val todayJalali = remember { JalaliCalendarEngine.todayJalali() }

@@ -62,6 +62,8 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TableChart
 import com.example.core.JalaliCalendarEngine
+import com.example.notification.GoalThresholdNotificationEvaluator
+import com.example.notification.GoalThresholdNotificationManager
 import com.example.notification.ShamsiInstallmentNotificationManager
 import com.example.notification.ShamsiInstallmentReminderEvaluator
 import androidx.compose.material3.AlertDialog
@@ -103,8 +105,12 @@ import com.example.core.PersianCurrencyEngine
 import com.example.data.CounterpartyEntity
 import com.example.data.FontScalePreset
 import com.example.data.TarazinoThemeMode
+import com.example.domain.DebtCategoryTag
+import com.example.export.A4ReportPayload
+import com.example.export.ReportExportEngine
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.CounterpartyMonogramAvatar
+import com.example.ui.components.DetailedCategorySpendingReportSection
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoSectionHeader
@@ -134,6 +140,7 @@ fun ReportsAndSettingsScreen(
     onExportBackupJson: ((String) -> Unit) -> Unit,
     onImportBackupJson: (String) -> Unit,
     onShowToast: (String) -> Unit,
+    onOpenCustomA4ReportPayload: (A4ReportPayload) -> Unit = {},
     tourScrollIndex: Int? = null
 ) {
     val context = LocalContext.current
@@ -356,6 +363,66 @@ fun ReportsAndSettingsScreen(
                         }
                     }
                 }
+            }
+
+            item {
+                DetailedCategorySpendingReportSection(
+                    obligations = uiState.obligations,
+                    installments = uiState.installments,
+                    counterparties = uiState.counterparties,
+                    currencyUnit = uiState.preferences.currencyUnit,
+                    privacyMasked = uiState.preferences.privacyMaskEnabled,
+                    onOpenCategoryFilteredA4Report = { categoryTag, obIds ->
+                        val filteredObs = if (categoryTag == DebtCategoryTag.ALL) {
+                            uiState.obligations
+                        } else {
+                            uiState.obligations.filter { it.id in obIds.toSet() }
+                        }
+                        val payload = ReportExportEngine.buildReportPayload(
+                            reportTitleFa = "گزارش تفصیلی دسته: ${categoryTag.labelFa}",
+                            subtitleFa = "${categoryTag.descriptionFa} • تفکیک اقساط و مانده تعهدات",
+                            obligations = filteredObs,
+                            installments = uiState.installments,
+                            counterparties = uiState.counterparties,
+                            currencyUnit = uiState.preferences.currencyUnit
+                        )
+                        onOpenCustomA4ReportPayload(payload)
+                    },
+                    onExportCategoryFilteredPdf = { categoryTag, obIds ->
+                        val filteredObs = if (categoryTag == DebtCategoryTag.ALL) {
+                            uiState.obligations
+                        } else {
+                            uiState.obligations.filter { it.id in obIds.toSet() }
+                        }
+                        val payload = ReportExportEngine.buildReportPayload(
+                            reportTitleFa = "گزارش تفصیلی دسته: ${categoryTag.labelFa}",
+                            subtitleFa = categoryTag.descriptionFa,
+                            obligations = filteredObs,
+                            installments = uiState.installments,
+                            counterparties = uiState.counterparties,
+                            currencyUnit = uiState.preferences.currencyUnit
+                        )
+                        val file = ReportExportEngine.saveAndSharePdfFile(context, payload)
+                        onShowToast("فایل PDF دسته «${categoryTag.labelFa}» (${file.name}) آماده شد")
+                    },
+                    onExportCategoryFilteredExcel = { categoryTag, obIds ->
+                        val filteredObs = if (categoryTag == DebtCategoryTag.ALL) {
+                            uiState.obligations
+                        } else {
+                            uiState.obligations.filter { it.id in obIds.toSet() }
+                        }
+                        val payload = ReportExportEngine.buildReportPayload(
+                            reportTitleFa = "گزارش تفصیلی دسته: ${categoryTag.labelFa}",
+                            subtitleFa = categoryTag.descriptionFa,
+                            obligations = filteredObs,
+                            installments = uiState.installments,
+                            counterparties = uiState.counterparties,
+                            currencyUnit = uiState.preferences.currencyUnit
+                        )
+                        val file = ReportExportEngine.saveAndShareRtlExcelFile(context, payload)
+                        onShowToast("فایل اکسل دسته «${categoryTag.labelFa}» (${file.name}) تولید شد")
+                    }
+                )
             }
         }
 
@@ -1008,6 +1075,316 @@ fun ReportsAndSettingsScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             TarazinoAutoSizeText(
                                 text = "بررسی فوری و ارسال اعلان آزمایشی سررسید شمسی",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                minFontSize = 9.5.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                var autoThresholdEnabled by remember {
+                    mutableStateOf(
+                        GoalThresholdNotificationManager.isAutoThresholdNotificationEnabled(context)
+                    )
+                }
+                var savingsThresholdPct by remember {
+                    mutableIntStateOf(
+                        GoalThresholdNotificationManager.getSavingsThresholdPercent(context)
+                    )
+                }
+                var expenseThresholdPct by remember {
+                    mutableIntStateOf(
+                        GoalThresholdNotificationManager.getExpenseThresholdPercent(context)
+                    )
+                }
+
+                val thresholdSummary = remember(
+                    uiState.preferences.monthlySavingsGoalTitle,
+                    uiState.preferences.monthlySavingsSavedToman,
+                    uiState.preferences.monthlySavingsTargetToman,
+                    uiState.preferences.monthlyIncomeToman,
+                    uiState.preferences.livingExpensePercent,
+                    uiState.preferences.currencyUnit,
+                    uiState.preferences.privacyMaskEnabled,
+                    savingsThresholdPct,
+                    expenseThresholdPct
+                ) {
+                    GoalThresholdNotificationManager.evaluateFromPreferences(context)
+                }
+
+                val thresholdPermissionLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    if (granted) {
+                        GoalThresholdNotificationManager.setAutoThresholdNotificationEnabled(context, true)
+                        autoThresholdEnabled = true
+                        val posted = GoalThresholdNotificationManager.postThresholdNotification(
+                            context = context,
+                            summary = thresholdSummary,
+                            forceEvenIfBelowThreshold = true
+                        )
+                        if (posted) {
+                            onShowToast("مجوز اعلان فعال شد و پایش آستانه پس‌انداز و هزینه ارسال گردید")
+                        }
+                    } else {
+                        onShowToast("مجوز نمایش اعلان در سیستم اندروید تایید نشد")
+                    }
+                }
+
+                val thresholdOptions = GoalThresholdNotificationEvaluator.SUPPORTED_THRESHOLD_PERCENTS
+
+                TarazinoGlassCard(
+                    modifier = Modifier.testTag("goal_threshold_notification_card")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TarazinoSectionHeader(
+                            title = "اعلان خودکار آستانه پس‌انداز و سقف هزینه (۸۰٪ / ۹۰٪)",
+                            subtitle = "هشدار هوشمند هنگام عبور از درصد تعیین‌شده هدف پس‌انداز یا سقف هزینه‌های ماهانه",
+                            icon = Icons.Default.NotificationsActive,
+                            accentColor = ext.heroAccent
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "ارسال خودکار اعلان عبور از آستانه هدف",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = if (autoThresholdEnabled) {
+                                        "فعال (بررسی لحظه‌ای و پایش خودکار پس‌زمینه)"
+                                    } else {
+                                        "غیرفعال"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (autoThresholdEnabled) ext.positive else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = autoThresholdEnabled,
+                                onCheckedChange = { enabled ->
+                                    autoThresholdEnabled = enabled
+                                    GoalThresholdNotificationManager.setAutoThresholdNotificationEnabled(
+                                        context,
+                                        enabled
+                                    )
+                                    if (enabled) {
+                                        GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+                                            context = context,
+                                            forceEvenIfBelowThreshold = false
+                                        )
+                                        onShowToast("اعلان خودکار آستانه هدف پس‌انداز و هزینه فعال شد")
+                                    } else {
+                                        onShowToast("اعلان خودکار آستانه هدف غیرفعال شد")
+                                    }
+                                },
+                                modifier = Modifier.testTag("goal_threshold_auto_switch")
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "آستانه هشدار تحقق هدف پس‌انداز ماهانه:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            thresholdOptions.forEach { pct ->
+                                val isSelected = savingsThresholdPct == pct
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                    },
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isSelected) MaterialTheme.colorScheme.primary else ext.cardBorderTop
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            savingsThresholdPct = pct
+                                            GoalThresholdNotificationManager.setSavingsThresholdPercent(
+                                                context,
+                                                pct
+                                            )
+                                            GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+                                                context = context,
+                                                forceEvenIfBelowThreshold = false
+                                            )
+                                        }
+                                        .testTag("savings_threshold_pct_$pct")
+                                ) {
+                                    Text(
+                                        text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "آستانه هشدار عبور از سقف هزینه‌های ماهانه:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            thresholdOptions.forEach { pct ->
+                                val isSelected = expenseThresholdPct == pct
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) {
+                                        ext.heroAccent.copy(alpha = 0.18f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                    },
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isSelected) ext.heroAccent else ext.cardBorderTop
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            expenseThresholdPct = pct
+                                            GoalThresholdNotificationManager.setExpenseThresholdPercent(
+                                                context,
+                                                pct
+                                            )
+                                            GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
+                                                context = context,
+                                                forceEvenIfBelowThreshold = false
+                                            )
+                                        }
+                                        .testTag("expense_threshold_pct_$pct")
+                                ) {
+                                    Text(
+                                        text = "${PersianCurrencyEngine.toPersianDigits(pct.toString())}٪",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) {
+                                            ext.heroAccent
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+                            border = BorderStroke(1.dp, ext.cardBorderTop)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = thresholdSummary.notificationTitleFa,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (thresholdSummary.isExpenseThresholdExceeded) {
+                                        ext.danger
+                                    } else if (thresholdSummary.isSavingsThresholdExceeded) {
+                                        ext.positive
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    }
+                                )
+                                Text(
+                                    text = thresholdSummary.notificationShortTextFa,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                    !GoalThresholdNotificationManager.hasNotificationPermission(context)
+                                ) {
+                                    thresholdPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    val posted = GoalThresholdNotificationManager.postThresholdNotification(
+                                        context = context,
+                                        summary = thresholdSummary,
+                                        forceEvenIfBelowThreshold = true
+                                    )
+                                    if (posted) {
+                                        onShowToast("اعلان پایش آستانه پس‌انداز و هزینه ارسال شد")
+                                    } else {
+                                        onShowToast("امکان ارسال اعلان وجود ندارد؛ مجوز اعلان دستگاه را بررسی کنید")
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(13.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("trigger_goal_threshold_notification_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            TarazinoAutoSizeText(
+                                text = "بررسی فوری و ارسال اعلان آستانه هدف (۸۰٪ / ۹۰٪)",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,

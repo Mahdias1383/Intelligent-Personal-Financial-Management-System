@@ -861,7 +861,10 @@ fun TarazinoAppRoot(
                                     onRestoreDemoSeedData = { viewModel.restoreDemoSeedData() },
                                     onExportBackupJson = { cb -> viewModel.exportFullBackupJson(cb) },
                                     onImportBackupJson = { viewModel.importFullBackupJson(it) },
-                                    onShowToast = { viewModel.showToast(it) }
+                                    onShowToast = { viewModel.showToast(it) },
+                                    onOpenCustomA4ReportPayload = { payload ->
+                                        viewModel.openCustomA4ReportPayload(payload)
+                                    }
                                 )
                             }
                         }

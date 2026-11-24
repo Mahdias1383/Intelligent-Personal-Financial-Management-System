@@ -267,6 +267,7 @@ object ShamsiInstallmentNotificationManager {
 
     fun ensureChannelAndSchedulePeriodicWork(context: Context) {
         ensureNotificationChannel(context)
+        GoalThresholdNotificationManager.ensureNotificationChannel(context)
         if (!isBackgroundReminderEnabled(context)) return
 
         val periodicRequest = PeriodicWorkRequestBuilder<ShamsiInstallmentReminderWorker>(
@@ -283,6 +284,7 @@ object ShamsiInstallmentNotificationManager {
 
     fun triggerImmediateWorkerCheck(context: Context) {
         ensureNotificationChannel(context)
+        GoalThresholdNotificationManager.ensureNotificationChannel(context)
         val oneTimeRequest = OneTimeWorkRequestBuilder<ShamsiInstallmentReminderWorker>().build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             IMMEDIATE_WORK_NAME,
@@ -380,7 +382,8 @@ object ShamsiInstallmentNotificationManager {
 
 /**
  * Jetpack WorkManager background worker that evaluates upcoming and overdue
- * installment due dates calculated by [JalaliCalendarEngine] and triggers local notifications.
+ * installment due dates calculated by [JalaliCalendarEngine] as well as
+ * monthly savings/expense goal thresholds (80%/90%) and triggers local notifications.
  */
 class ShamsiInstallmentReminderWorker(
     appContext: Context,
@@ -389,15 +392,20 @@ class ShamsiInstallmentReminderWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            if (!ShamsiInstallmentNotificationManager.isBackgroundReminderEnabled(applicationContext)) {
-                return Result.success()
+            if (ShamsiInstallmentNotificationManager.isBackgroundReminderEnabled(applicationContext)) {
+                val summary = ShamsiInstallmentNotificationManager.evaluateFromDatabase(applicationContext)
+                if (summary.shouldNotify) {
+                    ShamsiInstallmentNotificationManager.postSummaryNotification(
+                        context = applicationContext,
+                        summary = summary,
+                        forceEvenIfEmpty = false
+                    )
+                }
             }
-            val summary = ShamsiInstallmentNotificationManager.evaluateFromDatabase(applicationContext)
-            if (summary.shouldNotify) {
-                ShamsiInstallmentNotificationManager.postSummaryNotification(
+            if (GoalThresholdNotificationManager.isAutoThresholdNotificationEnabled(applicationContext)) {
+                GoalThresholdNotificationManager.evaluateAndNotifyIfThresholdCrossed(
                     context = applicationContext,
-                    summary = summary,
-                    forceEvenIfEmpty = false
+                    forceEvenIfBelowThreshold = false
                 )
             }
             Result.success()
