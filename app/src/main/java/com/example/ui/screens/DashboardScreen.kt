@@ -106,6 +106,7 @@ import com.example.domain.MonthlySavingsGoalEngine
 import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DashboardDebtCategoryTagFilterSection
+import com.example.ui.components.DashboardGlobalSearchAndFilterBar
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
@@ -245,6 +246,21 @@ fun DashboardScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        // =========================================================================
+        // 0. GLOBAL SEARCH & MULTI-CRITERIA FILTER BAR (NAME, TAG, SHAMSI DUE DATE RANGE)
+        // =========================================================================
+        item {
+            DashboardGlobalSearchAndFilterBar(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                counterparties = uiState.counterparties,
+                currencyUnit = unit,
+                privacyMasked = masked,
+                onQuickPay = onQuickPay,
+                onOpenObligationInTree = onOpenObligationInTree
+            )
+        }
+
         // =========================================================================
         // 1. INTERACTIVE 3D-TILTABLE & 3D-FLIPPABLE PLATINUM VAULT CARD
         //    (Drag to tilt in 3D with live specular flare • Tap flip for Back Vault Stats)
