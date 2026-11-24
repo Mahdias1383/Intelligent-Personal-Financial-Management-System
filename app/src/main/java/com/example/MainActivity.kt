@@ -730,7 +730,8 @@ fun TarazinoAppRoot(
                                     onQuickSavingsDepositDelta = { delta -> viewModel.recordMonthlySavingsDeposit(delta) },
                                     onUpdateMonthlySavingsGoal = { title, target, saved ->
                                         viewModel.updateMonthlySavingsGoal(title, target, saved)
-                                    }
+                                    },
+                                    onUpdateExtraPayoffBudget = { viewModel.updateExtraPayoffBudget(it) }
                                 )
 
                                 TarazinoNavTab.PORTFOLIO_TREE -> TreePortfolioScreen(

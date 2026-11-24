@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -47,11 +48,13 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Contactless
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.FlipCameraAndroid
 import androidx.compose.material.icons.filled.Insights
@@ -107,6 +110,7 @@ import com.example.ui.components.AnimatedOdometerMoneyText
 import com.example.ui.components.CounterpartyMonogramAvatar
 import com.example.ui.components.DashboardDebtCategoryTagFilterSection
 import com.example.ui.components.DashboardGlobalSearchAndFilterBar
+import com.example.ui.components.DashboardStrategyTabContent
 import com.example.ui.components.DebtPaidVsOutstandingRingCard
 import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
@@ -131,6 +135,11 @@ import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
 import com.example.ui.theme.LocalTarazinoColors
 
+private enum class DashboardSubTab(val labelFa: String) {
+    OVERVIEW("نمای کلی"),
+    STRATEGY("استراتژی")
+}
+
 private data class CategoryShareSlice(
     val category: EntityCategory,
     val labelFa: String,
@@ -153,6 +162,7 @@ fun DashboardScreen(
     onOpenFullA4Report: () -> Unit,
     onQuickSavingsDepositDelta: (Long) -> Unit = {},
     onUpdateMonthlySavingsGoal: (String, Long, Long) -> Unit = { _, _, _ -> },
+    onUpdateExtraPayoffBudget: (Long) -> Unit = {},
     tourScrollIndex: Int? = null
 ) {
     val ext = LocalTarazinoColors.current
@@ -160,10 +170,23 @@ fun DashboardScreen(
     val masked = uiState.preferences.privacyMaskEnabled
     val listState = rememberLazyListState()
 
+    var selectedSubTab by remember { mutableStateOf(DashboardSubTab.OVERVIEW) }
     var showAllAlertsModal by remember { mutableStateOf(false) }
     var heroModeIndex by remember { mutableIntStateOf(0) } // 0 = This Month, 1 = Total Remaining, 2 = Receivables
     var isVaultCardFlipped by remember { mutableStateOf(false) }
     var selectedDonutCategory by remember { mutableStateOf<EntityCategory?>(null) }
+
+    BackHandler(enabled = selectedSubTab == DashboardSubTab.STRATEGY) {
+        selectedSubTab = DashboardSubTab.OVERVIEW
+    }
+
+    val activeStrategyDebtCount = remember(uiState.obligations, uiState.installments) {
+        val unpaidObIds = uiState.installments
+            .filter { it.statusEnum != InstallmentStatus.PAID && it.remainingToman > 0L }
+            .map { it.obligationId }
+            .toSet()
+        uiState.obligations.count { !it.categoryEnum.isReceivable && it.id in unpaidObIds }
+    }
 
     // Genuine animated entrance sweep for charts
     var hasAnimatedIn by remember { mutableStateOf(false) }
@@ -173,6 +196,7 @@ fun DashboardScreen(
 
     LaunchedEffect(tourScrollIndex) {
         if (tourScrollIndex != null && tourScrollIndex >= 0) {
+            selectedSubTab = DashboardSubTab.OVERVIEW
             listState.animateScrollToItem(tourScrollIndex)
         }
     }
@@ -246,6 +270,124 @@ fun DashboardScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        // =========================================================================
+        // DASHBOARD SUB-TAB BAR: OVERVIEW vs. STRATEGY (PAY-OFF ORDER RANKING)
+        // =========================================================================
+        item(key = "dashboard_subtab_bar") {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("dashboard_subtab_switcher")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    DashboardSubTab.entries.forEach { tab ->
+                        val isSelected = selectedSubTab == tab
+                        val bgColor by animateColorAsState(
+                            targetValue = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Transparent
+                            },
+                            label = "dashSubTabBg_${tab.name}"
+                        )
+                        val contentColor by animateColorAsState(
+                            targetValue = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            label = "dashSubTabFg_${tab.name}"
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = bgColor,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { selectedSubTab = tab }
+                                .testTag(
+                                    if (tab == DashboardSubTab.OVERVIEW) {
+                                        "dashboard_tab_overview"
+                                    } else {
+                                        "dashboard_tab_strategy"
+                                    }
+                                )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (tab == DashboardSubTab.OVERVIEW) {
+                                        Icons.Default.Dashboard
+                                    } else {
+                                        Icons.Default.AutoAwesome
+                                    },
+                                    contentDescription = tab.labelFa,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = tab.labelFa,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                    color = contentColor,
+                                    maxLines = 1
+                                )
+                                if (tab == DashboardSubTab.STRATEGY && activeStrategyDebtCount > 0) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isSelected) {
+                                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)
+                                        } else {
+                                            ext.positive.copy(alpha = 0.18f)
+                                        }
+                                    ) {
+                                        Text(
+                                            text = PersianCurrencyEngine.toPersianDigits(activeStrategyDebtCount.toString()),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else ext.positive,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (selectedSubTab == DashboardSubTab.STRATEGY) {
+            item(key = "dashboard_strategy_tab_body") {
+                DashboardStrategyTabContent(
+                    obligations = uiState.obligations,
+                    installments = uiState.installments,
+                    counterparties = uiState.counterparties,
+                    extraPayoffBudgetToman = uiState.extraPayoffBudgetToman,
+                    onUpdateExtraPayoffBudget = onUpdateExtraPayoffBudget,
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    onQuickPay = onQuickPay,
+                    onOpenObligationInTree = onOpenObligationInTree,
+                    onOpenNewObligationWizard = onOpenNewObligationWizard,
+                    onOpenIntelligenceTab = onOpenIntelligenceTab
+                )
+            }
+        } else {
         // =========================================================================
         // 0. GLOBAL SEARCH & MULTI-CRITERIA FILTER BAR (NAME, TAG, SHAMSI DUE DATE RANGE)
         // =========================================================================
@@ -1448,6 +1590,7 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
         }
     }
 
