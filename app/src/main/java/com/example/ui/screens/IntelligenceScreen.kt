@@ -96,6 +96,7 @@ import com.example.core.PersianCurrencyEngine
 import com.example.data.InstallmentEntity
 import com.example.ui.TarazinoUiState
 import com.example.ui.components.DebtAmortizationCalculatorSection
+import com.example.ui.components.DebtFreeAcceleratorSliderCard
 import com.example.ui.components.DebtSnowballCalculatorSection
 import com.example.ui.components.FinancialHealthRadarChartCard
 import com.example.ui.components.FormattedMoneyText
@@ -795,60 +796,34 @@ fun IntelligenceScreen(
         }
 
         // =========================================================================
-        // 4. INTERACTIVE EARLY PAYOFF SIMULATOR (AVALANCHE VS. SNOWBALL)
+        // 4. INTERACTIVE SLIDER-BASED DEBT-FREE ACCELERATOR & STRATEGY COMPARISON
         // =========================================================================
+        item {
+            DebtFreeAcceleratorSliderCard(
+                obligations = uiState.obligations,
+                installments = uiState.installments,
+                extraMonthlyBudgetToman = uiState.extraPayoffBudgetToman,
+                onExtraMonthlyBudgetChange = onUpdateExtraPayoffBudget,
+                currencyUnit = unit,
+                privacyMasked = masked,
+                modifier = Modifier.tourSpotlightTarget("intel_payoff_simulator")
+            )
+        }
+
         uiState.payoffSimulation?.let { sim ->
             item {
                 TarazinoGlassCard(
-                    modifier = Modifier
-                        .tourSpotlightTarget("intel_payoff_simulator")
-                        .testTag("intel_payoff_simulator_card")
+                    modifier = Modifier.testTag("intel_payoff_simulator_card")
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         TarazinoSectionHeader(
-                            title = "شبیه‌ساز تسویه زودهنگام بدهی‌ها",
-                            subtitle = "مقایسه استراتژی بهمن (حداقل هزینه) و گلوله برفی (حذف سریع)",
+                            title = "اولویت‌بندی تسویه بدهی‌ها (بهمن در برابر گلوله برفی)",
+                            subtitle = "همگام با بودجه مازاد ماهانه انتخاب‌شده در اسلایدر بالا",
                             icon = Icons.Default.RocketLaunch,
                             accentColor = MaterialTheme.colorScheme.secondary
                         )
 
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "بودجه مازاد ماهانه:",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            FormattedMoneyText(
-                                amountToman = uiState.extraPayoffBudgetToman,
-                                unit = unit,
-                                privacyMasked = masked,
-                                style = MaterialTheme.typography.titleSmall,
-                                numberColor = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        var sliderValue by remember(uiState.extraPayoffBudgetToman) {
-                            mutableFloatStateOf(uiState.extraPayoffBudgetToman.toFloat())
-                        }
-                        Slider(
-                            value = sliderValue,
-                            onValueChange = {
-                                sliderValue = it
-                                val stepped = ((it.toLong() / 500_000L) * 500_000L)
-                                onUpdateExtraPayoffBudget(stepped)
-                            },
-                            valueRange = 0f..25_000_000f,
-                            steps = 49,
-                            modifier = Modifier.testTag("payoff_extra_budget_slider")
-                        )
-
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
