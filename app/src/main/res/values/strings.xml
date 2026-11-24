@@ -12,4 +12,16 @@
     <string name="export_a4_pdf">خروجی PDF استاندارد A4</string>
     <string name="export_rtl_excel">خروجی اکسل راست‌به‌چپ (.xls)</string>
     <string name="export_csv_bom">خروجی اکسل جهانی (.csv)</string>
+    <string name="widget_quick_log_title">ترازینو • ثبت سریع</string>
+    <string name="widget_quick_log_description">ثبت سریع هزینه یا پرداخت قسط بدهی مستقیم از صفحه اصلی بدون باز کردن برنامه</string>
+    <string name="widget_loading_summary">در حال بارگذاری وضعیت بدهی‌ها…</string>
+    <string name="widget_refresh_label">به‌روزرسانی</string>
+    <string name="widget_refresh_cd">به‌روزرسانی اطلاعات ویجت</string>
+    <string name="widget_no_pending_debt">همه اقساط تسویه شده‌اند!</string>
+    <string name="widget_one_tap_pay_label">تسویه آنی</string>
+    <string name="widget_one_tap_pay_cd">پرداخت تک‌کلیک قسط بعدی</string>
+    <string name="widget_log_expense_label">+ ثبت هزینه</string>
+    <string name="widget_log_expense_cd">ثبت سریع هزینه جدید</string>
+    <string name="widget_log_payment_label">پرداخت بدهی</string>
+    <string name="widget_log_payment_cd">ثبت سریع پرداخت بدهی یا قسط</string>
 </resources>

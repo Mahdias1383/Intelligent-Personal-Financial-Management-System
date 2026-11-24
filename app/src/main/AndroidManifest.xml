@@ -30,6 +30,30 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widget.QuickLogWidgetActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/widget_quick_log_title"
+            android:launchMode="singleInstance"
+            android:taskAffinity=""
+            android:theme="@style/Theme.TarazinoQuickLogOverlay"
+            android:windowSoftInputMode="adjustResize" />
+
+        <receiver
+            android:name=".widget.TarazinoQuickLogWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_quick_log_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.widget.ACTION_QUICK_PAY_NEXT_INSTALLMENT" />
+                <action android:name="com.example.widget.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tarazino_quick_log_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

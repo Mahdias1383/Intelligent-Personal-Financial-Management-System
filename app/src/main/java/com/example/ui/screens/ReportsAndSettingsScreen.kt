@@ -121,7 +121,11 @@ import com.example.ui.components.TarazinoSegmentedControl
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.tarazinoPressScale
 import com.example.ui.components.tourSpotlightTarget
+import android.content.Intent
 import com.example.ui.theme.LocalTarazinoColors
+import com.example.widget.QuickLogWidgetActivity
+import com.example.widget.TarazinoQuickLogWidgetProvider
+import com.example.widget.WidgetQuickLogMode
 
 @Composable
 fun ReportsAndSettingsScreen(
@@ -741,6 +745,83 @@ fun ReportsAndSettingsScreen(
                                 minFontSize = 9.5.sp,
                                 modifier = Modifier.weight(1f, fill = false)
                             )
+                        }
+                    }
+                }
+            }
+
+            // Home Screen Quick-Log Widget Pinning & Instant Preview Card
+            item {
+                TarazinoGlassCard(
+                    accentBorderColor = ext.positive.copy(alpha = 0.4f),
+                    modifier = Modifier.testTag("settings_home_widget_card")
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TarazinoSectionHeader(
+                            title = "ویجت ثبت سریع صفحه اصلی",
+                            subtitle = "ثبت هزینه جدید یا تسویه قسط بدهی مستقیم از صفحه اصلی گوشی",
+                            icon = Icons.Default.AutoAwesome,
+                            accentColor = ext.positive
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "با افزودن ویجت ترازینو به صفحه اصلی، می‌توانید قسط بعدی را با یک کلیک تسویه کنید یا هزینه و پرداخت بدهی جدید را در پنجره شناور بدون باز کردن برنامه کامل ثبت کنید.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val requested = TarazinoQuickLogWidgetProvider.requestPinToHomeScreen(context)
+                                    val msg = if (requested) {
+                                        "درخواست افزودن ویجت به صفحه اصلی ارسال شد."
+                                    } else {
+                                        "برای افزودن ویجت، روی صفحه اصلی گوشی نگه دارید و «ترازینو • ثبت سریع» را انتخاب کنید."
+                                    }
+                                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                                },
+                                shape = RoundedCornerShape(13.dp),
+                                modifier = Modifier
+                                    .weight(1.1f)
+                                    .height(48.dp)
+                                    .testTag("pin_quick_log_widget_btn")
+                            ) {
+                                TarazinoAutoSizeText(
+                                    text = "افزودن به صفحه اصلی",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val intent = Intent(context, QuickLogWidgetActivity::class.java).apply {
+                                        putExtra(
+                                            TarazinoQuickLogWidgetProvider.EXTRA_QUICK_LOG_MODE,
+                                            WidgetQuickLogMode.EXPENSE.name
+                                        )
+                                    }
+                                    context.startActivity(intent)
+                                },
+                                shape = RoundedCornerShape(13.dp),
+                                modifier = Modifier
+                                    .weight(0.9f)
+                                    .height(48.dp)
+                                    .testTag("preview_quick_log_overlay_btn")
+                            ) {
+                                TarazinoAutoSizeText(
+                                    text = "تست ثبت سریع",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    minFontSize = 9.5.sp
+                                )
+                            }
                         }
                     }
                 }

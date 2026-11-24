@@ -3,6 +3,7 @@ package com.example.data
 import android.content.Context
 import com.example.core.CurrencyUnit
 import com.example.core.JalaliCalendarEngine
+import com.example.widget.TarazinoQuickLogWidgetProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,6 +51,7 @@ class TarazinoRepository(
     context: Context,
     private val dao: TarazinoDao
 ) {
+    private val appContext = context.applicationContext
     private val prefs = context.getSharedPreferences("tarazino_prefs_v1", Context.MODE_PRIVATE)
 
     private val _preferencesState = MutableStateFlow(loadPreferences())
@@ -156,6 +158,7 @@ class TarazinoRepository(
 
     suspend fun reloadDemoSeedData() {
         SeedDataEngine.populateRealisticIranianSeedData(dao)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun clearAllDataToZero() {
@@ -163,6 +166,7 @@ class TarazinoRepository(
         dao.clearAllSubRecords()
         dao.clearAllObligations()
         dao.clearAllCounterparties()
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     // Counterparty CRUD
@@ -183,6 +187,7 @@ class TarazinoRepository(
         }
         dao.deleteObligationsByCounterparty(counterpartyId)
         dao.deleteCounterpartyById(counterpartyId)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     // Obligation & Installments CRUD
@@ -202,29 +207,35 @@ class TarazinoRepository(
         if (initialSubRecords.isNotEmpty()) {
             dao.insertSubRecords(initialSubRecords.map { it.copy(obligationId = obligationId) })
         }
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
         return obligationId
     }
 
     suspend fun updateObligation(obligation: ObligationEntity) {
         dao.updateObligation(obligation)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun deleteObligation(obligationId: Long) {
         dao.deleteInstallmentsByObligation(obligationId)
         dao.deleteSubRecordsByObligation(obligationId)
         dao.deleteObligationById(obligationId)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun updateInstallment(installment: InstallmentEntity) {
         dao.updateInstallment(installment)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun addManualInstallment(installment: InstallmentEntity) {
         dao.insertInstallment(installment)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun deleteInstallmentById(installmentId: Long) {
         dao.deleteInstallmentById(installmentId)
+        TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
     suspend fun addSubRecordAndSyncLedger(
