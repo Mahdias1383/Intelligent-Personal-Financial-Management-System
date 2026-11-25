@@ -3,7 +3,7 @@ name: Publish Tarazino v0.2 APK to GitHub Releases
 on:
   push:
     branches:
-      - "*"
+      - "**"
     tags:
       - "v*"
   workflow_dispatch:
@@ -25,10 +25,47 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Verify Pre-Built APK & Checksum
+      - name: Check if Pre-Built v0.2 APK Exists
+        id: check_apk
+        run: |
+          if [ -f "releases/Tarazino-v0.2.apk" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17 (Fallback Build if APK Missing)
+        if: steps.check_apk.outputs.exists != 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK (Fallback Build if APK Missing)
+        if: steps.check_apk.outputs.exists != 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle 9.3.1 (Fallback Build if APK Missing)
+        if: steps.check_apk.outputs.exists != 'true'
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+
+      - name: Build Tarazino-v0.2.apk (Fallback Build if APK Missing)
+        if: steps.check_apk.outputs.exists != 'true'
+        run: |
+          mkdir -p releases
+          if [ ! -f "debug.keystore" ] && [ -f "debug.keystore.base64" ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+          gradle assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.2.apk
+
+      - name: Verify APK & Generate SHA-256 Checksum
         run: |
           ls -lh releases/Tarazino-v0.2.apk
           sha256sum releases/Tarazino-v0.2.apk > releases/Tarazino-v0.2.apk.sha256
+          cat releases/Tarazino-v0.2.apk.sha256
 
       - name: Create or Update GitHub Release v0.2 via GitHub CLI
         env:
