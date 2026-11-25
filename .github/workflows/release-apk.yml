@@ -84,9 +84,25 @@ jobs:
           if [ ! -f ".env" ] && [ -f ".env.example" ]; then
             cp .env.example .env
           fi
-          if [ ! -f "debug.keystore" ] && [ -f "debug.keystore.base64" ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+          if [ ! -f "debug.keystore" ]; then
+            if [ -f "debug.keystore.base64" ]; then
+              base64 -d debug.keystore.base64 > debug.keystore
+            else
+              printf '%s' "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" | base64 -d > debug.keystore
+            fi
           fi
+          if [ ! -s "debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          ls -lh debug.keystore
           gradle --version
           gradle assembleDebug --no-daemon --no-configuration-cache --max-workers=2 --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.2.apk
