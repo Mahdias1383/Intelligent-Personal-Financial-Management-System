@@ -186,14 +186,12 @@ fun DashboardStrategyTabContent(
                     ) {
                         PayoffRankingMode.entries.forEach { mode ->
                             val selected = rankingMode == mode
-                            val bg by animateColorAsState(
-                                targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                label = "rankModeBg"
-                            )
-                            val fg by animateColorAsState(
-                                targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                label = "rankModeFg"
-                            )
+                            val bg = rememberSpringColorAnimatable(
+                                targetColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+                            ).value
+                            val fg = rememberSpringColorAnimatable(
+                                targetColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ).value
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = bg,

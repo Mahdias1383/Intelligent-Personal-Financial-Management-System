@@ -3,12 +3,8 @@ package com.example.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -318,22 +314,20 @@ fun DashboardScreen(
                 ) {
                     DashboardSubTab.entries.forEach { tab ->
                         val isSelected = selectedSubTab == tab
-                        val bgColor by animateColorAsState(
-                            targetValue = if (isSelected) {
+                        val bgColor = com.example.ui.components.rememberSpringColorAnimatable(
+                            targetColor = if (isSelected) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 Color.Transparent
-                            },
-                            label = "dashSubTabBg_${tab.name}"
-                        )
-                        val contentColor by animateColorAsState(
-                            targetValue = if (isSelected) {
+                            }
+                        ).value
+                        val contentColor = com.example.ui.components.rememberSpringColorAnimatable(
+                            targetColor = if (isSelected) {
                                 MaterialTheme.colorScheme.onPrimary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            label = "dashSubTabFg_${tab.name}"
-                        )
+                            }
+                        ).value
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = bgColor,
@@ -401,24 +395,26 @@ fun DashboardScreen(
 
         if (selectedSubTab == DashboardSubTab.STRATEGY) {
             item(key = "dashboard_strategy_tab_body") {
-                DashboardStrategyTabContent(
-                    obligations = uiState.obligations,
-                    installments = uiState.installments,
-                    counterparties = uiState.counterparties,
-                    extraPayoffBudgetToman = uiState.extraPayoffBudgetToman,
-                    onUpdateExtraPayoffBudget = onUpdateExtraPayoffBudget,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onQuickPay = onQuickPay,
-                    onOpenObligationInTree = onOpenObligationInTree,
-                    onOpenNewObligationWizard = onOpenNewObligationWizard,
-                    onOpenIntelligenceTab = onOpenIntelligenceTab,
-                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
-                    autoPaymentScheduleEnabled = uiState.preferences.autoPaymentScheduleEnabled,
-                    preferredAutoPayDayOfMonth = uiState.preferences.preferredAutoPayDayOfMonth,
-                    preferredSecondaryPayDayOfMonth = uiState.preferences.preferredSecondaryPayDayOfMonth,
-                    onSaveAutomatedSchedule = onSaveAutomatedSchedule
-                )
+                TarazinoStaggeredReveal(index = 0) {
+                    DashboardStrategyTabContent(
+                        obligations = uiState.obligations,
+                        installments = uiState.installments,
+                        counterparties = uiState.counterparties,
+                        extraPayoffBudgetToman = uiState.extraPayoffBudgetToman,
+                        onUpdateExtraPayoffBudget = onUpdateExtraPayoffBudget,
+                        currencyUnit = unit,
+                        privacyMasked = masked,
+                        onQuickPay = onQuickPay,
+                        onOpenObligationInTree = onOpenObligationInTree,
+                        onOpenNewObligationWizard = onOpenNewObligationWizard,
+                        onOpenIntelligenceTab = onOpenIntelligenceTab,
+                        monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                        autoPaymentScheduleEnabled = uiState.preferences.autoPaymentScheduleEnabled,
+                        preferredAutoPayDayOfMonth = uiState.preferences.preferredAutoPayDayOfMonth,
+                        preferredSecondaryPayDayOfMonth = uiState.preferences.preferredSecondaryPayDayOfMonth,
+                        onSaveAutomatedSchedule = onSaveAutomatedSchedule
+                    )
+                }
             }
         } else {
         // =========================================================================
@@ -456,7 +452,14 @@ fun DashboardScreen(
             items = visibleModules,
             key = { _, moduleId -> "dashboard_module_${moduleId.name}" }
         ) { rankIndex, moduleId ->
-            Box(modifier = Modifier.animateItem()) {
+            TarazinoStaggeredReveal(
+                index = rankIndex,
+                modifier = Modifier.animateItem(
+                    fadeInSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring(),
+                    placementSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                    fadeOutSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                )
+            ) {
                 InlineReorderableModuleWrapper(
                     moduleId = moduleId,
                     rankIndex = rankIndex,
@@ -729,10 +732,9 @@ fun DashboardScreen(
                                                 ) {
                                                     heroModes.forEachIndexed { idx, label ->
                                                         val selected = idx == heroModeIndex
-                                                        val tabBg by animateColorAsState(
-                                                            targetValue = if (selected) cardAccentPrimary else Color.Transparent,
-                                                            label = "HeroModeBg_$idx"
-                                                        )
+                                                        val tabBg = com.example.ui.components.rememberSpringColorAnimatable(
+                                                            targetColor = if (selected) cardAccentPrimary else Color.Transparent
+                                                        ).value
                                                         Box(
                                                             contentAlignment = Alignment.Center,
                                                             modifier = Modifier
@@ -787,7 +789,14 @@ fun DashboardScreen(
                                                 AnimatedContent(
                                                     targetState = displayedSubtitle,
                                                     transitionSpec = {
-                                                        fadeIn(tween(220)) togetherWith fadeOut(tween(130))
+                                                        fadeIn(
+                                                            animationSpec = spring(
+                                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                                stiffness = Spring.StiffnessLow
+                                                            )
+                                                        ) togetherWith fadeOut(
+                                                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                                                        )
                                                     },
                                                     label = "HeroSubtitleFade"
                                                 ) { sub ->
@@ -1249,6 +1258,16 @@ fun DashboardScreen(
                                             }
                                             AnimatedContent(
                                                 targetState = activeSlice,
+                                                transitionSpec = {
+                                                    fadeIn(
+                                                        animationSpec = spring(
+                                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                            stiffness = Spring.StiffnessLow
+                                                        )
+                                                    ) togetherWith fadeOut(
+                                                        animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                                                    )
+                                                },
                                                 label = "DonutCenterContent"
                                             ) { focused ->
                                                 if (focused != null) {
@@ -1311,26 +1330,24 @@ fun DashboardScreen(
                                             categorySlices.forEach { slice ->
                                                 val pct = (slice.shareRatio * 100).toInt()
                                                 val isSel = selectedDonutCategory == slice.category
-                                                val borderW by animateDpAsState(
-                                                    targetValue = if (isSel) 1.4.dp else 0.85.dp,
-                                                    label = "SliceBorder_${slice.category.name}"
-                                                )
-                                                val rowSurfaceColor by animateColorAsState(
-                                                    targetValue = if (isSel) {
+                                                val borderW = com.example.ui.components.rememberSpringFloatAnimatable(
+                                                    targetValue = if (isSel) 1.4f else 0.85f,
+                                                    springSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
+                                                ).value.dp
+                                                val rowSurfaceColor = com.example.ui.components.rememberSpringColorAnimatable(
+                                                    targetColor = if (isSel) {
                                                         slice.color.copy(alpha = if (ext.isDark) 0.16f else 0.10f)
                                                     } else {
                                                         ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.85f)
-                                                    },
-                                                    label = "SliceBg_${slice.category.name}"
-                                                )
-                                                val rowBorderColor by animateColorAsState(
-                                                    targetValue = if (isSel) {
+                                                    }
+                                                ).value
+                                                val rowBorderColor = com.example.ui.components.rememberSpringColorAnimatable(
+                                                    targetColor = if (isSel) {
                                                         slice.color.copy(alpha = 0.78f)
                                                     } else {
                                                         ext.cardBorderTop
-                                                    },
-                                                    label = "SliceBorderCol_${slice.category.name}"
-                                                )
+                                                    }
+                                                ).value
                                                 Surface(
                                                     shape = RoundedCornerShape(14.dp),
                                                     color = rowSurfaceColor,

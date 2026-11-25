@@ -628,10 +628,9 @@ private fun PersianHeatmapDayTile(
         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isDark) 0.30f else 0.38f)
     }
 
-    val animatedBg by animateColorAsState(
-        targetValue = if (isDimmed) baseFill.copy(alpha = baseFill.alpha * 0.28f) else baseFill,
-        label = "HeatCellBg_${cell.dayOfMonth}"
-    )
+    val animatedBg = rememberSpringColorAnimatable(
+        targetColor = if (isDimmed) baseFill.copy(alpha = baseFill.alpha * 0.28f) else baseFill
+    ).value
 
     val borderStrokeColor = when {
         isSelected -> goldAccent

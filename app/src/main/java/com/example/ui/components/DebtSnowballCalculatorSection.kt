@@ -240,10 +240,9 @@ fun DebtSnowballCalculatorSection(
                 ) {
                     SnowballSourceMode.entries.forEach { mode ->
                         val isSelected = sourceMode == mode
-                        val bgColor by animateColorAsState(
-                            targetValue = if (isSelected) tealAccent else Color.Transparent,
-                            label = "SnowballModeBg_${mode.name}"
-                        )
+                        val bgColor = rememberSpringColorAnimatable(
+                            targetColor = if (isSelected) tealAccent else Color.Transparent
+                        ).value
                         val countLabel = if (mode == SnowballSourceMode.LIVE_PORTFOLIO) {
                             " (${PersianCurrencyEngine.toPersianDigits(portfolioAccounts.size.toString())})"
                         } else {
@@ -1112,14 +1111,13 @@ private fun SnowballMilestoneOrderCard(
     val isFirstTarget = milestone.priorityRank == 1
     val badgeColor = if (isFirstTarget) goldAccent else tealAccent
 
-    val cardBg by animateColorAsState(
-        targetValue = if (isSelected || isFirstTarget) {
+    val cardBg = rememberSpringColorAnimatable(
+        targetColor = if (isSelected || isFirstTarget) {
             badgeColor.copy(alpha = if (ext.isDark) 0.14f else 0.09f)
         } else {
             ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.65f else 0.86f)
-        },
-        label = "SnowballMilestoneBg_${milestone.priorityRank}"
-    )
+        }
+    ).value
 
     Surface(
         shape = RoundedCornerShape(16.dp),

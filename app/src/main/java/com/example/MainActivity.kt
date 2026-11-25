@@ -7,10 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -102,10 +104,6 @@ import com.example.ui.TarazinoNavTab
 import com.example.ui.TarazinoUiState
 import com.example.ui.TarazinoViewModel
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import com.example.data.InstallmentStatus
 import com.example.ui.components.A4ReportPreviewModal
 import com.example.ui.components.InteractiveOnboardingTourOverlay
@@ -306,11 +304,9 @@ fun TarazinoAppRoot(
                                         minFontSize = 15.sp
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary)
+                                        com.example.ui.components.TarazinoLivePulseDot(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            size = 6.dp
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
                                         TarazinoAutoSizeText(
@@ -390,8 +386,12 @@ fun TarazinoAppRoot(
                                         AnimatedContent(
                                             targetState = isDarkNow,
                                             transitionSpec = {
-                                                (fadeIn(tween(220)) + scaleIn(initialScale = 0.72f, animationSpec = tween(220))) togetherWith
-                                                    fadeOut(tween(150))
+                                                val bouncySpring = spring<Float>(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessLow
+                                                )
+                                                (fadeIn(bouncySpring) + scaleIn(initialScale = 0.72f, animationSpec = bouncySpring)) togetherWith
+                                                    fadeOut(com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring())
                                             },
                                             label = "TopBarThemeSwitchIcon"
                                         ) { darkActive ->
@@ -535,9 +535,19 @@ fun TarazinoAppRoot(
                             }
                         }
 
-                        // Elevated Center Emerald Jewel FAB seated cleanly inside its own 62dp mask ring (Zero idle frame invalidations!)
+                        // Elevated Center Emerald Jewel FAB seated cleanly inside its own 62dp mask ring (Draw-phase infiniteTransition!)
                         val primaryHaloColor = MaterialTheme.colorScheme.primary
                         val secondaryHaloColor = MaterialTheme.colorScheme.secondary
+                        val fabHaloTransition = rememberInfiniteTransition(label = "FabHaloInfinite")
+                        val fabHaloAngleState = fabHaloTransition.animateFloat(
+                            initialValue = 0f,
+                            targetValue = 360f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 12000, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "FabHaloAngle"
+                        )
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
@@ -556,19 +566,21 @@ fun TarazinoAppRoot(
                                     ),
                                     radius = size.minDimension * 0.48f
                                 )
-                                drawCircle(
-                                    brush = Brush.sweepGradient(
-                                        listOf(
-                                            primaryHaloColor.copy(alpha = 0.88f),
-                                            secondaryHaloColor.copy(alpha = 0.52f),
-                                            primaryHaloColor.copy(alpha = 0.18f),
-                                            secondaryHaloColor.copy(alpha = 0.45f),
-                                            primaryHaloColor.copy(alpha = 0.88f)
-                                        )
-                                    ),
-                                    radius = size.minDimension / 2f - 2.dp.toPx(),
-                                    style = Stroke(width = 1.4.dp.toPx())
-                                )
+                                rotate(degrees = fabHaloAngleState.value) {
+                                    drawCircle(
+                                        brush = Brush.sweepGradient(
+                                            listOf(
+                                                primaryHaloColor.copy(alpha = 0.88f),
+                                                secondaryHaloColor.copy(alpha = 0.52f),
+                                                primaryHaloColor.copy(alpha = 0.18f),
+                                                secondaryHaloColor.copy(alpha = 0.45f),
+                                                primaryHaloColor.copy(alpha = 0.88f)
+                                            )
+                                        ),
+                                        radius = size.minDimension / 2f - 2.dp.toPx(),
+                                        style = Stroke(width = 1.4.dp.toPx())
+                                    )
+                                }
                             }
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -627,8 +639,16 @@ fun TarazinoAppRoot(
                     // Celebratory Banner on Installment Settlement
                     AnimatedVisibility(
                         visible = uiState.celebrationMessageFa != null,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                        enter = expandVertically(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                        ) + fadeIn(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                        ) + fadeOut(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                        )
                     ) {
                         uiState.celebrationMessageFa?.let { msg ->
                             Surface(
@@ -689,8 +709,16 @@ fun TarazinoAppRoot(
                     // Toast Feedback Banner
                     AnimatedVisibility(
                         visible = uiState.toastMessageFa != null,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                        enter = expandVertically(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                        ) + fadeIn(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                        ) + fadeOut(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                        )
                     ) {
                         uiState.toastMessageFa?.let { toast ->
                             Surface(
@@ -717,7 +745,7 @@ fun TarazinoAppRoot(
                         }
                     }
 
-                    // Active Tab Screen Content with Explicit High-Responsiveness RTL Spring Transition
+                    // Active Tab Screen Content with Explicit Fluid Spring Transition (StiffnessLow + DampingRatioMediumBouncy)
                     Box(modifier = Modifier.weight(1f)) {
                         AnimatedContent(
                             targetState = uiState.activeTab,
@@ -726,21 +754,18 @@ fun TarazinoAppRoot(
                                 val enterOffset = if (movingForward) -1 else 1
                                 (slideInHorizontally(
                                     animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessHigh
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
                                     )
-                                ) { width -> enterOffset * (width / 22) } +
+                                ) { width -> enterOffset * (width / 18) } +
                                     fadeIn(
                                         animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
                                         )
                                     )) togetherWith
                                     (fadeOut(
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessHigh
-                                        )
+                                        animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
                                     ))
                             },
                             label = "TarazinoMainTabTransition"
@@ -1042,7 +1067,7 @@ private fun DockTabItem(
     val selectionAnim = com.example.ui.components.rememberSpringFloatAnimatable(
         targetValue = if (selected) 1f else 0f,
         initialValue = if (selected) 1f else 0f,
-        springSpec = com.example.ui.components.TarazinoMotionSpecs.pressScaleSpring()
+        springSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
     )
 
     Column(

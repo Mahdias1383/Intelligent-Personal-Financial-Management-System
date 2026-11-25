@@ -3,7 +3,6 @@ package com.example.ui.components
 import androidx.compose.animation.Animatable as ColorAnimatable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.AnimationVector4D
@@ -12,8 +11,8 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -111,6 +110,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -130,6 +130,24 @@ import kotlin.math.sin
  * cutting tail-frame CPU/GPU work by ~45% and preventing frame drops.
  */
 object TarazinoMotionSpecs {
+    fun fluidBouncySpring(): SpringSpec<Float> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow,
+        visibilityThreshold = 0.005f
+    )
+
+    fun fluidBouncyIntOffsetSpring(): SpringSpec<IntOffset> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow,
+        visibilityThreshold = IntOffset.VisibilityThreshold
+    )
+
+    fun fluidBouncyIntSizeSpring(): SpringSpec<IntSize> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow,
+        visibilityThreshold = IntSize.VisibilityThreshold
+    )
+
     fun pressScaleSpring(): SpringSpec<Float> = spring(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessHigh,
@@ -143,8 +161,8 @@ object TarazinoMotionSpecs {
     )
 
     fun chartSweepSpring(): SpringSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium,
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow,
         visibilityThreshold = 0.005f
     )
 
@@ -166,8 +184,8 @@ object TarazinoMotionSpecs {
     )
 
     fun dpSpring(): SpringSpec<Dp> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessHigh,
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessLow,
         visibilityThreshold = 0.25.dp
     )
 }
@@ -210,9 +228,10 @@ fun rememberSpringColorAnimatable(
 }
 
 /**
- * Zero-delay, ultra-responsive item wrapper for LazyColumn / screen sections.
- * Eliminates coroutine launch delays and slow springs during scrolling so items appear
- * instantaneously with zero frame drops or scroll stutter.
+ * Hardware-accelerated UI list item & screen section reveal wrapper powered by [Animatable]
+ * with explicit `spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)`.
+ * Reads [Animatable.value] strictly inside [graphicsLayer] so zero recomposition or layout thrashing
+ * occurs during list scrolling or screen transitions on lower-end devices.
  */
 @Composable
 fun TarazinoStaggeredReveal(
@@ -220,7 +239,23 @@ fun TarazinoStaggeredReveal(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier) {
+    val revealAnim = remember { Animatable(0f, visibilityThreshold = 0.005f) }
+    LaunchedEffect(Unit) {
+        revealAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = TarazinoMotionSpecs.fluidBouncySpring()
+        )
+    }
+    Box(
+        modifier = modifier.graphicsLayer {
+            val p = revealAnim.value
+            alpha = p.coerceIn(0f, 1f)
+            translationY = (1f - p) * 18f
+            val scale = 0.96f + (0.04f * p)
+            scaleX = scale
+            scaleY = scale
+        }
+    ) {
         content()
     }
 }
@@ -1587,12 +1622,16 @@ fun AnimatedOdometerMoneyText(
                     transitionSpec = {
                         val dir = if (rollingUp) 1 else -1
                         (slideInVertically(
-                            animationSpec = tween(150, easing = FastOutSlowInEasing)
-                        ) { h -> dir * (h / 3) } + fadeIn(tween(140)))
+                            animationSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring()
+                        ) { h -> dir * (h / 3) } + fadeIn(
+                            animationSpec = TarazinoMotionSpecs.fluidBouncySpring()
+                        ))
                             .togetherWith(
                                 slideOutVertically(
-                                    animationSpec = tween(120, easing = FastOutSlowInEasing)
-                                ) { h -> -dir * (h / 3) } + fadeOut(tween(110))
+                                    animationSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring()
+                                ) { h -> -dir * (h / 3) } + fadeOut(
+                                    animationSpec = TarazinoMotionSpecs.snappyControlSpring()
+                                )
                             )
                             .using(SizeTransform(clip = false))
                     },

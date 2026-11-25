@@ -121,14 +121,13 @@ fun DashboardGlobalSearchAndFilterBar(
         )
     }
 
-    val barBorderColor by animateColorAsState(
-        targetValue = if (criteria.isActive || isFilterPanelExpanded) {
+    val barBorderColor = rememberSpringColorAnimatable(
+        targetColor = if (criteria.isActive || isFilterPanelExpanded) {
             tealAccent.copy(alpha = 0.72f)
         } else {
             ext.cardBorderTop
-        },
-        label = "GlobalSearchBarBorder"
-    )
+        }
+    ).value
 
     Column(
         modifier = modifier

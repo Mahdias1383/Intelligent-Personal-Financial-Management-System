@@ -1,10 +1,8 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -176,7 +174,9 @@ fun IntelligenceScreen(
 
                 TarazinoGlassCard(
                     modifier = Modifier
-                        .animateContentSize()
+                        .animateContentSize(
+                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                        )
                         .tourSpotlightTarget("intel_budget_planner")
                         .testTag("intel_budget_planner_card")
                 ) {
@@ -1362,14 +1362,12 @@ private fun StrategySegmentButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor by animateColorAsState(
-        targetValue = if (selected) accentColor.copy(alpha = 0.18f) else Color.Transparent,
-        label = "SegmentBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-        label = "SegmentBorder"
-    )
+    val bgColor = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = if (selected) accentColor.copy(alpha = 0.18f) else Color.Transparent
+    ).value
+    val borderColor = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = if (selected) accentColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+    ).value
 
     Surface(
         shape = RoundedCornerShape(14.dp),

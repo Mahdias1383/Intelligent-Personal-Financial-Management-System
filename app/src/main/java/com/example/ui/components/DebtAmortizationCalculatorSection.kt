@@ -136,18 +136,16 @@ fun DebtAmortizationCalculatorSection(
             ) {
                 AmortizationFormulaMode.entries.forEach { mode ->
                     val selected = formulaMode == mode
-                    val bg by animateColorAsState(
-                        targetValue = if (selected) {
+                    val bg = rememberSpringColorAnimatable(
+                        targetColor = if (selected) {
                             principalColor.copy(alpha = if (ext.isDark) 0.20f else 0.12f)
                         } else {
                             ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.55f else 0.78f)
-                        },
-                        label = "FormulaModeBg_${mode.name}"
-                    )
-                    val border by animateColorAsState(
-                        targetValue = if (selected) principalColor else ext.cardBorderTop,
-                        label = "FormulaModeBorder_${mode.name}"
-                    )
+                        }
+                    ).value
+                    val border = rememberSpringColorAnimatable(
+                        targetColor = if (selected) principalColor else ext.cardBorderTop
+                    ).value
 
                     Surface(
                         shape = RoundedCornerShape(14.dp),

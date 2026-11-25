@@ -708,11 +708,10 @@ fun DashboardReorderableGridModal(
                                     targetValue = if (isDragging) 1.05f else 1f,
                                     springSpec = TarazinoMotionSpecs.pressScaleSpring()
                                 ).value
-                                val tileElevation by animateDpAsState(
-                                    targetValue = if (isDragging) 16.dp else if (ext.isDark) 0.dp else 3.dp,
-                                    animationSpec = TarazinoMotionSpecs.dpSpring(),
-                                    label = "GridTileElev_${moduleId.name}"
-                                )
+                                val tileElevation = rememberSpringFloatAnimatable(
+                                    targetValue = if (isDragging) 16f else if (ext.isDark) 0f else 3f,
+                                    springSpec = TarazinoMotionSpecs.fluidBouncySpring()
+                                ).value.dp
                                 val moduleAccent = Color(moduleId.accentColorHex)
                                 val borderColor = rememberSpringColorAnimatable(
                                     targetColor = when {

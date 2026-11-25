@@ -51,6 +51,19 @@ class ExampleUnitTest {
 
     @Test
     fun verifyTarazinoMotionSpecsExplicitSpringConfigurations() {
+        val bouncy = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
+        assertEquals(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, bouncy.dampingRatio, 0.0001f)
+        assertEquals(androidx.compose.animation.core.Spring.StiffnessLow, bouncy.stiffness, 0.0001f)
+        assertEquals(0.005f, bouncy.visibilityThreshold ?: 0f, 0.0001f)
+
+        val bouncyOffset = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntOffsetSpring()
+        assertEquals(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, bouncyOffset.dampingRatio, 0.0001f)
+        assertEquals(androidx.compose.animation.core.Spring.StiffnessLow, bouncyOffset.stiffness, 0.0001f)
+
+        val bouncySize = com.example.ui.components.TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+        assertEquals(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, bouncySize.dampingRatio, 0.0001f)
+        assertEquals(androidx.compose.animation.core.Spring.StiffnessLow, bouncySize.stiffness, 0.0001f)
+
         val press = com.example.ui.components.TarazinoMotionSpecs.pressScaleSpring()
         assertEquals(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, press.dampingRatio, 0.0001f)
         assertEquals(androidx.compose.animation.core.Spring.StiffnessHigh, press.stiffness, 0.0001f)
@@ -62,8 +75,8 @@ class ExampleUnitTest {
         assertEquals(0.005f, control.visibilityThreshold ?: 0f, 0.0001f)
 
         val chart = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
-        assertEquals(androidx.compose.animation.core.Spring.DampingRatioNoBouncy, chart.dampingRatio, 0.0001f)
-        assertEquals(androidx.compose.animation.core.Spring.StiffnessMedium, chart.stiffness, 0.0001f)
+        assertEquals(androidx.compose.animation.core.Spring.DampingRatioMediumBouncy, chart.dampingRatio, 0.0001f)
+        assertEquals(androidx.compose.animation.core.Spring.StiffnessLow, chart.stiffness, 0.0001f)
         assertEquals(0.005f, chart.visibilityThreshold ?: 0f, 0.0001f)
 
         val flip = com.example.ui.components.TarazinoMotionSpecs.cardFlipSpring()

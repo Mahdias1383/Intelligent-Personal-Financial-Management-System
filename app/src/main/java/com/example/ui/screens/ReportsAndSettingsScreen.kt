@@ -8,13 +8,10 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -659,24 +656,20 @@ fun ReportsAndSettingsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    val lightCardBg by animateColorAsState(
-                                        targetValue = if (isDeepTealLightSelected) {
+                                    val lightCardBg = com.example.ui.components.rememberSpringColorAnimatable(
+                                        targetColor = if (isDeepTealLightSelected) {
                                             Color(0xFF0F6B66)
                                         } else {
                                             MaterialTheme.colorScheme.surface
-                                        },
-                                        animationSpec = tween(260),
-                                        label = "QuickSwitchLightBg"
-                                    )
-                                    val darkCardBg by animateColorAsState(
-                                        targetValue = if (isHighContrastNightSelected) {
+                                        }
+                                    ).value
+                                    val darkCardBg = com.example.ui.components.rememberSpringColorAnimatable(
+                                        targetColor = if (isHighContrastNightSelected) {
                                             Color(0xFF020506)
                                         } else {
                                             MaterialTheme.colorScheme.surface
-                                        },
-                                        animationSpec = tween(260),
-                                        label = "QuickSwitchDarkBg"
-                                    )
+                                        }
+                                    ).value
 
                                     // Deep Teal Light Mode Option
                                     Surface(
@@ -914,7 +907,14 @@ fun ReportsAndSettingsScreen(
                                         AnimatedContent(
                                             targetState = ext.moodTagFa,
                                             transitionSpec = {
-                                                fadeIn(tween(260)) togetherWith fadeOut(tween(180))
+                                                fadeIn(
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                        stiffness = Spring.StiffnessLow
+                                                    )
+                                                ) togetherWith fadeOut(
+                                                    animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
+                                                )
                                             },
                                             label = "ThemeMoodTagMorph"
                                         ) { moodText ->

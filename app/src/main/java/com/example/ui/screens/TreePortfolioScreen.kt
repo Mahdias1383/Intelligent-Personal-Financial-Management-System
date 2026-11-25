@@ -5,6 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -118,9 +122,11 @@ import com.example.ui.components.TarazinoGlassCard
 import com.example.ui.components.TarazinoIconBadge
 import com.example.ui.components.TarazinoLuminousProgressBar
 import com.example.ui.components.TarazinoMiniBrandCard
+import com.example.ui.components.TarazinoMotionSpecs
 import com.example.ui.components.TarazinoRtlDialog
 import com.example.ui.components.TarazinoSectionHeader
 import com.example.ui.components.TarazinoSegmentedControl
+import com.example.ui.components.TarazinoStaggeredReveal
 import com.example.ui.components.TarazinoStatusPill
 import com.example.ui.components.formatCompactPersianToman
 import com.example.ui.components.tarazinoPressScale
@@ -338,7 +344,11 @@ fun TreePortfolioScreen(
 
                 // Compact Interactive Breadcrumb Bar (visible only when drilled into a folder)
                 AnimatedVisibility(
-                    visible = drill.selectedCategory != null || drill.selectedCounterpartyId != null || drill.selectedObligationId != null
+                    visible = drill.selectedCategory != null || drill.selectedCounterpartyId != null || drill.selectedObligationId != null,
+                    enter = expandVertically(animationSpec = TarazinoMotionSpecs.fluidBouncyIntSizeSpring()) +
+                        fadeIn(animationSpec = TarazinoMotionSpecs.fluidBouncySpring()),
+                    exit = shrinkVertically(animationSpec = TarazinoMotionSpecs.fluidBouncyIntSizeSpring()) +
+                        fadeOut(animationSpec = TarazinoMotionSpecs.snappyControlSpring())
                 ) {
                     Surface(
                         shape = RoundedCornerShape(15.dp),
@@ -453,40 +463,58 @@ fun TreePortfolioScreen(
             }
 
             items(matchedCounterparties, key = { "search_cp_${it.id}" }) { cp ->
-                SubProviderFolderCard(
-                    counterparty = cp,
-                    obligations = uiState.obligations.filter { it.counterpartyId == cp.id },
-                    installments = uiState.installments,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onClickProvider = {
-                        searchQuery = ""
-                        onSelectCounterparty(cp)
-                    },
-                    onAddPurchaseHere = {
-                        searchQuery = ""
-                        onOpenWizard(cp.categoryEnum, cp.id)
-                    },
-                    onOpenA4Report = { onOpenCounterpartyA4Report(cp) }
-                )
+                TarazinoStaggeredReveal(
+                    index = 0,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                        placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                        fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                    )
+                ) {
+                    SubProviderFolderCard(
+                        counterparty = cp,
+                        obligations = uiState.obligations.filter { it.counterpartyId == cp.id },
+                        installments = uiState.installments,
+                        currencyUnit = unit,
+                        privacyMasked = masked,
+                        onClickProvider = {
+                            searchQuery = ""
+                            onSelectCounterparty(cp)
+                        },
+                        onAddPurchaseHere = {
+                            searchQuery = ""
+                            onOpenWizard(cp.categoryEnum, cp.id)
+                        },
+                        onOpenA4Report = { onOpenCounterpartyA4Report(cp) }
+                    )
+                }
             }
 
             items(matchedObligations, key = { "search_ob_${it.id}" }) { ob ->
                 val cp = uiState.counterparties.find { it.id == ob.counterpartyId }
                 val obInst = uiState.installments.filter { it.obligationId == ob.id }
-                ObligationSummaryRowCard(
-                    obligation = ob,
-                    counterparty = cp,
-                    installments = obInst,
-                    currencyUnit = unit,
-                    privacyMasked = masked,
-                    onOpenDetail = {
-                        searchQuery = ""
-                        onSelectObligation(ob, cp?.categoryEnum)
-                    },
-                    onEditObligation = { editingObligation = ob },
-                    onOpenA4 = { onOpenObligationA4Report(ob) }
-                )
+                TarazinoStaggeredReveal(
+                    index = 0,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                        placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                        fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                    )
+                ) {
+                    ObligationSummaryRowCard(
+                        obligation = ob,
+                        counterparty = cp,
+                        installments = obInst,
+                        currencyUnit = unit,
+                        privacyMasked = masked,
+                        onOpenDetail = {
+                            searchQuery = ""
+                            onSelectObligation(ob, cp?.categoryEnum)
+                        },
+                        onEditObligation = { editingObligation = ob },
+                        onOpenA4 = { onOpenObligationA4Report(ob) }
+                    )
+                }
             }
         } else {
             // Normal Hierarchical Tree Explorer
@@ -548,7 +576,9 @@ fun TreePortfolioScreen(
                                 } else {
                                     MaterialTheme.colorScheme.surface
                                 },
-                                modifier = Modifier.animateContentSize()
+                                modifier = Modifier.animateContentSize(
+                                    animationSpec = TarazinoMotionSpecs.fluidBouncyIntSizeSpring()
+                                )
                             ) {
                                 Column(modifier = Modifier.padding(14.dp)) {
                                     Row(
@@ -609,7 +639,13 @@ fun TreePortfolioScreen(
                                         }
                                     }
 
-                                    AnimatedVisibility(visible = batchSelectionIds.isNotEmpty()) {
+                                    AnimatedVisibility(
+                                        visible = batchSelectionIds.isNotEmpty(),
+                                        enter = expandVertically(animationSpec = TarazinoMotionSpecs.fluidBouncyIntSizeSpring()) +
+                                            fadeIn(animationSpec = TarazinoMotionSpecs.fluidBouncySpring()),
+                                        exit = shrinkVertically(animationSpec = TarazinoMotionSpecs.fluidBouncyIntSizeSpring()) +
+                                            fadeOut(animationSpec = TarazinoMotionSpecs.snappyControlSpring())
+                                    ) {
                                         Column(modifier = Modifier.padding(top = 10.dp)) {
                                             HorizontalDivider(color = ext.positive.copy(alpha = 0.25f))
                                             Spacer(modifier = Modifier.height(10.dp))
@@ -843,21 +879,30 @@ fun TreePortfolioScreen(
 
                     items(filteredAndSortedInstallments, key = { "inst_${it.id}" }) { inst ->
                         val isSelectedForBatch = inst.id in batchSelectionIds
-                        GranularInstallmentItemCard(
-                            installment = inst,
-                            currencyUnit = unit,
-                            privacyMasked = masked,
-                            isBatchChecked = isSelectedForBatch,
-                            onToggleBatchCheck = {
-                                batchSelectionIds = if (isSelectedForBatch) {
-                                    batchSelectionIds - inst.id
-                                } else {
-                                    batchSelectionIds + inst.id
-                                }
-                            },
-                            onQuickPay = { onQuickPayInstallment(inst) },
-                            onEditInstallment = { editingInstallment = inst }
-                        )
+                        TarazinoStaggeredReveal(
+                            index = inst.installmentNumber,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                                placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                                fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                            )
+                        ) {
+                            GranularInstallmentItemCard(
+                                installment = inst,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                isBatchChecked = isSelectedForBatch,
+                                onToggleBatchCheck = {
+                                    batchSelectionIds = if (isSelectedForBatch) {
+                                        batchSelectionIds - inst.id
+                                    } else {
+                                        batchSelectionIds + inst.id
+                                    }
+                                },
+                                onQuickPay = { onQuickPayInstallment(inst) },
+                                onEditInstallment = { editingInstallment = inst }
+                            )
+                        }
                     }
                 }
 
@@ -974,16 +1019,25 @@ fun TreePortfolioScreen(
                     } else {
                         items(sortedCpObligations, key = { "cp_ob_${it.id}" }) { ob ->
                             val obInst = cpInstallments.filter { it.obligationId == ob.id }
-                            ObligationSummaryRowCard(
-                                obligation = ob,
-                                counterparty = cp,
-                                installments = obInst,
-                                currencyUnit = unit,
-                                privacyMasked = masked,
-                                onOpenDetail = { onSelectObligation(ob, cp.categoryEnum) },
-                                onEditObligation = { editingObligation = ob },
-                                onOpenA4 = { onOpenObligationA4Report(ob) }
-                            )
+                            TarazinoStaggeredReveal(
+                                index = 0,
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                                    placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                                    fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                                )
+                            ) {
+                                ObligationSummaryRowCard(
+                                    obligation = ob,
+                                    counterparty = cp,
+                                    installments = obInst,
+                                    currencyUnit = unit,
+                                    privacyMasked = masked,
+                                    onOpenDetail = { onSelectObligation(ob, cp.categoryEnum) },
+                                    onEditObligation = { editingObligation = ob },
+                                    onOpenA4 = { onOpenObligationA4Report(ob) }
+                                )
+                            }
                         }
                     }
                 }
@@ -1059,16 +1113,25 @@ fun TreePortfolioScreen(
                     }
 
                     items(subProviders, key = { "sub_cp_${it.id}" }) { cp ->
-                        SubProviderFolderCard(
-                            counterparty = cp,
-                            obligations = uiState.obligations.filter { it.counterpartyId == cp.id },
-                            installments = uiState.installments,
-                            currencyUnit = unit,
-                            privacyMasked = masked,
-                            onClickProvider = { onSelectCounterparty(cp) },
-                            onAddPurchaseHere = { onOpenWizard(cat, cp.id) },
-                            onOpenA4Report = { onOpenCounterpartyA4Report(cp) }
-                        )
+                        TarazinoStaggeredReveal(
+                            index = 0,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                                placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                                fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                            )
+                        ) {
+                            SubProviderFolderCard(
+                                counterparty = cp,
+                                obligations = uiState.obligations.filter { it.counterpartyId == cp.id },
+                                installments = uiState.installments,
+                                currencyUnit = unit,
+                                privacyMasked = masked,
+                                onClickProvider = { onSelectCounterparty(cp) },
+                                onAddPurchaseHere = { onOpenWizard(cat, cp.id) },
+                                onOpenA4Report = { onOpenCounterpartyA4Report(cp) }
+                            )
+                        }
                     }
                 }
 
@@ -1213,10 +1276,18 @@ fun TreePortfolioScreen(
                     val categoryRows = orderedCategories.chunked(2)
                     items(categoryRows.size, key = { "bento_row_$it" }) { rowIdx ->
                         val pair = categoryRows[rowIdx]
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        TarazinoStaggeredReveal(
+                            index = rowIdx,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                                placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                                fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                            )
                         ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                             pair.forEach { cat ->
                                 val catProviders = uiState.counterparties.filter { it.categoryEnum == cat }
                                 val catProviderIds = catProviders.map { it.id }.toSet()
@@ -1242,6 +1313,7 @@ fun TreePortfolioScreen(
                                 )
                             }
                         }
+                    }
                     }
 
                     // Direct Branded Counterparty Quick-Jump Deck (اسنپ‌پی، دیجی‌پی، بانک مهر...)

@@ -15,7 +15,7 @@
 <div dir="ltr" align="left">
 
 ```text
-0a24255a0cd0ad3a9813acb48a42dbbbeac298b655d51d941a05a6f8f8ff5755  Tarazino-v0.2.apk
+2229586a0c36a9298aaa66b500afda02945ef4a17d018bcefca732dc50b1a50a  Tarazino-v0.2.apk
 ```
 
 </div>

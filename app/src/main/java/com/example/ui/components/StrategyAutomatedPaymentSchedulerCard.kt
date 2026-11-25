@@ -333,14 +333,12 @@ fun StrategyAutomatedPaymentSchedulerCard(
                     ) {
                         PaymentScheduleStrategyMode.entries.forEach { mode ->
                             val selected = report.effectiveMode == mode
-                            val bg by animateColorAsState(
-                                targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                label = "schedModeBg"
-                            )
-                            val fg by animateColorAsState(
-                                targetValue = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                label = "schedModeFg"
-                            )
+                            val bg = rememberSpringColorAnimatable(
+                                targetColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+                            ).value
+                            val fg = rememberSpringColorAnimatable(
+                                targetColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            ).value
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = bg,

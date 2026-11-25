@@ -2,11 +2,8 @@ package com.example.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -437,14 +434,13 @@ fun StepByStepObligationWizardModal(
                                 ).forEach { (stepNum, stepTitle) ->
                                     val isActive = currentStep == stepNum
                                     val isCompleted = currentStep > stepNum
-                                    val pillBg by animateColorAsState(
-                                        targetValue = when {
+                                    val pillBg = rememberSpringColorAnimatable(
+                                        targetColor = when {
                                             isActive -> MaterialTheme.colorScheme.primary
                                             isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                                             else -> Color.Transparent
-                                        },
-                                        label = "StepPillBg_$stepNum"
-                                    )
+                                        }
+                                    ).value
                                     Box(
                                         contentAlignment = Alignment.Center,
                                         modifier = Modifier
@@ -486,20 +482,29 @@ fun StepByStepObligationWizardModal(
                     }
                 }
 
-                // Animated Wizard Step Body (Fast Directional Slide + Fade)
+                // Animated Wizard Step Body (Fluid Spring Slide + Fade)
                 AnimatedContent(
                     targetState = currentStep,
                     transitionSpec = {
                         val forward = targetState > initialState
-                        if (forward) {
-                            (slideInHorizontally(tween(165)) { -it / 10 } +
-                                fadeIn(tween(150)))
-                                .togetherWith(fadeOut(tween(105)))
-                        } else {
-                            (slideInHorizontally(tween(165)) { it / 10 } +
-                                fadeIn(tween(150)))
-                                .togetherWith(fadeOut(tween(105)))
-                        }
+                        val dir = if (forward) -1 else 1
+                        (slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) { dir * (it / 10) } +
+                            fadeIn(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            ))
+                            .togetherWith(
+                                fadeOut(
+                                    animationSpec = TarazinoMotionSpecs.snappyControlSpring()
+                                )
+                            )
                     },
                     label = "WizardStepContent",
                     modifier = Modifier
@@ -1196,10 +1201,9 @@ private fun ParentCategoryChoiceCard(
     modifier: Modifier = Modifier
 ) {
     val ext = LocalTarazinoColors.current
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) color else ext.cardBorderTop,
-        label = "WizardCatBorder"
-    )
+    val borderColor = rememberSpringColorAnimatable(
+        targetColor = if (isSelected) color else ext.cardBorderTop
+    ).value
 
     Surface(
         shape = RoundedCornerShape(18.dp),

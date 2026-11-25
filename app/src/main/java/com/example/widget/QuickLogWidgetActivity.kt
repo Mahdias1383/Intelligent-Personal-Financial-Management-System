@@ -293,14 +293,13 @@ private fun QuickLogOverlaySheet(
                     ) {
                         WidgetQuickLogMode.entries.forEach { tab ->
                             val isSel = mode == tab
-                            val bg by animateColorAsState(
-                                targetValue = if (isSel) {
+                            val bg = com.example.ui.components.rememberSpringColorAnimatable(
+                                targetColor = if (isSel) {
                                     if (tab == WidgetQuickLogMode.EXPENSE) goldAccent else tealAccent
                                 } else {
                                     Color.Transparent
-                                },
-                                label = "wgtModeBg"
-                            )
+                                }
+                            ).value
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = bg,

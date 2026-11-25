@@ -193,16 +193,14 @@ fun DebtPaidVsOutstandingRingCard(
     )
     val animProgress = animProgressState.value
 
-    val paidStrokeDp by animateDpAsState(
-        targetValue = if (focusedSegment == DebtRingFocusSegment.PAID) 17.dp else 13.5.dp,
-        animationSpec = TarazinoMotionSpecs.dpSpring(),
-        label = "PaidStrokeDp"
-    )
-    val outstandingStrokeDp by animateDpAsState(
-        targetValue = if (focusedSegment == DebtRingFocusSegment.OUTSTANDING) 17.dp else 13.5.dp,
-        animationSpec = TarazinoMotionSpecs.dpSpring(),
-        label = "OutstandingStrokeDp"
-    )
+    val paidStrokeDp = rememberSpringFloatAnimatable(
+        targetValue = if (focusedSegment == DebtRingFocusSegment.PAID) 17f else 13.5f,
+        springSpec = TarazinoMotionSpecs.fluidBouncySpring()
+    ).value.dp
+    val outstandingStrokeDp = rememberSpringFloatAnimatable(
+        targetValue = if (focusedSegment == DebtRingFocusSegment.OUTSTANDING) 17f else 13.5f,
+        springSpec = TarazinoMotionSpecs.fluidBouncySpring()
+    ).value.dp
 
     TarazinoGlassCard(
         cornerRadius = 24.dp,
@@ -618,18 +616,16 @@ private fun DebtSegmentInteractiveRow(
     modifier: Modifier = Modifier
 ) {
     val ext = LocalTarazinoColors.current
-    val surfaceBg by animateColorAsState(
-        targetValue = if (isFocused) {
+    val surfaceBg = rememberSpringColorAnimatable(
+        targetColor = if (isFocused) {
             accentColor.copy(alpha = if (ext.isDark) 0.16f else 0.11f)
         } else {
             ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.72f else 0.88f)
-        },
-        label = "SegmentSurfaceBg"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (isFocused) accentColor.copy(alpha = 0.80f) else ext.cardBorderTop,
-        label = "SegmentBorderColor"
-    )
+        }
+    ).value
+    val borderColor = rememberSpringColorAnimatable(
+        targetColor = if (isFocused) accentColor.copy(alpha = 0.80f) else ext.cardBorderTop
+    ).value
 
     Surface(
         shape = RoundedCornerShape(16.dp),

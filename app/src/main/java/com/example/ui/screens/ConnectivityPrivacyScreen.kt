@@ -166,15 +166,13 @@ fun ConnectivityPrivacyScreen(
         draftCloudWorkspace = onlineInputs.cloudSyncWorkspaceLabel
     }
 
-    val postureAccent by animateColorAsState(
-        targetValue = when (posture.level) {
+    val postureAccent = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = when (posture.level) {
             PrivacyPostureLevel.STRICT_OFFLINE -> ext.positive
             PrivacyPostureLevel.CONTROLLED_PRIVACY -> MaterialTheme.colorScheme.primary
             PrivacyPostureLevel.SELECTIVE_ONLINE -> ext.warning
-        },
-        animationSpec = tween(260),
-        label = "ConnectivityPostureAccent"
-    )
+        }
+    ).value
 
     Box(
         modifier = Modifier

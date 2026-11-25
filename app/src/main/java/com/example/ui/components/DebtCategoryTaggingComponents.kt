@@ -217,18 +217,16 @@ fun DashboardDebtCategoryTagFilterSection(
                         report.categoryBreakdowns.firstOrNull { it.tag == tag }?.obligationsCount ?: 0
                     }
 
-                    val bg by animateColorAsState(
-                        targetValue = if (isSelected) {
+                    val bg = rememberSpringColorAnimatable(
+                        targetColor = if (isSelected) {
                             tagColor.copy(alpha = if (ext.isDark) 0.24f else 0.16f)
                         } else {
                             ext.elevatedSurface.copy(alpha = if (ext.isDark) 0.65f else 0.85f)
-                        },
-                        label = "DebtCatChipBg_${tag.id}"
-                    )
-                    val borderCol by animateColorAsState(
-                        targetValue = if (isSelected) tagColor else ext.cardBorderTop,
-                        label = "DebtCatChipBorder_${tag.id}"
-                    )
+                        }
+                    ).value
+                    val borderCol = rememberSpringColorAnimatable(
+                        targetColor = if (isSelected) tagColor else ext.cardBorderTop
+                    ).value
 
                     Surface(
                         shape = RoundedCornerShape(13.dp),
