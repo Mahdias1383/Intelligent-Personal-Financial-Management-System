@@ -243,7 +243,11 @@ fun TarazinoStaggeredReveal(
     LaunchedEffect(Unit) {
         revealAnim.animateTo(
             targetValue = 1f,
-            animationSpec = TarazinoMotionSpecs.fluidBouncySpring()
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow,
+                visibilityThreshold = 0.005f
+            )
         )
     }
     Box(
@@ -257,6 +261,55 @@ fun TarazinoStaggeredReveal(
         }
     ) {
         content()
+    }
+}
+
+/**
+ * Single-composition, zero-lag navigation & screen transition container powered directly by [Animatable]
+ * and explicit `spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)`.
+ * Unlike [AnimatedContent], this composes ONLY the single active [targetState] screen (eliminating
+ * simultaneous dual-screen composition overhead) and applies directional translation, scale, and alpha
+ * strictly inside [graphicsLayer] on the RenderThread.
+ */
+@Composable
+fun <T> TarazinoSpringScreenTransition(
+    targetState: T,
+    modifier: Modifier = Modifier,
+    slideOffsetPx: Float = 36f,
+    directionResolver: (previous: T, current: T) -> Int = { _, _ -> -1 },
+    content: @Composable (T) -> Unit
+) {
+    val transitionAnim = remember { Animatable(1f, visibilityThreshold = 0.005f) }
+    var previousState by remember { mutableStateOf(targetState) }
+    var slideDirection by remember { mutableStateOf(-1) }
+
+    LaunchedEffect(targetState) {
+        if (targetState != previousState) {
+            slideDirection = directionResolver(previousState, targetState)
+            previousState = targetState
+            transitionAnim.snapTo(0f)
+            transitionAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                    visibilityThreshold = 0.005f
+                )
+            )
+        }
+    }
+
+    Box(
+        modifier = modifier.graphicsLayer {
+            val p = transitionAnim.value
+            alpha = p.coerceIn(0f, 1f)
+            translationX = (1f - p) * slideOffsetPx * slideDirection
+            val scale = 0.97f + (0.03f * p)
+            scaleX = scale
+            scaleY = scale
+        }
+    ) {
+        content(targetState)
     }
 }
 
@@ -1610,42 +1663,44 @@ fun AnimatedOdometerMoneyText(
         )
         val unitFontSize = (fittedSp * 0.48f).coerceAtLeast(10f).sp
 
+        val slideAnim = remember { Animatable(1f, visibilityThreshold = 0.005f) }
+        var previousFormatted by remember { mutableStateOf(formattedDigits) }
+        LaunchedEffect(formattedDigits) {
+            if (formattedDigits != previousFormatted) {
+                previousFormatted = formattedDigits
+                slideAnim.snapTo(0f)
+                slideAnim.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow,
+                        visibilityThreshold = 0.005f
+                    )
+                )
+            }
+        }
+
         Row(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             // Keep numeric character order strictly LTR so thousands separators never flip in RTL.
-            // Uses a single lightweight hardware-accelerated AnimatedContent instead of 15 per-digit containers.
+            // Uses a single Animatable + graphicsLayer instead of AnimatedContent dual-node composition.
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                AnimatedContent(
-                    targetState = formattedDigits,
-                    transitionSpec = {
-                        val dir = if (rollingUp) 1 else -1
-                        (slideInVertically(
-                            animationSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring()
-                        ) { h -> dir * (h / 3) } + fadeIn(
-                            animationSpec = TarazinoMotionSpecs.fluidBouncySpring()
-                        ))
-                            .togetherWith(
-                                slideOutVertically(
-                                    animationSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring()
-                                ) { h -> -dir * (h / 3) } + fadeOut(
-                                    animationSpec = TarazinoMotionSpecs.snappyControlSpring()
-                                )
-                            )
-                            .using(SizeTransform(clip = false))
-                    },
-                    label = "OdometerAmountSlide"
-                ) { targetDigits ->
-                    Text(
-                        text = targetDigits,
-                        style = adaptiveStyle,
-                        fontWeight = FontWeight.Black,
-                        color = numberColor,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
+                val dir = if (rollingUp) 1f else -1f
+                Text(
+                    text = formattedDigits,
+                    style = adaptiveStyle,
+                    fontWeight = FontWeight.Black,
+                    color = numberColor,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.graphicsLayer {
+                        val p = slideAnim.value
+                        alpha = p.coerceIn(0f, 1f)
+                        translationY = (1f - p) * 14f * dir
+                    }
+                )
             }
             Text(
                 text = unit.labelFa,
@@ -1981,9 +2036,8 @@ fun TarazinoSegmentedControl(
     val animatedIndexState = rememberSpringFloatAnimatable(
         targetValue = safeIndex.toFloat(),
         initialValue = safeIndex.toFloat(),
-        springSpec = TarazinoMotionSpecs.snappyControlSpring()
+        springSpec = TarazinoMotionSpecs.fluidBouncySpring()
     )
-    val animatedIndex = animatedIndexState.value
     val outerRadius = if (compact) 13.dp else 16.dp
     val thumbRadius = if (compact) 10.dp else 12.dp
     val barHeight = if (compact) 36.dp else 42.dp
@@ -2004,7 +2058,12 @@ fun TarazinoSegmentedControl(
 
             Box(
                 modifier = Modifier
-                    .offset(x = segWidth * animatedIndex)
+                    .offset {
+                        IntOffset(
+                            x = (segWidth.toPx() * animatedIndexState.value).roundToInt(),
+                            y = 0
+                        )
+                    }
                     .width(segWidth)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(thumbRadius))

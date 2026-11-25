@@ -786,19 +786,9 @@ fun DashboardScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                AnimatedContent(
+                                                com.example.ui.components.TarazinoSpringScreenTransition(
                                                     targetState = displayedSubtitle,
-                                                    transitionSpec = {
-                                                        fadeIn(
-                                                            animationSpec = spring(
-                                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                                stiffness = Spring.StiffnessLow
-                                                            )
-                                                        ) togetherWith fadeOut(
-                                                            animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
-                                                        )
-                                                    },
-                                                    label = "HeroSubtitleFade"
+                                                    slideOffsetPx = 18f
                                                 ) { sub ->
                                                     TarazinoAutoSizeText(
                                                         text = sub,
@@ -1256,19 +1246,9 @@ fun DashboardScreen(
                                                     }
                                                 }
                                             }
-                                            AnimatedContent(
+                                            com.example.ui.components.TarazinoSpringScreenTransition(
                                                 targetState = activeSlice,
-                                                transitionSpec = {
-                                                    fadeIn(
-                                                        animationSpec = spring(
-                                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                            stiffness = Spring.StiffnessLow
-                                                        )
-                                                    ) togetherWith fadeOut(
-                                                        animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
-                                                    )
-                                                },
-                                                label = "DonutCenterContent"
+                                                slideOffsetPx = 12f
                                             ) { focused ->
                                                 if (focused != null) {
                                                     Column(

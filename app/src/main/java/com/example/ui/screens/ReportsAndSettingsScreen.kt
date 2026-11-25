@@ -296,14 +296,16 @@ fun ReportsAndSettingsScreen(
         // =========================================================================
         if (activeSectionIndex == 0) {
             item {
-                PrintableFinancialSummaryPdfStudioCard(
-                    obligations = uiState.obligations,
-                    installments = uiState.installments,
-                    counterparties = uiState.counterparties,
-                    preferences = uiState.preferences,
-                    onOpenA4PreviewPayload = onOpenCustomA4ReportPayload,
-                    onShowToast = onShowToast
-                )
+                com.example.ui.components.TarazinoStaggeredReveal(index = 0) {
+                    PrintableFinancialSummaryPdfStudioCard(
+                        obligations = uiState.obligations,
+                        installments = uiState.installments,
+                        counterparties = uiState.counterparties,
+                        preferences = uiState.preferences,
+                        onOpenA4PreviewPayload = onOpenCustomA4ReportPayload,
+                        onShowToast = onShowToast
+                    )
+                }
             }
 
             item {
@@ -904,19 +906,9 @@ fun ReportsAndSettingsScreen(
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(3.dp))
-                                        AnimatedContent(
+                                        com.example.ui.components.TarazinoSpringScreenTransition(
                                             targetState = ext.moodTagFa,
-                                            transitionSpec = {
-                                                fadeIn(
-                                                    animationSpec = spring(
-                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                        stiffness = Spring.StiffnessLow
-                                                    )
-                                                ) togetherWith fadeOut(
-                                                    animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
-                                                )
-                                            },
-                                            label = "ThemeMoodTagMorph"
+                                            slideOffsetPx = 14f
                                         ) { moodText ->
                                             Text(
                                                 text = moodText,

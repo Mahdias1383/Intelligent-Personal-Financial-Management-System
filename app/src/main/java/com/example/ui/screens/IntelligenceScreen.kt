@@ -490,15 +490,17 @@ fun IntelligenceScreen(
         // 1A. D3 FINANCIAL HEALTH RADAR (DEBT CATEGORIES & MONTHLY BUDGET CAPACITY IMPACT)
         // =========================================================================
         item {
-            FinancialHealthRadarChartCard(
-                obligations = uiState.obligations,
-                installments = uiState.installments,
-                counterparties = uiState.counterparties,
-                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
-                livingExpensePercent = uiState.preferences.livingExpensePercent,
-                currencyUnit = unit,
-                privacyMasked = masked
-            )
+            com.example.ui.components.TarazinoStaggeredReveal(index = 1) {
+                FinancialHealthRadarChartCard(
+                    obligations = uiState.obligations,
+                    installments = uiState.installments,
+                    counterparties = uiState.counterparties,
+                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                    livingExpensePercent = uiState.preferences.livingExpensePercent,
+                    currencyUnit = unit,
+                    privacyMasked = masked
+                )
+            }
         }
 
         // =========================================================================
@@ -506,15 +508,17 @@ fun IntelligenceScreen(
         // =========================================================================
         uiState.mlForecastReport?.let { mlReport ->
             item {
-                MlFinancialForecastSection(
-                    baselineReport = mlReport,
-                    installments = uiState.installments,
-                    obligations = uiState.obligations,
-                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
-                    livingExpensePercent = uiState.preferences.livingExpensePercent,
-                    unit = unit,
-                    privacyMasked = masked
-                )
+                com.example.ui.components.TarazinoStaggeredReveal(index = 2) {
+                    MlFinancialForecastSection(
+                        baselineReport = mlReport,
+                        installments = uiState.installments,
+                        obligations = uiState.obligations,
+                        monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                        livingExpensePercent = uiState.preferences.livingExpensePercent,
+                        unit = unit,
+                        privacyMasked = masked
+                    )
+                }
             }
         }
 
@@ -522,19 +526,21 @@ fun IntelligenceScreen(
         // 1.9. RECURRING MONTHLY INCOME & NON-LOAN EXPENSE TRACKER (Holistic Financial Health)
         // =========================================================================
         item {
-            RecurringCashflowHealthSection(
-                currencyUnit = unit,
-                privacyMasked = masked,
-                currentMonthLoanInstallmentsToman = uiState.dtiHealthReport?.currentMonthDebtDueToman ?: 0L,
-                monthlySavingsTargetToman = uiState.preferences.monthlySavingsTargetToman,
-                onSyncWithBudgetPlanner = { totalIncomeToman, livingExpensePercent ->
-                    onUpdateBudgetPlannerSettings(
-                        totalIncomeToman,
-                        livingExpensePercent,
-                        uiState.preferences.alertAdvanceDays
-                    )
-                }
-            )
+            com.example.ui.components.TarazinoStaggeredReveal(index = 3) {
+                RecurringCashflowHealthSection(
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    currentMonthLoanInstallmentsToman = uiState.dtiHealthReport?.currentMonthDebtDueToman ?: 0L,
+                    monthlySavingsTargetToman = uiState.preferences.monthlySavingsTargetToman,
+                    onSyncWithBudgetPlanner = { totalIncomeToman, livingExpensePercent ->
+                        onUpdateBudgetPlannerSettings(
+                            totalIncomeToman,
+                            livingExpensePercent,
+                            uiState.preferences.alertAdvanceDays
+                        )
+                    }
+                )
+            }
         }
 
         // =========================================================================
@@ -542,18 +548,20 @@ fun IntelligenceScreen(
         //    (5-Tier Thermal Heat Scale, High-Pressure Period Detection & Decade Strips)
         // =========================================================================
         item {
-            PersianInstallmentHeatmapSection(
-                heatmapYear = uiState.heatmapYear,
-                heatmapMonth = uiState.heatmapMonth,
-                installments = uiState.installments,
-                obligations = uiState.obligations,
-                counterparties = uiState.counterparties,
-                monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
-                currencyUnit = unit,
-                privacyMasked = masked,
-                onChangeHeatmapMonth = onChangeHeatmapMonth,
-                onQuickPay = onQuickPayInstallment
-            )
+            com.example.ui.components.TarazinoStaggeredReveal(index = 4) {
+                PersianInstallmentHeatmapSection(
+                    heatmapYear = uiState.heatmapYear,
+                    heatmapMonth = uiState.heatmapMonth,
+                    installments = uiState.installments,
+                    obligations = uiState.obligations,
+                    counterparties = uiState.counterparties,
+                    monthlyIncomeToman = uiState.preferences.monthlyIncomeToman,
+                    currencyUnit = unit,
+                    privacyMasked = masked,
+                    onChangeHeatmapMonth = onChangeHeatmapMonth,
+                    onQuickPay = onQuickPayInstallment
+                )
+            }
         }
 
         // =========================================================================
@@ -924,72 +932,80 @@ fun IntelligenceScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        val targetList = if (selectedStrategyTab == 0) sim.avalancheOrder else sim.snowballOrder
-                        targetList.forEachIndexed { idx, step ->
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
+                        com.example.ui.components.TarazinoSpringScreenTransition(
+                            targetState = selectedStrategyTab,
+                            slideOffsetPx = 22f,
+                            directionResolver = { prev, curr -> if (curr >= prev) -1 else 1 }
+                        ) { activeTab ->
+                            val targetList = if (activeTab == 0) sim.avalancheOrder else sim.snowballOrder
+                            Column {
+                                targetList.forEachIndexed { idx, step ->
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                        border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
                                     ) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
+                                        Row(
                                             modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary)
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = PersianCurrencyEngine.toPersianDigits((idx + 1).toString()),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            TarazinoAutoSizeText(
-                                                text = step.title,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 2,
-                                                minFontSize = 10.sp
-                                            )
-                                            TarazinoAutoSizeText(
-                                                text = "${step.counterpartyName} • تسویه کامل در ماه ${
-                                                    PersianCurrencyEngine.toPersianDigits(step.estimatedClearMonthIndex.toString())
-                                                }",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                minFontSize = 8.5.sp
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primary)
+                                                ) {
+                                                    Text(
+                                                        text = PersianCurrencyEngine.toPersianDigits((idx + 1).toString()),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onPrimary
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    TarazinoAutoSizeText(
+                                                        text = step.title,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 2,
+                                                        minFontSize = 10.sp
+                                                    )
+                                                    TarazinoAutoSizeText(
+                                                        text = "${step.counterpartyName} • تسویه کامل در ماه ${
+                                                            PersianCurrencyEngine.toPersianDigits(step.estimatedClearMonthIndex.toString())
+                                                        }",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        maxLines = 1,
+                                                        minFontSize = 8.5.sp
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            FormattedMoneyText(
+                                                amountToman = step.remainingToman,
+                                                unit = unit,
+                                                privacyMasked = masked,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                numberColor = MaterialTheme.colorScheme.onSurface,
+                                                minFontSize = 9.sp,
+                                                textAlign = TextAlign.End,
+                                                modifier = Modifier.widthIn(max = 148.dp)
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    FormattedMoneyText(
-                                        amountToman = step.remainingToman,
-                                        unit = unit,
-                                        privacyMasked = masked,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        numberColor = MaterialTheme.colorScheme.onSurface,
-                                        minFontSize = 9.sp,
-                                        textAlign = TextAlign.End,
-                                        modifier = Modifier.widthIn(max = 148.dp)
-                                    )
                                 }
                             }
                         }

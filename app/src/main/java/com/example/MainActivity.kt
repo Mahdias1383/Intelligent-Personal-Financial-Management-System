@@ -383,17 +383,9 @@ fun TarazinoAppRoot(
                                             .size(32.dp)
                                             .testTag("top_bar_theme_switcher_btn")
                                     ) {
-                                        AnimatedContent(
+                                        com.example.ui.components.TarazinoSpringScreenTransition(
                                             targetState = isDarkNow,
-                                            transitionSpec = {
-                                                val bouncySpring = spring<Float>(
-                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                    stiffness = Spring.StiffnessLow
-                                                )
-                                                (fadeIn(bouncySpring) + scaleIn(initialScale = 0.72f, animationSpec = bouncySpring)) togetherWith
-                                                    fadeOut(com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring())
-                                            },
-                                            label = "TopBarThemeSwitchIcon"
+                                            slideOffsetPx = 10f
                                         ) { darkActive ->
                                             Icon(
                                                 imageVector = if (darkActive) {
@@ -745,30 +737,13 @@ fun TarazinoAppRoot(
                         }
                     }
 
-                    // Active Tab Screen Content with Explicit Fluid Spring Transition (StiffnessLow + DampingRatioMediumBouncy)
+                    // Active Tab Screen Content powered by Animatable + spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                     Box(modifier = Modifier.weight(1f)) {
-                        AnimatedContent(
+                        com.example.ui.components.TarazinoSpringScreenTransition(
                             targetState = uiState.activeTab,
-                            transitionSpec = {
-                                val movingForward = targetState.ordinal >= initialState.ordinal
-                                val enterOffset = if (movingForward) -1 else 1
-                                (slideInHorizontally(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessLow
-                                    )
-                                ) { width -> enterOffset * (width / 18) } +
-                                    fadeIn(
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                                            stiffness = Spring.StiffnessLow
-                                        )
-                                    )) togetherWith
-                                    (fadeOut(
-                                        animationSpec = com.example.ui.components.TarazinoMotionSpecs.snappyControlSpring()
-                                    ))
-                            },
-                            label = "TarazinoMainTabTransition"
+                            slideOffsetPx = 38f,
+                            directionResolver = { prev, curr -> if (curr.ordinal >= prev.ordinal) -1 else 1 },
+                            modifier = Modifier.fillMaxSize()
                         ) { targetTab ->
                             when (targetTab) {
                                 TarazinoNavTab.DASHBOARD -> DashboardScreen(
@@ -1059,15 +1034,27 @@ private fun DockTabItem(
     modifier: Modifier = Modifier
 ) {
     val contentColor = com.example.ui.components.rememberSpringColorAnimatable(
-        targetColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        targetColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        springSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
     ).value
     val pillBg = com.example.ui.components.rememberSpringColorAnimatable(
-        targetColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
+        targetColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+        springSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
     ).value
     val selectionAnim = com.example.ui.components.rememberSpringFloatAnimatable(
         targetValue = if (selected) 1f else 0f,
         initialValue = if (selected) 1f else 0f,
-        springSpec = com.example.ui.components.TarazinoMotionSpecs.fluidBouncySpring()
+        springSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow,
+            visibilityThreshold = 0.005f
+        )
     )
 
     Column(

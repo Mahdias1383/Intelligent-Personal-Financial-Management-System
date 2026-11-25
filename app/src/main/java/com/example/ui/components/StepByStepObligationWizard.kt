@@ -482,31 +482,11 @@ fun StepByStepObligationWizardModal(
                     }
                 }
 
-                // Animated Wizard Step Body (Fluid Spring Slide + Fade)
-                AnimatedContent(
+                // Animated Wizard Step Body powered by Animatable + spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+                TarazinoSpringScreenTransition(
                     targetState = currentStep,
-                    transitionSpec = {
-                        val forward = targetState > initialState
-                        val dir = if (forward) -1 else 1
-                        (slideInHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) { dir * (it / 10) } +
-                            fadeIn(
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessLow
-                                )
-                            ))
-                            .togetherWith(
-                                fadeOut(
-                                    animationSpec = TarazinoMotionSpecs.snappyControlSpring()
-                                )
-                            )
-                    },
-                    label = "WizardStepContent",
+                    slideOffsetPx = 34f,
+                    directionResolver = { prev, curr -> if (curr >= prev) -1 else 1 },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -1555,10 +1535,18 @@ private fun WizardStep3GranularInstallmentTable(
 
         // Individual Editable Installment Rows
         itemsIndexed(draftRows) { idx, row ->
-            TarazinoGlassCard(
-                cornerRadius = 18.dp,
-                accentBorderColor = if (row.isPaidAlready) ext.positive.copy(alpha = 0.6f) else null
+            TarazinoStaggeredReveal(
+                index = idx,
+                modifier = Modifier.animateItem(
+                    fadeInSpec = TarazinoMotionSpecs.fluidBouncySpring(),
+                    placementSpec = TarazinoMotionSpecs.fluidBouncyIntOffsetSpring(),
+                    fadeOutSpec = TarazinoMotionSpecs.snappyControlSpring()
+                )
             ) {
+                TarazinoGlassCard(
+                    cornerRadius = 18.dp,
+                    accentBorderColor = if (row.isPaidAlready) ext.positive.copy(alpha = 0.6f) else null
+                ) {
                 Column(modifier = Modifier.padding(13.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1725,6 +1713,7 @@ private fun WizardStep3GranularInstallmentTable(
                         }
                     }
                 }
+            }
             }
         }
     }
