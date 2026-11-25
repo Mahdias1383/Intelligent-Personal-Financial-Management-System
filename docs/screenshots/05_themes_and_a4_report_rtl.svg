@@ -56,7 +56,7 @@
   <rect x="40" y="440" width="340" height="252" rx="14" fill="#FFFFFF" stroke="#99F6E4" stroke-width="1.5"/>
   <rect x="40" y="440" width="340" height="52" rx="14" fill="#0F4C5C"/>
   <text x="366" y="464" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12" font-weight="bold">صورتحساب جامع اقساط و تعهدات ترازینو</text>
-  <text x="366" y="481" text-anchor="start" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">نسخه ۰.۲ • تاریخ چاپ: ۲۲ آبان ۱۴۰۵ • واحد: تومان</text>
+  <text x="366" y="481" text-anchor="start" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">خروجی رسمی A4 • تاریخ چاپ: ۲۲ آبان ۱۴۰۵ • واحد: تومان</text>
 
   <!-- Mini KPIs inside A4 -->
   <rect x="266" y="502" width="102" height="40" rx="8" fill="#F0FDFA" stroke="#5EEAD4" stroke-width="0.9"/>

@@ -20,7 +20,7 @@
   <!-- Top Bar with Theme Switcher, Toman/Rial, Privacy Mask & Vault Lock -->
   <rect x="14" y="14" width="392" height="58" rx="16" fill="#0B1F2A" stroke="#164E63" stroke-width="1"/>
   <text x="392" y="39" text-anchor="start" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="18" font-weight="bold">ترازینو</text>
-  <text x="392" y="57" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">نسخه ۰.۲ • آفلاین مطلق</text>
+  <text x="392" y="57" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">مدیریت هوشمند اقساط • آفلاین مطلق</text>
 
   <rect x="24" y="28" width="52" height="28" rx="9" fill="#064E3B" stroke="#2DD4BF" stroke-width="1"/>
   <text x="50" y="46" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">تومان</text>
@@ -57,7 +57,7 @@
   <rect x="216" y="264" width="172" height="32" rx="10" fill="#042429" opacity="0.75"/>
   <text x="302" y="284" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10.5" font-weight="bold">پرداخت‌شده: ۱۲٫۲ میلیون تومان</text>
   <rect x="32" y="264" width="174" height="32" rx="10" fill="#042429" opacity="0.75"/>
-  <text x="119" y="284" text-anchor="middle" fill="#DAB978" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10.5" font-weight="bold">سقف قسط جدید: ۶٫۵ میلیون</text>
+  <text x="119" y="284" text-anchor="middle" fill="#DAB978" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10" font-weight="bold">سقف قسط: ۶٫۵ میلیون تومان</text>
 
   <!-- 2. Reorderable Module: AI Daily Financial Tip (Offline-First Opt-in Card) -->
   <rect x="16" y="318" width="388" height="122" rx="20" fill="url(#dashCardV2)" stroke="#2DD4BF" stroke-width="1.1"/>

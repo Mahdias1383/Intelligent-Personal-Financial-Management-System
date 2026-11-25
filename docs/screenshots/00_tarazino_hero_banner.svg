@@ -24,7 +24,7 @@
 
   <!-- Top Status Badge -->
   <rect x="860" y="34" width="296" height="34" rx="17" fill="#063B3D" stroke="#2DD4BF" stroke-width="1.4"/>
-  <text x="1008" y="56" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">نسخه رسمی v0.2 • ۱۰۰٪ آفلاین (اتصال اختیاری)</text>
+  <text x="1008" y="56" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">دستیار بومی اندروید • ۱۰۰٪ آفلاین و امن</text>
 
   <!-- Main Brand Headline -->
   <text x="1154" y="118" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="44" font-weight="bold">ترازینو (Tarazino)</text>
@@ -34,7 +34,7 @@
 
   <!-- Feature Pills Row 1 -->
   <rect x="954" y="252" width="202" height="44" rx="13" fill="url(#tealAccent)"/>
-  <text x="1055" y="279" text-anchor="middle" fill="#042F2E" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">⬇ دانلود مستقیم APK v0.2</text>
+  <text x="1055" y="279" text-anchor="middle" fill="#042F2E" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13.5" font-weight="bold">تقویم ۱۰۰٪ شمسی جلالی</text>
 
   <rect x="752" y="252" width="190" height="44" rx="13" fill="#0A2530" stroke="#2DD4BF" stroke-width="1.2"/>
   <text x="847" y="279" text-anchor="middle" fill="#CCFBF1" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">اتصال و حریم خصوصی</text>

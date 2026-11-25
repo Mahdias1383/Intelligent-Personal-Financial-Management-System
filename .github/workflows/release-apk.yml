@@ -72,7 +72,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="${{ github.event.inputs.release_tag || 'v0.2' }}"
-          TITLE="ترازینو نسخه ۰.۲ (Tarazino v0.2) — انتشار رسمی اندروید (APK)"
+          TITLE="ترازینو نسخه ۰.۲ — Tarazino v0.2"
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" \
               releases/Tarazino-v0.2.apk \
