@@ -1,96 +1,115 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 860" width="420" height="860" direction="rtl">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 880" width="420" height="880" direction="rtl">
   <defs>
-    <linearGradient id="bgGrad2" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#090F1B"/>
-      <stop offset="100%" stop-color="#0E1729"/>
+    <linearGradient id="treeBgV2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#051017"/>
+      <stop offset="100%" stop-color="#081A24"/>
     </linearGradient>
-    <linearGradient id="cardSurface2" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#152036"/>
-      <stop offset="100%" stop-color="#111A2E"/>
+    <linearGradient id="treeCardV2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E2430"/>
+      <stop offset="100%" stop-color="#0A1B25"/>
     </linearGradient>
   </defs>
 
-  <rect width="420" height="860" rx="28" fill="url(#bgGrad2)" stroke="#1E293B" stroke-width="3"/>
+  <rect width="420" height="880" rx="28" fill="url(#treeBgV2)" stroke="#164E63" stroke-width="2.5"/>
 
-  <!-- Top Breadcrumb Bar -->
-  <rect x="16" y="18" width="388" height="54" rx="14" fill="#111A2E" stroke="#1E293B" stroke-width="1"/>
-  <text x="388" y="42" text-anchor="start" fill="#A78BFA" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12" font-weight="bold">پوشه اصلی ◂ پلتفرم خرید اقساطی ◂ اسنپ‌پی (SnappPay)</text>
-  <text x="388" y="60" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">پرونده فعال: خرید اقساطی لپ‌تاپ ایسوس (۴ قسط ماهانه)</text>
+  <!-- Header -->
+  <rect x="16" y="16" width="388" height="58" rx="16" fill="#0B1F2A" stroke="#164E63" stroke-width="1"/>
+  <text x="388" y="42" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16" font-weight="bold">دسته‌بندی طرف‌های پرداخت و اسکنر OCR</text>
+  <text x="388" y="61" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">دسته اصلی ← زیرمجموعه (اسنپ‌پی، بانک‌ها...) ← اقساط شفاف فارسی</text>
 
-  <!-- Obligation Header Summary + Quick Edit Button -->
-  <rect x="16" y="82" width="388" height="118" rx="18" fill="url(#cardSurface2)" stroke="#8B5CF6" stroke-width="1.4"/>
-  <text x="388" y="108" text-anchor="start" fill="#F8FAFC" font-family="Vazirmatn, Tahoma, sans-serif" font-size="15" font-weight="bold">خرید اقساطی لپ‌تاپ ایسوس از اسنپ‌پی</text>
-  <text x="388" y="128" text-anchor="start" fill="#C4B5FD" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">کل تعهد: ۱۶,۰۰۰,۰۰۰ تومان • مانده: ۱۲,۰۰۰,۰۰۰ تومان (۳ قسط)</text>
+  <!-- 2x2 Category Cards Grid with Unambiguous "میلیون تومان" (Zero ambiguous "م") -->
+  <!-- Top Right: BNPL -->
+  <rect x="216" y="88" width="188" height="162" rx="20" fill="url(#treeCardV2)" stroke="#2DD4BF" stroke-width="1.2"/>
+  <rect x="228" y="100" width="60" height="22" rx="10" fill="#063B3D" stroke="#2DD4BF" stroke-width="0.9"/>
+  <text x="258" y="115" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">۲ پرونده</text>
+  <rect x="352" y="100" width="38" height="38" rx="12" fill="#064E3B"/>
+  <text x="371" y="125" text-anchor="middle" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16">🛍</text>
+  <text x="390" y="164" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13.5" font-weight="bold">اقساطی / BNPL</text>
+  <text x="390" y="182" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">اسنپ‌پی، دیجی‌پی، تارا...</text>
+  <text x="390" y="210" text-anchor="start" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۳۶ میلیون تومان</text>
+  <rect x="228" y="222" width="162" height="5" rx="2.5" fill="#132D3B"/>
+  <rect x="318" y="222" width="72" height="5" rx="2.5" fill="#2DD4BF"/>
+  <text x="390" y="242" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">۲ زیرمجموعه</text>
+  <text x="228" y="242" text-anchor="end" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5" font-weight="bold">۲۹٪</text>
 
-  <rect x="256" y="146" width="132" height="36" rx="10" fill="#1E293B" stroke="#64748B" stroke-width="1"/>
-  <text x="322" y="169" text-anchor="middle" fill="#E2E8F0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">✎ ویرایش مشخصات وام</text>
+  <!-- Top Left: Bank -->
+  <rect x="16" y="88" width="188" height="162" rx="20" fill="url(#treeCardV2)" stroke="#164E63" stroke-width="1.2"/>
+  <rect x="28" y="100" width="60" height="22" rx="10" fill="#063B3D" stroke="#2DD4BF" stroke-width="0.9"/>
+  <text x="58" y="115" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">۲ پرونده</text>
+  <rect x="152" y="100" width="38" height="38" rx="12" fill="#064E3B"/>
+  <text x="171" y="125" text-anchor="middle" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16">🏛</text>
+  <text x="190" y="164" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13.5" font-weight="bold">بانک و تسهیلات</text>
+  <text x="190" y="182" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">بانک مهر، بلو، ملی...</text>
+  <text x="190" y="210" text-anchor="start" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۱۳۷٫۲ میلیون تومان</text>
+  <rect x="28" y="222" width="162" height="5" rx="2.5" fill="#132D3B"/>
+  <rect x="148" y="222" width="42" height="5" rx="2.5" fill="#2DD4BF"/>
+  <text x="190" y="242" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">۲ زیرمجموعه</text>
+  <text x="28" y="242" text-anchor="end" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5" font-weight="bold">۱۸٪</text>
 
-  <rect x="120" y="146" width="126" height="36" rx="10" fill="#064E3B" stroke="#10B981" stroke-width="1"/>
-  <text x="183" y="169" text-anchor="middle" fill="#A7F3D0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">+ افزودن قسط جدید</text>
+  <!-- Bottom Right: Fund -->
+  <rect x="216" y="262" width="188" height="156" rx="20" fill="url(#treeCardV2)" stroke="#164E63" stroke-width="1.2"/>
+  <rect x="228" y="274" width="60" height="22" rx="10" fill="#0B2E3E" stroke="#38BDF8" stroke-width="0.9"/>
+  <text x="258" y="289" text-anchor="middle" fill="#BAE6FD" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">۲ پرونده</text>
+  <rect x="352" y="274" width="38" height="38" rx="12" fill="#0B2E3E"/>
+  <text x="371" y="299" text-anchor="middle" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16">🏦</text>
+  <text x="390" y="336" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13.5" font-weight="bold">صندوق و موسسه</text>
+  <text x="390" y="354" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">صندوق خانگی و شرکتی</text>
+  <text x="390" y="382" text-anchor="start" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۶۰٫۶ میلیون تومان</text>
+  <rect x="228" y="394" width="162" height="5" rx="2.5" fill="#132D3B"/>
+  <text x="390" y="410" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">۲ زیرمجموعه</text>
 
-  <rect x="28" y="146" width="84" height="36" rx="10" fill="#1E293B"/>
-  <text x="70" y="169" text-anchor="middle" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">جدول A4</text>
+  <!-- Bottom Left: Individuals -->
+  <rect x="16" y="262" width="188" height="156" rx="20" fill="url(#treeCardV2)" stroke="#DAB978" stroke-width="1.1"/>
+  <rect x="28" y="274" width="60" height="22" rx="10" fill="#2A2210" stroke="#DAB978" stroke-width="0.9"/>
+  <text x="58" y="289" text-anchor="middle" fill="#FDE68A" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">۲ پرونده</text>
+  <rect x="152" y="274" width="38" height="38" rx="12" fill="#2A2210"/>
+  <text x="171" y="299" text-anchor="middle" fill="#DAB978" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16">👥</text>
+  <text x="190" y="336" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13.5" font-weight="bold">شخص حقیقی</text>
+  <text x="190" y="354" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">اجاره، چک صیادی و اشخاص</text>
+  <text x="190" y="382" text-anchor="start" fill="#DAB978" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۳۷٫۵ میلیون تومان</text>
+  <rect x="28" y="394" width="162" height="5" rx="2.5" fill="#132D3B"/>
+  <rect x="164" y="394" width="26" height="5" rx="2.5" fill="#DAB978"/>
+  <text x="190" y="410" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="9.5">۲ زیرمجموعه</text>
 
-  <!-- Smart Filter & Sort Bar -->
-  <rect x="16" y="210" width="388" height="76" rx="16" fill="#111A2E" stroke="#1E293B" stroke-width="1"/>
-  <text x="388" y="232" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">فیلتر و مرتب‌سازی هوشمند اقساط:</text>
+  <!-- CameraX + ML Kit Offline OCR Loan Contract & Receipt Scanner Panel -->
+  <rect x="16" y="432" width="388" height="352" rx="22" fill="#0B1F2A" stroke="#2DD4BF" stroke-width="1.6"/>
+  <text x="388" y="460" text-anchor="start" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14.5" font-weight="bold">📷 اسکنر هوشمند قرارداد وام و رسید (OCR آفلاین)</text>
+  <text x="388" y="479" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10.5">تشخیص خودکار مبلغ قسط، تاریخ سررسید و نرخ سود بدون نیاز به اینترنت</text>
 
-  <rect x="308" y="242" width="82" height="30" rx="9" fill="#10B981"/>
-  <text x="349" y="261" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">همه اقساط</text>
+  <!-- Simulated Camera Viewfinder Frame -->
+  <rect x="30" y="492" width="360" height="122" rx="16" fill="#041118" stroke="#164E63" stroke-width="1.2"/>
+  <path d="M48,518 L48,504 L68,504 M372,518 L372,504 L352,504 M48,588 L48,602 L68,602 M372,588 L372,602 L352,602" fill="none" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="56" y1="552" x2="364" y2="552" stroke="#2DD4BF" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="210" y="542" text-anchor="middle" fill="#E2E8F0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12" font-weight="bold">قرارداد تسهیلات قرض‌الحسنه بانک مهر ایران</text>
+  <text x="210" y="572" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">مبلغ هر قسط: ۴٬۸۵۰٬۰۰۰ تومان • سررسید: ۱۴۰۵/۰۹/۱۰ • سود: ۴٪</text>
 
-  <rect x="216" y="242" width="84" height="30" rx="9" fill="#1E293B"/>
-  <text x="258" y="261" text-anchor="middle" fill="#E2E8F0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">پرداخت‌نشده</text>
+  <!-- Extracted Fields Preview -->
+  <rect x="30" y="624" width="114" height="58" rx="12" fill="#0E2A36" stroke="#2DD4BF" stroke-width="1"/>
+  <text x="87" y="644" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">نرخ سود</text>
+  <text x="87" y="667" text-anchor="middle" fill="#DAB978" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">۴٪ سالانه</text>
 
-  <rect x="124" y="242" width="84" height="30" rx="9" fill="#1E293B"/>
-  <text x="166" y="261" text-anchor="middle" fill="#FCA5A5" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">فقط معوقه</text>
+  <rect x="152" y="624" width="114" height="58" rx="12" fill="#0E2A36" stroke="#2DD4BF" stroke-width="1"/>
+  <text x="209" y="644" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">تاریخ سررسید</text>
+  <text x="209" y="667" text-anchor="middle" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12.5" font-weight="bold">۱۴۰۵/۰۹/۱۰</text>
 
-  <rect x="28" y="242" width="88" height="30" rx="9" fill="#0F172A" stroke="#38BDF8" stroke-width="1"/>
-  <text x="72" y="261" text-anchor="middle" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10" font-weight="bold">⇅ نزدیک‌ترین سررسید</text>
+  <rect x="274" y="624" width="116" height="58" rx="12" fill="#0E2A36" stroke="#2DD4BF" stroke-width="1"/>
+  <text x="332" y="644" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">مبلغ قسط</text>
+  <text x="332" y="667" text-anchor="middle" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11.5" font-weight="bold">۴٫۸۵ میلیون ت</text>
 
-  <!-- Multi-Installment Batch Settlement Action Banner -->
-  <rect x="16" y="296" width="388" height="92" rx="16" fill="#064E3B" stroke="#10B981" stroke-width="1.5"/>
-  <text x="388" y="322" text-anchor="start" fill="#FFFFFF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">☑ ۲ قسط برای تسویه گروهی انتخاب شده است</text>
-  <text x="388" y="342" text-anchor="start" fill="#A7F3D0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">جمع انتخابی: ۸,۰۰۰,۰۰۰ تومان (هشت میلیون تومان)</text>
-  <rect x="28" y="350" width="364" height="28" rx="9" fill="#10B981"/>
-  <text x="210" y="369" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12" font-weight="bold">✓ تسویه یک‌جای ۲ قسط انتخاب‌شده با یک کلیک</text>
+  <!-- Action Buttons -->
+  <rect x="216" y="694" width="174" height="42" rx="13" fill="#14B8A6"/>
+  <text x="303" y="720" text-anchor="middle" fill="#042F2E" font-family="Vazirmatn, Tahoma, sans-serif" font-size="12" font-weight="bold">ثبت خودکار وام جدید</text>
 
-  <!-- Installment Row 1 (Paid) -->
-  <rect x="16" y="400" width="388" height="94" rx="16" fill="url(#cardSurface2)" stroke="#10B981" stroke-width="1"/>
-  <rect x="310" y="412" width="78" height="22" rx="7" fill="#064E3B"/>
-  <text x="349" y="427" text-anchor="middle" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10" font-weight="bold">✓ تسویه‌شده</text>
-  <text x="298" y="427" text-anchor="start" fill="#F8FAFC" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">قسط اول — لپ‌تاپ ایسوس</text>
-  <text x="388" y="450" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">سررسید: ۲۲ مهر ۱۴۰۵ • پرداخت در ۲۱ مهر ۱۴۰۵</text>
-  <text x="388" y="476" text-anchor="start" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">۴,۰۰۰,۰۰۰ تومان (چهار میلیون تومان)</text>
+  <rect x="30" y="694" width="176" height="42" rx="13" fill="#132D3B" stroke="#DAB978" stroke-width="1"/>
+  <text x="118" y="720" text-anchor="middle" fill="#FDE68A" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11.5" font-weight="bold">ثبت به عنوان رسید پرداخت</text>
 
-  <!-- Installment Row 2 (Selected for Batch Pay) -->
-  <rect x="16" y="504" width="388" height="104" rx="16" fill="url(#cardSurface2)" stroke="#38BDF8" stroke-width="1.8"/>
-  <rect x="366" y="518" width="22" height="22" rx="6" fill="#10B981"/>
-  <text x="377" y="534" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">✓</text>
-  <text x="354" y="534" text-anchor="start" fill="#F8FAFC" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">قسط دوم — لپ‌تاپ ایسوس (سررسید امروز)</text>
-  <text x="388" y="556" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">سررسید شمسی: ۲۲ آبان ۱۴۰۵ • چهار میلیون تومان</text>
-  <text x="388" y="584" text-anchor="start" fill="#FBBF24" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۴,۰۰۰,۰۰۰ تومان</text>
-  <rect x="28" y="564" width="96" height="30" rx="10" fill="#10B981"/>
-  <text x="76" y="584" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">تسویه آنی</text>
-  <rect x="132" y="564" width="84" height="30" rx="10" fill="#1E293B"/>
-  <text x="174" y="584" text-anchor="middle" fill="#E2E8F0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">ویرایش قسط</text>
+  <text x="210" y="766" text-anchor="middle" fill="#99F6E4" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10">✓ پردازش ۱۰۰٪ روی گوشی (ML Kit آفلاین) — بدون ارسال تصویر قرارداد به سرور</text>
 
-  <!-- Installment Row 3 (Selected for Batch Pay) -->
-  <rect x="16" y="618" width="388" height="104" rx="16" fill="url(#cardSurface2)" stroke="#38BDF8" stroke-width="1.8"/>
-  <rect x="366" y="632" width="22" height="22" rx="6" fill="#10B981"/>
-  <text x="377" y="648" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">✓</text>
-  <text x="354" y="648" text-anchor="start" fill="#F8FAFC" font-family="Vazirmatn, Tahoma, sans-serif" font-size="13" font-weight="bold">قسط سوم — لپ‌تاپ ایسوس</text>
-  <text x="388" y="670" text-anchor="start" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">سررسید شمسی: ۲۲ آذر ۱۴۰۵ • چهار میلیون تومان</text>
-  <text x="388" y="698" text-anchor="start" fill="#38BDF8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="14" font-weight="bold">۴,۰۰۰,۰۰۰ تومان</text>
-  <rect x="28" y="678" width="96" height="30" rx="10" fill="#10B981"/>
-  <text x="76" y="698" text-anchor="middle" fill="#022C22" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">تسویه آنی</text>
-  <rect x="132" y="678" width="84" height="30" rx="10" fill="#1E293B"/>
-  <text x="174" y="698" text-anchor="middle" fill="#E2E8F0" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">ویرایش قسط</text>
-
-  <!-- Bottom Navigation Bar -->
-  <rect x="12" y="790" width="396" height="56" rx="16" fill="#111A2E"/>
-  <text x="354" y="823" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">داشبورد</text>
-  <rect x="214" y="798" width="88" height="40" rx="12" fill="#064E3B"/>
-  <text x="258" y="823" text-anchor="middle" fill="#34D399" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">پوشه اقساط</text>
-  <text x="158" y="823" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">هوش مالی</text>
-  <text x="62" y="823" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">گزارش و تنظیمات</text>
+  <!-- Bottom Floating Nav -->
+  <rect x="16" y="798" width="388" height="64" rx="20" fill="#0B1F2A" stroke="#164E63" stroke-width="1.2"/>
+  <text x="348" y="835" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">داشبورد</text>
+  <rect x="208" y="808" width="88" height="44" rx="14" fill="#0F3E44" stroke="#2DD4BF" stroke-width="1"/>
+  <text x="252" y="835" text-anchor="middle" fill="#2DD4BF" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11" font-weight="bold">پوشه اقساط</text>
+  <text x="158" y="835" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="11">هوش مالی</text>
+  <text x="68" y="835" text-anchor="middle" fill="#94A3B8" font-family="Vazirmatn, Tahoma, sans-serif" font-size="10.5">گزارش و تنظیمات</text>
 </svg>
