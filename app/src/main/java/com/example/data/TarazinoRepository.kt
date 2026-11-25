@@ -52,7 +52,9 @@ data class UserPreferencesState(
     val dashboardLayoutConfig: com.example.domain.DashboardLayoutConfig =
         com.example.domain.DashboardLayoutGridEngine.defaultConfig(),
     val connectivityPrivacy: com.example.domain.ConnectivityPrivacyPolicy =
-        com.example.domain.ConnectivityPrivacyEngine.defaultOfflinePolicy()
+        com.example.domain.ConnectivityPrivacyEngine.defaultOfflinePolicy(),
+    val onlineInputs: com.example.domain.OnlineServiceInputsState =
+        com.example.domain.ConnectivityPrivacyEngine.defaultOnlineInputs()
 )
 
 class TarazinoRepository(
@@ -61,6 +63,7 @@ class TarazinoRepository(
 ) {
     private val appContext = context.applicationContext
     private val prefs = context.getSharedPreferences("tarazino_prefs_v1", Context.MODE_PRIVATE)
+    private val secretVault = com.example.core.LocalSecretVault(appContext)
 
     private val _preferencesState = MutableStateFlow(loadPreferences())
     val preferencesState: StateFlow<UserPreferencesState> = _preferencesState.asStateFlow()
@@ -114,6 +117,23 @@ class TarazinoRepository(
             ),
             connectivityPrivacy = com.example.domain.ConnectivityPrivacyEngine.deserializePolicy(
                 prefs.getString("connectivity_privacy_policy_v1", null)
+            ),
+            onlineInputs = com.example.domain.OnlineServiceInputsState(
+                aiProviderMode = runCatching {
+                    com.example.domain.AiProviderMode.valueOf(
+                        prefs.getString(
+                            "online_ai_provider_mode_v1",
+                            com.example.domain.AiProviderMode.FIREBASE_AI_BUILTIN.name
+                        ) ?: com.example.domain.AiProviderMode.FIREBASE_AI_BUILTIN.name
+                    )
+                }.getOrDefault(com.example.domain.AiProviderMode.FIREBASE_AI_BUILTIN),
+                customAiEndpointUrl = prefs.getString("online_ai_endpoint_url_v1", "") ?: "",
+                customAiModelName = prefs.getString("online_ai_model_name_v1", "") ?: "",
+                customAiApiKey = secretVault.readSecret(com.example.core.LocalSecretVault.KEY_CUSTOM_AI_API_KEY),
+                cloudSyncEndpointUrl = prefs.getString("online_cloud_endpoint_url_v1", "") ?: "",
+                cloudSyncAuthToken = secretVault.readSecret(com.example.core.LocalSecretVault.KEY_CLOUD_SYNC_AUTH_TOKEN),
+                cloudSyncWorkspaceLabel = prefs.getString("online_cloud_workspace_label_v1", "") ?: "",
+                lastCloudSyncJalali = prefs.getString("online_cloud_last_sync_jalali_v1", "") ?: ""
             )
         )
     }
@@ -150,8 +170,35 @@ class TarazinoRepository(
                 "connectivity_privacy_policy_v1",
                 com.example.domain.ConnectivityPrivacyEngine.serializePolicy(updated.connectivityPrivacy)
             )
+            .putString("online_ai_provider_mode_v1", updated.onlineInputs.aiProviderMode.name)
+            .putString("online_ai_endpoint_url_v1", updated.onlineInputs.customAiEndpointUrl.trim())
+            .putString("online_ai_model_name_v1", updated.onlineInputs.customAiModelName.trim())
+            .putString("online_cloud_endpoint_url_v1", updated.onlineInputs.cloudSyncEndpointUrl.trim())
+            .putString("online_cloud_workspace_label_v1", updated.onlineInputs.cloudSyncWorkspaceLabel.trim())
+            .putString("online_cloud_last_sync_jalali_v1", updated.onlineInputs.lastCloudSyncJalali.trim())
             .apply()
+
+        secretVault.saveSecret(
+            com.example.core.LocalSecretVault.KEY_CUSTOM_AI_API_KEY,
+            updated.onlineInputs.customAiApiKey
+        )
+        secretVault.saveSecret(
+            com.example.core.LocalSecretVault.KEY_CLOUD_SYNC_AUTH_TOKEN,
+            updated.onlineInputs.cloudSyncAuthToken
+        )
         _preferencesState.value = updated
+    }
+
+    fun clearStoredOnlineSecrets() {
+        secretVault.clearAllSecrets()
+        updatePreferences { prefs ->
+            prefs.copy(
+                onlineInputs = prefs.onlineInputs.copy(
+                    customAiApiKey = "",
+                    cloudSyncAuthToken = ""
+                )
+            )
+        }
     }
 
     fun loadRecurringCashflowItems(): List<com.example.domain.RecurringCashflowItem> {

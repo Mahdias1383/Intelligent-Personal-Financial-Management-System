@@ -56,7 +56,7 @@ class ConnectivityPrivacyEngineTest {
     }
 
     @Test
-    fun evaluateAiTipAccess_enforcesStrictPermissionAndThresholdPrecedence() {
+    fun evaluateAiTipAccess_enforcesStrictPermissionInputsAndThresholdPrecedence() {
         val today = "1404/02/15"
 
         // 1. Default policy blocked by master offline kill-switch
@@ -88,12 +88,28 @@ class ConnectivityPrivacyEngineTest {
             (featureBlocked as OnlineFeatureGateDecision.Blocked).reason
         )
 
-        // 3. Enabled, but no network connectivity
+        // 3. Enabled with custom Gemini mode but missing API key -> MISSING_OR_INVALID_INPUTS
         val aiEnabledWifiOnly = masterOnly.copy(
             aiFinancialTipsEnabled = true,
             wifiOnlyForOnlineFeatures = true,
             dailyAiRequestLimit = 2
         )
+        val missingKeyDecision = ConnectivityPrivacyEngine.evaluateAiTipAccess(
+            policy = aiEnabledWifiOnly,
+            isNetworkAvailable = true,
+            isWifiConnected = true,
+            todayJalali = today,
+            inputs = OnlineServiceInputsState(
+                aiProviderMode = AiProviderMode.CUSTOM_GEMINI_API,
+                customAiApiKey = ""
+            )
+        )
+        assertEquals(
+            OnlineGateBlockReason.MISSING_OR_INVALID_INPUTS,
+            (missingKeyDecision as OnlineFeatureGateDecision.Blocked).reason
+        )
+
+        // 4. Enabled, valid inputs, but no network connectivity
         val noNet = ConnectivityPrivacyEngine.evaluateAiTipAccess(
             policy = aiEnabledWifiOnly,
             isNetworkAvailable = false,
@@ -105,7 +121,7 @@ class ConnectivityPrivacyEngineTest {
             (noNet as OnlineFeatureGateDecision.Blocked).reason
         )
 
-        // 4. Cellular network while Wi-Fi-only guardrail is active
+        // 5. Cellular network while Wi-Fi-only guardrail is active
         val wifiRequired = ConnectivityPrivacyEngine.evaluateAiTipAccess(
             policy = aiEnabledWifiOnly,
             isNetworkAvailable = true,
@@ -117,7 +133,7 @@ class ConnectivityPrivacyEngineTest {
             (wifiRequired as OnlineFeatureGateDecision.Blocked).reason
         )
 
-        // 5. Daily quota exhausted
+        // 6. Daily quota exhausted
         val quotaExhausted = aiEnabledWifiOnly.copy(
             aiRequestsUsedToday = 2,
             aiRequestsCounterDateJalali = today
@@ -133,7 +149,7 @@ class ConnectivityPrivacyEngineTest {
             (quotaBlocked as OnlineFeatureGateDecision.Blocked).reason
         )
 
-        // 6. All gates satisfied -> Allowed with exact remaining quota
+        // 7. All gates satisfied -> Allowed with exact remaining quota
         val allowed = ConnectivityPrivacyEngine.evaluateAiTipAccess(
             policy = aiEnabledWifiOnly.copy(aiRequestsUsedToday = 1, aiRequestsCounterDateJalali = today),
             isNetworkAvailable = true,
@@ -142,6 +158,78 @@ class ConnectivityPrivacyEngineTest {
         )
         assertTrue(allowed is OnlineFeatureGateDecision.Allowed)
         assertEquals(1, (allowed as OnlineFeatureGateDecision.Allowed).remainingQuotaToday)
+    }
+
+    @Test
+    fun validateHttpsEndpointUrl_blocksInsecureSchemesAndLocalPrivateAddresses() {
+        assertTrue(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://api.openai.com/v1/chat/completions").isValid)
+        assertTrue(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://backup.tarazino.ir/sync").isValid)
+
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("http://api.openai.com/v1/chat/completions").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("javascript:alert(1)").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://localhost/api").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://127.0.0.1/api").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://169.254.169.254/latest/meta-data").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://192.168.1.10/sync").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://10.0.0.5/sync").isValid)
+        assertFalse(ConnectivityPrivacyEngine.validateHttpsEndpointUrl("https://user:pass@backup.example.com/sync").isValid)
+    }
+
+    @Test
+    fun validateAiAndCloudSyncInputs_enforcesRequiredFieldsPerMode() {
+        // OpenAI-compatible requires HTTPS URL, API key, and model
+        val invalidOpenAi = OnlineServiceInputsState(
+            aiProviderMode = AiProviderMode.OPENAI_COMPATIBLE_ENDPOINT,
+            customAiEndpointUrl = "https://api.openai.com/v1/chat/completions",
+            customAiApiKey = "sk-test-token-1234",
+            customAiModelName = ""
+        )
+        assertFalse(ConnectivityPrivacyEngine.validateAiInputs(invalidOpenAi).isValid)
+        assertTrue(
+            ConnectivityPrivacyEngine.validateAiInputs(
+                invalidOpenAi.copy(customAiModelName = "gpt-4o-mini")
+            ).isValid
+        )
+
+        // Cloud Sync gate enforces offline lock, valid HTTPS URL + token, and Wi-Fi guardrail
+        val policy = ConnectivityPrivacyPolicy(
+            masterOnlineAccessEnabled = true,
+            cloudSyncEnabled = true,
+            wifiOnlyForOnlineFeatures = true
+        )
+        val validCloudInputs = OnlineServiceInputsState(
+            cloudSyncEndpointUrl = "https://backup.example.com/tarazino",
+            cloudSyncAuthToken = "bearer-secret-token-9876"
+        )
+        val missingToken = ConnectivityPrivacyEngine.evaluateCloudSyncAccess(
+            policy = policy,
+            inputs = validCloudInputs.copy(cloudSyncAuthToken = "short"),
+            isNetworkAvailable = true,
+            isWifiConnected = true
+        )
+        assertEquals(
+            OnlineGateBlockReason.MISSING_OR_INVALID_INPUTS,
+            (missingToken as OnlineFeatureGateDecision.Blocked).reason
+        )
+
+        val wifiBlocked = ConnectivityPrivacyEngine.evaluateCloudSyncAccess(
+            policy = policy,
+            inputs = validCloudInputs,
+            isNetworkAvailable = true,
+            isWifiConnected = false
+        )
+        assertEquals(
+            OnlineGateBlockReason.WIFI_ONLY_REQUIRED,
+            (wifiBlocked as OnlineFeatureGateDecision.Blocked).reason
+        )
+
+        val allowed = ConnectivityPrivacyEngine.evaluateCloudSyncAccess(
+            policy = policy,
+            inputs = validCloudInputs,
+            isNetworkAvailable = true,
+            isWifiConnected = true
+        )
+        assertTrue(allowed is OnlineFeatureGateDecision.Allowed)
     }
 
     @Test

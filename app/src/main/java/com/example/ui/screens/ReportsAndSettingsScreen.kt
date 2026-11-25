@@ -269,9 +269,9 @@ fun ReportsAndSettingsScreen(
                         }
                         Text(
                             text = if (isFullyOffline) {
-                                "تمام سرویس‌های آنلاین غیرفعال است ($activeCountFa از $totalCountFa) • مدیریت مجوزها و آستانه‌ها"
+                                "برنامه کاملاً آفلاین است ($activeCountFa از $totalCountFa) • فعال‌سازی بخش‌های آنلاین و ورود کلید/آدرس سرور"
                             } else {
-                                "$activeCountFa از $totalCountFa سرویس آنلاین فعال • مدیریت وای‌فای، سهمیه روزانه و حریم خصوصی"
+                                "$activeCountFa از $totalCountFa بخش آنلاین فعال • مدیریت کلید API، سرور ابری، وای‌فای و حریم خصوصی"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

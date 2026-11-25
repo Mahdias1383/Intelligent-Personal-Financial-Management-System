@@ -22,35 +22,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.GppGood
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhonelinkLock
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.ScreenshotMonitor
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -58,8 +66,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -69,14 +80,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.JalaliCalendarEngine
 import com.example.core.PersianCurrencyEngine
+import com.example.domain.AiProviderMode
 import com.example.domain.ConnectivityPrivacyEngine
 import com.example.domain.ConnectivityPrivacyPolicy
+import com.example.domain.OnlineServiceInputsState
 import com.example.domain.PrivacyPostureLevel
 import com.example.ui.components.TarazinoAutoSizeText
 import com.example.ui.components.TarazinoGlassCard
@@ -87,17 +103,24 @@ import com.example.ui.components.tarazinoAmbientBackdrop
 import com.example.ui.theme.LocalTarazinoColors
 
 /**
- * Centralized "Connectivity & Privacy" (اتصال و حریم خصوصی) full-screen settings vault.
- * All online capabilities default strictly to Disabled for a 100% offline-first experience,
- * and every toggle/threshold persists immediately and gates live runtime behavior.
+ * Centralized "Connectivity & Privacy" (اتصال، سرویس‌های آنلاین و حریم خصوصی) full-screen settings vault.
+ * All online capabilities default strictly to Disabled for a 100% offline-first experience.
+ * Users who explicitly opt in can toggle each internet-dependent section and enter the required
+ * credentials, endpoints, and thresholds directly here.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectivityPrivacyScreen(
     policy: ConnectivityPrivacyPolicy,
+    onlineInputs: OnlineServiceInputsState,
     hasPinLock: Boolean,
     privacyMaskEnabled: Boolean,
+    isCloudSyncRunning: Boolean,
     onUpdatePolicy: ((ConnectivityPrivacyPolicy) -> ConnectivityPrivacyPolicy) -> Unit,
+    onSaveOnlineAiInputs: (AiProviderMode, String, String, String) -> Unit,
+    onSaveCloudSyncInputs: (String, String, String) -> Unit,
+    onTriggerCloudBackupSyncNow: () -> Unit,
+    onClearStoredOnlineSecrets: () -> Unit,
     onTogglePrivacyMask: () -> Unit,
     onClearOnlineAiCache: () -> Unit,
     onResetStrictOffline: () -> Unit,
@@ -119,6 +142,29 @@ fun ConnectivityPrivacyScreen(
     val cloudEffectiveEnabled = remember(policy) { ConnectivityPrivacyEngine.effectiveCloudSyncEnabled(policy) }
     val usedAiToday = remember(policy, today) { ConnectivityPrivacyEngine.usedDailyAiRequests(policy, today) }
     val remainingAiToday = remember(policy, today) { ConnectivityPrivacyEngine.remainingDailyAiQuota(policy, today) }
+    val hasStoredSecrets = onlineInputs.customAiApiKey.isNotBlank() || onlineInputs.cloudSyncAuthToken.isNotBlank()
+
+    // Local draft states for AI and Cloud Sync user-entered inputs
+    var draftAiMode by remember(onlineInputs.aiProviderMode) { mutableStateOf(onlineInputs.aiProviderMode) }
+    var draftAiEndpoint by remember(onlineInputs.customAiEndpointUrl) { mutableStateOf(onlineInputs.customAiEndpointUrl) }
+    var draftAiModel by remember(onlineInputs.customAiModelName) { mutableStateOf(onlineInputs.customAiModelName) }
+    var draftAiKey by remember(onlineInputs.customAiApiKey) { mutableStateOf(onlineInputs.customAiApiKey) }
+    var showAiKey by remember { mutableStateOf(false) }
+
+    var draftCloudEndpoint by remember(onlineInputs.cloudSyncEndpointUrl) { mutableStateOf(onlineInputs.cloudSyncEndpointUrl) }
+    var draftCloudToken by remember(onlineInputs.cloudSyncAuthToken) { mutableStateOf(onlineInputs.cloudSyncAuthToken) }
+    var draftCloudWorkspace by remember(onlineInputs.cloudSyncWorkspaceLabel) { mutableStateOf(onlineInputs.cloudSyncWorkspaceLabel) }
+    var showCloudToken by remember { mutableStateOf(false) }
+
+    LaunchedEffect(onlineInputs) {
+        draftAiMode = onlineInputs.aiProviderMode
+        draftAiEndpoint = onlineInputs.customAiEndpointUrl
+        draftAiModel = onlineInputs.customAiModelName
+        draftAiKey = onlineInputs.customAiApiKey
+        draftCloudEndpoint = onlineInputs.cloudSyncEndpointUrl
+        draftCloudToken = onlineInputs.cloudSyncAuthToken
+        draftCloudWorkspace = onlineInputs.cloudSyncWorkspaceLabel
+    }
 
     val postureAccent by animateColorAsState(
         targetValue = when (posture.level) {
@@ -174,7 +220,7 @@ fun ConnectivityPrivacyScreen(
                                 minFontSize = 14.sp
                             )
                             Text(
-                                text = "مدیریت دسترسی آنلاین، آستانه‌ها و مجوزهای امنیتی",
+                                text = "تنظیم بخش‌های آنلاین، ورود کلیدها و مجوزهای آفلاین",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -197,7 +243,8 @@ fun ConnectivityPrivacyScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(innerPadding)
+                    .imePadding(),
                 contentAlignment = Alignment.TopCenter
             ) {
                 LazyColumn(
@@ -329,7 +376,7 @@ fun ConnectivityPrivacyScreen(
                                         modifier = Modifier.weight(1f)
                                     )
                                     PostureMetricMiniBox(
-                                        label = "سرویس آنلاین",
+                                        label = "بخش‌های آنلاین",
                                         value = "${PersianCurrencyEngine.toPersianDigits(posture.activeOnlineFeaturesCount.toString())} از ${PersianCurrencyEngine.toPersianDigits(posture.totalOnlineFeaturesCount.toString())}",
                                         accent = if (posture.activeOnlineFeaturesCount == 0) ext.positive else MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.weight(1f)
@@ -352,11 +399,11 @@ fun ConnectivityPrivacyScreen(
                                 PrivacySwitchRow(
                                     icon = if (policy.masterOnlineAccessEnabled) Icons.Default.GppGood else Icons.Default.CloudOff,
                                     accentColor = if (policy.masterOnlineAccessEnabled) MaterialTheme.colorScheme.primary else ext.positive,
-                                    title = "اجازه دسترسی کلی قابلیت‌های آنلاین",
+                                    title = "فعال‌سازی دسترسی بخش‌های نیازمند اینترنت",
                                     subtitle = if (policy.masterOnlineAccessEnabled) {
-                                        "فعال — تنها سرویس‌هایی که در پایین روشن کنید مجوز اتصال دارند."
+                                        "فعال — اکنون می‌توانید هر بخش آنلاین را روشن کرده و ورودی‌های مورد نیاز آن را تنظیم کنید."
                                     } else {
-                                        "غیرفعال (پیش‌فرض آفلاین) — تمام ارتباطات اینترنتی کاملاً مسدود است."
+                                        "غیرفعال (پیش‌فرض ۱۰۰٪ آفلاین) — تمام بخش‌های نیازمند اینترنت مسدود هستند و هیچ ارتباطی برقرار نمی‌شود."
                                     },
                                     checked = policy.masterOnlineAccessEnabled,
                                     onCheckedChange = { enabled ->
@@ -368,7 +415,7 @@ fun ConnectivityPrivacyScreen(
                         }
                     }
 
-                    // 2. Online Features Access Toggles (AI Tips & Cloud Sync — Both Default to Disabled)
+                    // 2. Online Features Toggles + User-Entered Required Inputs Card
                     item {
                         TarazinoGlassCard(
                             accentBorderColor = if (policy.masterOnlineAccessEnabled) {
@@ -382,9 +429,9 @@ fun ConnectivityPrivacyScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 TarazinoSectionHeader(
-                                    title = "مجوز قابلیت‌های آنلاین",
-                                    subtitle = "به صورت پیش‌فرض غیرفعال برای تجربه ۱۰۰٪ آفلاین",
-                                    icon = Icons.Default.CloudSync,
+                                    title = "بخش‌های نیازمند اینترنت و ورودی‌های کاربر",
+                                    subtitle = "به صورت پیش‌فرض غیرفعال؛ در صورت نیاز فعال کرده و کلید یا آدرس سرور را ست کنید",
+                                    icon = Icons.Default.Key,
                                     accentColor = MaterialTheme.colorScheme.primary
                                 )
 
@@ -400,7 +447,7 @@ fun ConnectivityPrivacyScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text(
-                                            text = "کلید اصلی دسترسی آنلاین خاموش است؛ برای روشن کردن هر سرویس، ابتدا کلید بالا را فعال کنید.",
+                                            text = "برنامه اکنون در حالت ۱۰۰٪ آفلاین قرار دارد. برای فعال‌سازی و تنظیم ورودی‌های هوش مصنوعی یا همگام‌سازی ابری، ابتدا کلید اصلی بالا را روشن کنید.",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = ext.positive,
                                             fontWeight = FontWeight.SemiBold,
@@ -410,15 +457,15 @@ fun ConnectivityPrivacyScreen(
                                     }
                                 }
 
-                                // AI-Driven Daily Financial Tips Toggle
+                                // --- SECTION A: AI Financial Tips Toggle & User Inputs ---
                                 PrivacySwitchRow(
                                     icon = Icons.Default.AutoAwesome,
                                     accentColor = MaterialTheme.colorScheme.secondary,
-                                    title = "نکته مالی روزانه هوشمند (هوش مصنوعی)",
+                                    title = "نکته مالی روزانه هوشمند (هوش مصنوعی آنلاین)",
                                     subtitle = if (aiEffectiveEnabled) {
-                                        "فعال — باقیمانده سهمیه امروز: ${PersianCurrencyEngine.toPersianDigits(remainingAiToday.toString())} درخواست"
+                                        "فعال (${onlineInputs.aiProviderMode.shortLabelFa}) • باقیمانده سهمیه امروز: ${PersianCurrencyEngine.toPersianDigits(remainingAiToday.toString())} درخواست"
                                     } else {
-                                        "غیرفعال — هیچ خلاصه‌ای از مخارج یا بدهی برای مدل هوش مصنوعی ارسال نمی‌شود."
+                                        "غیرفعال — هیچ داده‌ای از مخارج یا بدهی به سرویس هوش مصنوعی ارسال نمی‌شود."
                                     },
                                     checked = policy.aiFinancialTipsEnabled,
                                     enabled = policy.masterOnlineAccessEnabled,
@@ -428,15 +475,317 @@ fun ConnectivityPrivacyScreen(
                                     testTagName = "toggle_ai_financial_tips"
                                 )
 
+                                AnimatedVisibility(
+                                    visible = aiEffectiveEnabled,
+                                    enter = expandVertically() + fadeIn(),
+                                    exit = shrinkVertically() + fadeOut()
+                                ) {
+                                    val candidateAiInputs = onlineInputs.copy(
+                                        aiProviderMode = draftAiMode,
+                                        customAiEndpointUrl = draftAiEndpoint,
+                                        customAiModelName = draftAiModel,
+                                        customAiApiKey = draftAiKey
+                                    )
+                                    val aiValidation = ConnectivityPrivacyEngine.validateAiInputs(candidateAiInputs)
+
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                                        border = BorderStroke(0.9.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.28f)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("ai_online_inputs_panel")
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "تنظیم منبع و ورودی‌های هوش مصنوعی",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                TarazinoStatusPill(
+                                                    text = if (aiValidation.isValid) "آماده اجرا" else "نیاز به تکمیل",
+                                                    accentColor = if (aiValidation.isValid) ext.positive else ext.warning
+                                                )
+                                            }
+
+                                            // 3-way AI provider mode selector
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                AiProviderMode.entries.forEach { mode ->
+                                                    val selected = draftAiMode == mode
+                                                    Surface(
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        color = if (selected) {
+                                                            MaterialTheme.colorScheme.primary
+                                                        } else {
+                                                            MaterialTheme.colorScheme.surface
+                                                        },
+                                                        border = BorderStroke(
+                                                            width = if (selected) 1.2.dp else 0.8.dp,
+                                                            color = if (selected) {
+                                                                MaterialTheme.colorScheme.primary
+                                                            } else {
+                                                                ext.cardBorderTop
+                                                            }
+                                                        ),
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .heightIn(min = 48.dp)
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .clickable {
+                                                                draftAiMode = mode
+                                                                if (draftAiModel.isBlank()) {
+                                                                    draftAiModel = mode.defaultModelName
+                                                                }
+                                                            }
+                                                            .testTag("ai_provider_mode_${mode.name.lowercase()}")
+                                                    ) {
+                                                        Box(
+                                                            contentAlignment = Alignment.Center,
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp)
+                                                        ) {
+                                                            TarazinoAutoSizeText(
+                                                                text = mode.shortLabelFa,
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                                color = if (selected) {
+                                                                    MaterialTheme.colorScheme.onPrimary
+                                                                } else {
+                                                                    MaterialTheme.colorScheme.onSurface
+                                                                },
+                                                                textAlign = TextAlign.Center,
+                                                                maxLines = 1,
+                                                                minFontSize = 9.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Text(
+                                                text = draftAiMode.subtitleFa,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 17.sp
+                                            )
+
+                                            if (draftAiMode != AiProviderMode.FIREBASE_AI_BUILTIN) {
+                                                // API Key Input (Encrypted at rest in Android Keystore)
+                                                OutlinedTextField(
+                                                    value = draftAiKey,
+                                                    onValueChange = { draftAiKey = it },
+                                                    label = {
+                                                        Text(
+                                                            text = if (draftAiMode == AiProviderMode.CUSTOM_GEMINI_API) {
+                                                                "کلید اختصاصی \u2066Gemini API Key\u2069 *"
+                                                            } else {
+                                                                "کلید دسترسی (\u2066API Key / Bearer\u2069) *"
+                                                            }
+                                                        )
+                                                    },
+                                                    placeholder = {
+                                                        Text(
+                                                            text = if (draftAiMode == AiProviderMode.CUSTOM_GEMINI_API) {
+                                                                "AIza..."
+                                                            } else {
+                                                                "sk-..."
+                                                            },
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                textDirection = TextDirection.Ltr
+                                                            )
+                                                        )
+                                                    },
+                                                    singleLine = true,
+                                                    visualTransformation = if (showAiKey) {
+                                                        VisualTransformation.None
+                                                    } else {
+                                                        PasswordVisualTransformation()
+                                                    },
+                                                    trailingIcon = {
+                                                        IconButton(
+                                                            onClick = { showAiKey = !showAiKey },
+                                                            modifier = Modifier.size(48.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = if (showAiKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                                contentDescription = if (showAiKey) "مخفی کردن کلید" else "نمایش کلید"
+                                                            )
+                                                        }
+                                                    },
+                                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                        textDirection = TextDirection.Ltr
+                                                    ),
+                                                    shape = RoundedCornerShape(13.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("input_custom_ai_api_key")
+                                                )
+
+                                                // Model Name Input
+                                                OutlinedTextField(
+                                                    value = draftAiModel,
+                                                    onValueChange = { draftAiModel = it },
+                                                    label = {
+                                                        Text(
+                                                            text = if (draftAiMode == AiProviderMode.OPENAI_COMPATIBLE_ENDPOINT) {
+                                                                "نام مدل هوش مصنوعی *"
+                                                            } else {
+                                                                "نام مدل (اختیاری — پیش‌فرض \u2066${draftAiMode.defaultModelName}\u2069)"
+                                                            }
+                                                        )
+                                                    },
+                                                    placeholder = {
+                                                        Text(
+                                                            text = draftAiMode.defaultModelName,
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                textDirection = TextDirection.Ltr
+                                                            )
+                                                        )
+                                                    },
+                                                    singleLine = true,
+                                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                        textDirection = TextDirection.Ltr
+                                                    ),
+                                                    shape = RoundedCornerShape(13.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("input_custom_ai_model")
+                                                )
+
+                                                // Endpoint URL Input (Optional for Gemini, Required for OpenAI-compatible)
+                                                OutlinedTextField(
+                                                    value = draftAiEndpoint,
+                                                    onValueChange = { draftAiEndpoint = it },
+                                                    label = {
+                                                        Text(
+                                                            text = if (draftAiMode == AiProviderMode.OPENAI_COMPATIBLE_ENDPOINT) {
+                                                                "آدرس کامل سرور (فقط \u2066HTTPS\u2069) *"
+                                                            } else {
+                                                                "آدرس پایه اختصاصی (اختیاری — فقط \u2066HTTPS\u2069)"
+                                                            }
+                                                        )
+                                                    },
+                                                    placeholder = {
+                                                        Text(
+                                                            text = if (draftAiMode == AiProviderMode.OPENAI_COMPATIBLE_ENDPOINT) {
+                                                                "https://api.openai.com/v1/chat/completions"
+                                                            } else {
+                                                                ConnectivityPrivacyEngine.DEFAULT_GEMINI_BASE_URL
+                                                            },
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                textDirection = TextDirection.Ltr
+                                                            )
+                                                        )
+                                                    },
+                                                    singleLine = true,
+                                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                        textDirection = TextDirection.Ltr
+                                                    ),
+                                                    shape = RoundedCornerShape(13.dp),
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag("input_custom_ai_endpoint")
+                                                )
+                                            }
+
+                                            if (!aiValidation.isValid && aiValidation.errorFa != null) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(11.dp),
+                                                    color = ext.warning.copy(alpha = 0.14f),
+                                                    border = BorderStroke(0.8.dp, ext.warning.copy(alpha = 0.4f)),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text(
+                                                        text = aiValidation.errorFa,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = ext.warning,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        lineHeight = 17.sp,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        onSaveOnlineAiInputs(
+                                                            draftAiMode,
+                                                            draftAiEndpoint,
+                                                            draftAiModel,
+                                                            draftAiKey
+                                                        )
+                                                    },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .heightIn(min = 48.dp)
+                                                        .testTag("save_ai_inputs_btn")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Save,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    TarazinoAutoSizeText(
+                                                        text = "ذخیره ورودی‌های هوش مصنوعی",
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1,
+                                                        minFontSize = 10.sp
+                                                    )
+                                                }
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = onClearOnlineAiCache,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(min = 48.dp)
+                                                    .testTag("clear_online_ai_cache_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.DeleteSweep,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "پاکسازی حافظه موقت نکات آنلاین ذخیره‌شده",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
                                 HorizontalDivider(color = ext.cardBorderTop.copy(alpha = 0.7f))
 
-                                // Cloud Sync Opt-In Permission Toggle
+                                // --- SECTION B: Cloud Sync Opt-In Toggle & User Server Inputs ---
                                 PrivacySwitchRow(
                                     icon = Icons.Default.CloudSync,
                                     accentColor = ext.info,
-                                    title = "مجوز همگام‌سازی ابری و پشتیبان از راه دور",
+                                    title = "همگام‌سازی ابری و پشتیبان‌گیری روی سرور شخصی",
                                     subtitle = if (cloudEffectiveEnabled) {
-                                        "مجوز تاییدشده (آستانه هر ${PersianCurrencyEngine.toPersianDigits(policy.cloudSyncMinChangesThreshold.toString())} تغییر) — داده‌های فعلی همچنان محلی ذخیره می‌شوند تا زمان اتصال حساب ابری."
+                                        val lastSync = onlineInputs.lastCloudSyncJalali.ifBlank { "هنوز انجام نشده" }
+                                        "فعال (آستانه هر ${PersianCurrencyEngine.toPersianDigits(policy.cloudSyncMinChangesThreshold.toString())} تغییر) • آخرین ارسال: $lastSync"
                                     } else {
                                         "غیرفعال — تمامی پرونده‌ها، اقساط و سوابق منحصراً در حافظه داخلی دستگاه نگهداری می‌شوند."
                                     },
@@ -448,26 +797,218 @@ fun ConnectivityPrivacyScreen(
                                     testTagName = "toggle_cloud_sync"
                                 )
 
-                                if (aiEffectiveEnabled) {
-                                    OutlinedButton(
-                                        onClick = onClearOnlineAiCache,
-                                        shape = RoundedCornerShape(12.dp),
+                                AnimatedVisibility(
+                                    visible = cloudEffectiveEnabled,
+                                    enter = expandVertically() + fadeIn(),
+                                    exit = shrinkVertically() + fadeOut()
+                                ) {
+                                    val candidateCloudInputs = onlineInputs.copy(
+                                        cloudSyncEndpointUrl = draftCloudEndpoint,
+                                        cloudSyncAuthToken = draftCloudToken,
+                                        cloudSyncWorkspaceLabel = draftCloudWorkspace
+                                    )
+                                    val cloudValidation = ConnectivityPrivacyEngine.validateCloudSyncInputs(candidateCloudInputs)
+
+                                    Surface(
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                                        border = BorderStroke(0.9.dp, ext.info.copy(alpha = 0.30f)),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .heightIn(min = 48.dp)
-                                            .testTag("clear_online_ai_cache_btn")
+                                            .testTag("cloud_sync_inputs_panel")
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DeleteSweep,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "پاکسازی حافظه موقت نکات آنلاین ذخیره‌شده",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                        Column(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "ورودی‌های سرور همگام‌سازی ابری",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                TarazinoStatusPill(
+                                                    text = if (cloudValidation.isValid) "آماده ارسال" else "نیاز به تنظیم",
+                                                    accentColor = if (cloudValidation.isValid) ext.positive else ext.warning
+                                                )
+                                            }
+
+                                            OutlinedTextField(
+                                                value = draftCloudEndpoint,
+                                                onValueChange = { draftCloudEndpoint = it },
+                                                label = { Text("آدرس سرور / وب‌هوک پشتیبان‌گیری (فقط \u2066HTTPS\u2069) *") },
+                                                placeholder = {
+                                                    Text(
+                                                        text = "https://backup.example.com/api/tarazino/sync",
+                                                        style = MaterialTheme.typography.bodySmall.copy(
+                                                            textDirection = TextDirection.Ltr
+                                                        )
+                                                    )
+                                                },
+                                                singleLine = true,
+                                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                    textDirection = TextDirection.Ltr
+                                                ),
+                                                shape = RoundedCornerShape(13.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .testTag("input_cloud_sync_endpoint")
+                                            )
+
+                                            OutlinedTextField(
+                                                value = draftCloudToken,
+                                                onValueChange = { draftCloudToken = it },
+                                                label = { Text("توکن احراز هویت (\u2066Bearer Token\u2069) *") },
+                                                placeholder = {
+                                                    Text(
+                                                        text = "توکن امنیتی سرور شخصی شما",
+                                                        style = MaterialTheme.typography.bodySmall
+                                                    )
+                                                },
+                                                singleLine = true,
+                                                visualTransformation = if (showCloudToken) {
+                                                    VisualTransformation.None
+                                                } else {
+                                                    PasswordVisualTransformation()
+                                                },
+                                                trailingIcon = {
+                                                    IconButton(
+                                                        onClick = { showCloudToken = !showCloudToken },
+                                                        modifier = Modifier.size(48.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (showCloudToken) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                            contentDescription = if (showCloudToken) "مخفی کردن توکن" else "نمایش توکن"
+                                                        )
+                                                    }
+                                                },
+                                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                                    textDirection = TextDirection.Ltr
+                                                ),
+                                                shape = RoundedCornerShape(13.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .testTag("input_cloud_sync_token")
+                                            )
+
+                                            OutlinedTextField(
+                                                value = draftCloudWorkspace,
+                                                onValueChange = { draftCloudWorkspace = it },
+                                                label = { Text("نام دستگاه یا فضای کاری (اختیاری)") },
+                                                placeholder = { Text("مثلاً: گوشی شخصی من") },
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(13.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .testTag("input_cloud_sync_workspace")
+                                            )
+
+                                            if (!cloudValidation.isValid && cloudValidation.errorFa != null) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(11.dp),
+                                                    color = ext.warning.copy(alpha = 0.14f),
+                                                    border = BorderStroke(0.8.dp, ext.warning.copy(alpha = 0.4f)),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text(
+                                                        text = cloudValidation.errorFa,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = ext.warning,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        lineHeight = 17.sp,
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                                    )
+                                                }
+                                            } else if (onlineInputs.lastCloudSyncJalali.isNotBlank()) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = ext.positive,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Text(
+                                                        text = "آخرین پشتیبان‌گیری موفق: ${PersianCurrencyEngine.toPersianDigits(onlineInputs.lastCloudSyncJalali)}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = ext.positive,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    onSaveCloudSyncInputs(
+                                                        draftCloudEndpoint,
+                                                        draftCloudToken,
+                                                        draftCloudWorkspace
+                                                    )
+                                                },
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(min = 48.dp)
+                                                    .testTag("save_cloud_sync_inputs_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Save,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                TarazinoAutoSizeText(
+                                                    text = "ذخیره ورودی‌های سرور ابری",
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.Bold,
+                                                    maxLines = 1,
+                                                    minFontSize = 10.sp
+                                                )
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = onTriggerCloudBackupSyncNow,
+                                                enabled = !isCloudSyncRunning &&
+                                                    ConnectivityPrivacyEngine.validateCloudSyncInputs(onlineInputs).isValid,
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(min = 48.dp)
+                                                    .testTag("trigger_cloud_sync_now_btn")
+                                            ) {
+                                                if (isCloudSyncRunning) {
+                                                    CircularProgressIndicator(
+                                                        strokeWidth = 2.dp,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "در حال ارسال پشتیبان به سرور...",
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CloudUpload,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "ارسال پشتیبان و همگام‌سازی الان",
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.SemiBold
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -623,7 +1164,7 @@ fun ConnectivityPrivacyScreen(
                         }
                     }
 
-                    // 5. Instant Strict Offline Reset Action Card
+                    // 5. Instant Strict Offline Reset & Secret Cleanup Card
                     item {
                         TarazinoGlassCard(
                             accentBorderColor = ext.positive.copy(alpha = 0.4f)
@@ -633,17 +1174,46 @@ fun ConnectivityPrivacyScreen(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text(
-                                    text = "بازگشت فوری به حالت آفلاین مطلق",
+                                    text = "بازگشت فوری به حالت آفلاین مطلق و مدیریت کلیدها",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "با یک لمس تمام مجوزهای آنلاین غیرفعال می‌شوند، حافظه موقت تحلیل‌های آنلاین پاک می‌شود و برنامه به تنظیمات پیش‌فرض کاملاً آفلاین بازمی‌گردد.",
+                                    text = "کلیدهای API و توکن‌های واردشده با رمزنگاری داخلی دستگاه ذخیره می‌شوند و هرگز در فایل‌های پشتیبان JSON قرار نمی‌گیرند.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 19.sp
                                 )
+
+                                if (hasStoredSecrets) {
+                                    OutlinedButton(
+                                        onClick = onClearStoredOnlineSecrets,
+                                        shape = RoundedCornerShape(14.dp),
+                                        border = BorderStroke(1.dp, ext.warning.copy(alpha = 0.65f)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(min = 48.dp)
+                                            .testTag("clear_online_secrets_btn")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteSweep,
+                                            contentDescription = null,
+                                            tint = ext.warning,
+                                            modifier = Modifier.size(19.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        TarazinoAutoSizeText(
+                                            text = "پاکسازی کلیدهای API و توکن‌های ذخیره‌شده",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ext.warning,
+                                            maxLines = 1,
+                                            minFontSize = 10.sp
+                                        )
+                                    }
+                                }
+
                                 OutlinedButton(
                                     onClick = onResetStrictOffline,
                                     shape = RoundedCornerShape(14.dp),
@@ -713,8 +1283,7 @@ private fun PostureMetricMiniBox(
                 color = accent,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
-                minFontSize = 9.sp,
-                modifier = Modifier.fillMaxWidth()
+                minFontSize = 9.sp
             )
         }
     }
@@ -734,57 +1303,51 @@ private fun PrivacySwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
             .alpha(if (enabled) 1f else 0.52f)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(enabled = enabled) { onCheckedChange(!checked) }
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 4.dp)
+            .heightIn(min = 52.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accentColor.copy(alpha = 0.14f))
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .padding(top = 2.dp)
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.16f))
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = accentColor,
+                modifier = Modifier.size(20.dp)
+            )
         }
-        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
+            )
+        }
+
         Switch(
             checked = checked,
+            onCheckedChange = if (enabled) onCheckedChange else null,
             enabled = enabled,
-            onCheckedChange = onCheckedChange,
             modifier = Modifier.testTag(testTagName)
         )
     }
@@ -808,16 +1371,18 @@ private fun ThresholdOptionSelectorBlock(
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
             )
         }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -827,13 +1392,17 @@ private fun ThresholdOptionSelectorBlock(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        MaterialTheme.colorScheme.primary
                     } else {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                     },
                     border = BorderStroke(
-                        width = if (isSelected) 1.25.dp else 0.75.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else ext.cardBorderTop
+                        width = if (isSelected) 1.2.dp else 0.8.dp,
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            ext.cardBorderTop
+                        }
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -844,19 +1413,20 @@ private fun ThresholdOptionSelectorBlock(
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 6.dp, vertical = 10.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp)
                     ) {
                         TarazinoAutoSizeText(
                             text = labelFormatter(option),
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                             textAlign = TextAlign.Center,
                             maxLines = 1,
-                            minFontSize = 9.sp,
-                            modifier = Modifier.fillMaxWidth()
+                            minFontSize = 10.sp
                         )
                     }
                 }

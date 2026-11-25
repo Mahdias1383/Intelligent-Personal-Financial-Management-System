@@ -1019,9 +1019,19 @@ fun TarazinoAppRoot(
             if (uiState.isConnectivityPrivacyOpen && !uiState.isVaultLocked) {
                 ConnectivityPrivacyScreen(
                     policy = uiState.preferences.connectivityPrivacy,
+                    onlineInputs = uiState.preferences.onlineInputs,
                     hasPinLock = uiState.preferences.pinHash.isNotBlank(),
                     privacyMaskEnabled = uiState.preferences.privacyMaskEnabled,
+                    isCloudSyncRunning = uiState.isCloudSyncRunning,
                     onUpdatePolicy = { transform -> viewModel.updateConnectivityPrivacyPolicy(transform) },
+                    onSaveOnlineAiInputs = { mode, endpoint, model, apiKey ->
+                        viewModel.saveOnlineAiInputs(mode, endpoint, model, apiKey)
+                    },
+                    onSaveCloudSyncInputs = { endpoint, token, workspace ->
+                        viewModel.saveCloudSyncInputs(endpoint, token, workspace)
+                    },
+                    onTriggerCloudBackupSyncNow = { viewModel.triggerCloudBackupSyncNow() },
+                    onClearStoredOnlineSecrets = { viewModel.clearStoredOnlineSecrets() },
                     onTogglePrivacyMask = { viewModel.togglePrivacyMask() },
                     onClearOnlineAiCache = { viewModel.clearOnlineAiCacheOnly() },
                     onResetStrictOffline = { viewModel.resetConnectivityPrivacyToStrictOffline() },

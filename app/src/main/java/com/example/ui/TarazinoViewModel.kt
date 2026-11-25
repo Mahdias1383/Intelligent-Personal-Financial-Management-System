@@ -35,12 +35,15 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
 import com.example.ai.FirebaseAiFinancialTipService
+import com.example.ai.RemoteCloudBackupSyncService
+import com.example.domain.AiProviderMode
 import com.example.domain.ConnectivityPrivacyEngine
 import com.example.domain.ConnectivityPrivacyPolicy
 import com.example.domain.DailyAiFinancialTipEngine
 import com.example.domain.DailyAiTipUiState
 import com.example.domain.OnlineFeatureGateDecision
 import com.example.domain.OnlineGateBlockReason
+import com.example.domain.OnlineServiceInputsState
 import com.example.domain.SpendingAndDebtSnapshot
 import com.example.export.A4ReportPayload
 import com.example.export.ReportExportEngine
@@ -112,6 +115,7 @@ data class TarazinoUiState(
     val activeA4ReportPayload: A4ReportPayload? = null,
     val isContractScannerOpen: Boolean = false,
     val isConnectivityPrivacyOpen: Boolean = false,
+    val isCloudSyncRunning: Boolean = false,
     val dailySpendingSnapshot: SpendingAndDebtSnapshot? = null,
     val dailyAiTipState: DailyAiTipUiState = DailyAiTipUiState.Idle,
     val toastMessageFa: String? = null,
@@ -159,11 +163,13 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     private val _activeA4Report = MutableStateFlow<A4ReportPayload?>(null)
     private val _isContractScannerOpen = MutableStateFlow(false)
     private val _isConnectivityPrivacyOpen = MutableStateFlow(false)
+    private val _isCloudSyncRunning = MutableStateFlow(false)
     private val _dailyAiTipState = MutableStateFlow<DailyAiTipUiState>(DailyAiTipUiState.Idle)
     private val _toastMessage = MutableStateFlow<String?>(null)
     private val _celebrationMessage = MutableStateFlow<String?>(null)
 
     private val aiFinancialTipService by lazy { FirebaseAiFinancialTipService() }
+    private val remoteCloudBackupSyncService by lazy { RemoteCloudBackupSyncService() }
     private var dailyAiTipJob: Job? = null
 
     val guidedTourSteps: List<InteractiveTourStep> = listOf(
@@ -308,6 +314,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         val celebration: String?,
         val isScannerOpen: Boolean,
         val isConnectivityPrivacyOpen: Boolean,
+        val isCloudSyncRunning: Boolean,
         val dailyAiTipState: DailyAiTipUiState
     )
 
@@ -326,7 +333,9 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
         combine(_extraPayoffBudgetToman, _heatmapYearMonth, _isVaultLocked) { b, ym, l -> Triple(b, ym, l) },
         combine(_isTourActive, _tourStepIndex, _activeA4Report) { tour, step, rep -> Triple(tour, step, rep) },
         combine(_toastMessage, _celebrationMessage, _isContractScannerOpen) { tst, cel, scan -> Triple(tst, cel, scan) },
-        combine(_isConnectivityPrivacyOpen, _dailyAiTipState) { connOpen, aiTip -> connOpen to aiTip }
+        combine(_isConnectivityPrivacyOpen, _isCloudSyncRunning, _dailyAiTipState) { connOpen, syncBusy, aiTip ->
+            Triple(connOpen, syncBusy, aiTip)
+        }
     ) { g1, g2, g3, g4, g5 ->
         UiOverlayBundle(
             activeTab = g1.first,
@@ -342,7 +351,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             celebration = g4.second,
             isScannerOpen = g4.third,
             isConnectivityPrivacyOpen = g5.first,
-            dailyAiTipState = g5.second
+            isCloudSyncRunning = g5.second,
+            dailyAiTipState = g5.third
         )
     }
 
@@ -437,6 +447,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             activeA4ReportPayload = over.activeReport,
             isContractScannerOpen = over.isScannerOpen,
             isConnectivityPrivacyOpen = over.isConnectivityPrivacyOpen,
+            isCloudSyncRunning = over.isCloudSyncRunning,
             dailySpendingSnapshot = spendingSnapshot,
             dailyAiTipState = over.dailyAiTipState,
             toastMessageFa = over.toast,
@@ -506,7 +517,9 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
      */
     fun refreshDailyAiFinancialTip(forceRefresh: Boolean = false) {
         val today = JalaliCalendarEngine.todayJalali()
-        val policy = repository.preferencesState.value.connectivityPrivacy
+        val currentPrefs = repository.preferencesState.value
+        val policy = currentPrefs.connectivityPrivacy
+        val onlineInputs = currentPrefs.onlineInputs
 
         // Gate 1: Strict offline / disabled feature enforcement (zero network traffic!)
         if (!ConnectivityPrivacyEngine.effectiveAiTipsEnabled(policy)) {
@@ -514,7 +527,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
                 policy = policy,
                 isNetworkAvailable = true,
                 isWifiConnected = true,
-                todayJalali = today
+                todayJalali = today,
+                inputs = onlineInputs
             )
             val reason = (gate as? OnlineFeatureGateDecision.Blocked)?.messageFa
                 ?: "دسترسی آنلاین در تنظیمات «اتصال و حریم خصوصی» غیرفعال است."
@@ -536,20 +550,22 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             }
         }
 
-        // Gate 2: Network availability, Wi-Fi-only threshold, and daily AI request quota enforcement
+        // Gate 2: Required user inputs, network availability, Wi-Fi-only threshold, and daily AI quota
         val (hasNetwork, isWifi) = readDeviceNetworkState()
         when (
             val gateDecision = ConnectivityPrivacyEngine.evaluateAiTipAccess(
                 policy = policy,
                 isNetworkAvailable = hasNetwork,
                 isWifiConnected = isWifi,
-                todayJalali = today
+                todayJalali = today,
+                inputs = onlineInputs
             )
         ) {
             is OnlineFeatureGateDecision.Blocked -> {
                 if (
                     gateDecision.reason == OnlineGateBlockReason.MASTER_OFFLINE_LOCKED ||
-                    gateDecision.reason == OnlineGateBlockReason.FEATURE_DISABLED
+                    gateDecision.reason == OnlineGateBlockReason.FEATURE_DISABLED ||
+                    gateDecision.reason == OnlineGateBlockReason.MISSING_OR_INVALID_INPUTS
                 ) {
                     _dailyAiTipState.value = DailyAiTipUiState.OfflineDisabled(gateDecision.messageFa)
                 } else {
@@ -605,7 +621,8 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
 
                 val generatedTip = aiFinancialTipService.generateDailyFinancialTip(
                     snapshot = outboundSnapshot,
-                    currencyUnit = core.preferences.currencyUnit
+                    currencyUnit = core.preferences.currencyUnit,
+                    inputs = core.preferences.onlineInputs
                 )
                 repository.saveCachedDailyAiTip(generatedTip)
                 repository.updatePreferences { prefs ->
@@ -1502,6 +1519,106 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
             _dailyAiTipState.value = DailyAiTipUiState.Idle
         }
         showToast("حافظه موقت تحلیل‌های آنلاین با موفقیت پاکسازی شد.")
+    }
+
+    fun saveOnlineAiInputs(
+        providerMode: AiProviderMode,
+        endpointUrl: String,
+        modelName: String,
+        apiKey: String
+    ) {
+        val candidate = repository.preferencesState.value.onlineInputs.copy(
+            aiProviderMode = providerMode,
+            customAiEndpointUrl = endpointUrl.trim(),
+            customAiModelName = modelName.trim(),
+            customAiApiKey = apiKey.trim()
+        )
+        val validation = ConnectivityPrivacyEngine.validateAiInputs(candidate)
+        if (!validation.isValid) {
+            showToast(validation.errorFa ?: "ورودی‌های سرویس هوش مصنوعی معتبر نیست.")
+            return
+        }
+        repository.updatePreferences { prefs ->
+            prefs.copy(onlineInputs = candidate)
+        }
+        if (ConnectivityPrivacyEngine.effectiveAiTipsEnabled(repository.preferencesState.value.connectivityPrivacy)) {
+            _dailyAiTipState.value = DailyAiTipUiState.Idle
+        }
+        showToast("تنظیمات و ورودی‌های سرویس هوش مصنوعی با امنیت کامل ذخیره شد.")
+    }
+
+    fun saveCloudSyncInputs(
+        endpointUrl: String,
+        authToken: String,
+        workspaceLabel: String
+    ) {
+        val candidate = repository.preferencesState.value.onlineInputs.copy(
+            cloudSyncEndpointUrl = endpointUrl.trim(),
+            cloudSyncAuthToken = authToken.trim(),
+            cloudSyncWorkspaceLabel = workspaceLabel.trim()
+        )
+        val validation = ConnectivityPrivacyEngine.validateCloudSyncInputs(candidate)
+        if (!validation.isValid) {
+            showToast(validation.errorFa ?: "ورودی‌های سرور همگام‌سازی ابری معتبر نیست.")
+            return
+        }
+        repository.updatePreferences { prefs ->
+            prefs.copy(onlineInputs = candidate)
+        }
+        showToast("آدرس سرور و توکن همگام‌سازی ابری به صورت رمزنگاری‌شده ذخیره شد.")
+    }
+
+    fun clearStoredOnlineSecrets() {
+        repository.clearStoredOnlineSecrets()
+        showToast("تمامی کلیدهای API و توکن‌های ذخیره‌شده به صورت ایمن پاک شدند.")
+    }
+
+    fun triggerCloudBackupSyncNow() {
+        if (_isCloudSyncRunning.value) return
+        val prefs = repository.preferencesState.value
+        val (hasNetwork, isWifi) = readDeviceNetworkState()
+        val gate = ConnectivityPrivacyEngine.evaluateCloudSyncAccess(
+            policy = prefs.connectivityPrivacy,
+            inputs = prefs.onlineInputs,
+            isNetworkAvailable = hasNetwork,
+            isWifiConnected = isWifi
+        )
+        if (gate is OnlineFeatureGateDecision.Blocked) {
+            showToast(gate.messageFa)
+            return
+        }
+
+        viewModelScope.launch {
+            _isCloudSyncRunning.value = true
+            try {
+                val backupJson = repository.exportFullBackupJson()
+                val todayJalali = JalaliCalendarEngine.todayJalali()
+                val outcome = remoteCloudBackupSyncService.uploadEncryptedBackupPayload(
+                    inputs = prefs.onlineInputs,
+                    backupJson = backupJson,
+                    timestampJalali = todayJalali
+                )
+                if (outcome.success) {
+                    repository.updatePreferences { current ->
+                        current.copy(
+                            onlineInputs = current.onlineInputs.copy(
+                                lastCloudSyncJalali = todayJalali
+                            )
+                        )
+                    }
+                }
+                showToast(outcome.messageFa)
+            } catch (e: TimeoutCancellationException) {
+                showToast("زمان اتصال به سرور همگام‌سازی به پایان رسید. آدرس سرور و اینترنت را بررسی کنید.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(AI_TIP_TAG, "Remote cloud backup sync failed", e)
+                showToast("ارسال پشتیبان به سرور ابری ناموفق بود. آدرس سرور و اتصال را بررسی کنید.")
+            } finally {
+                _isCloudSyncRunning.value = false
+            }
+        }
     }
 
     companion object {
