@@ -34,22 +34,48 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up JDK 17 (Fallback Build if APK Missing)
+      - name: Set up JDK 21 (Fallback Build if APK Missing)
         if: steps.check_apk.outputs.exists != 'true'
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Set up Android SDK (Fallback Build if APK Missing)
         if: steps.check_apk.outputs.exists != 'true'
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Accept Android SDK Licenses & Verify SDK 36.1
+        if: steps.check_apk.outputs.exists != 'true'
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDK_MGR="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDK_MGR" ]; then
+            SDK_MGR="$(command -v sdkmanager || true)"
+          fi
+          if [ -n "$SDK_MGR" ]; then
+            set +o pipefail
+            yes | "$SDK_MGR" --licenses >/dev/null 2>&1 || true
+            set -o pipefail
+            "$SDK_MGR" --install "platform-tools" "platforms;android-36.1" "build-tools;36.0.0"
+          fi
 
       - name: Set up Gradle 9.3.1 (Fallback Build if APK Missing)
         if: steps.check_apk.outputs.exists != 'true'
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "9.3.1"
+          gradle-version: '9.3.1'
+
+      - name: Ensure Gradle 9.3.1 Binary Is Available
+        if: steps.check_apk.outputs.exists != 'true'
+        run: |
+          if ! command -v gradle >/dev/null 2>&1; then
+            curl -sSL -o /tmp/gradle-9.3.1-bin.zip https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
+            unzip -q /tmp/gradle-9.3.1-bin.zip -d /tmp/gradle-dist
+            echo "/tmp/gradle-dist/gradle-9.3.1/bin" >> "$GITHUB_PATH"
+          fi
 
       - name: Build Tarazino-v0.2.apk (Fallback Build if APK Missing)
         if: steps.check_apk.outputs.exists != 'true'
@@ -58,7 +84,8 @@ jobs:
           if [ ! -f "debug.keystore" ] && [ -f "debug.keystore.base64" ]; then
             base64 -d debug.keystore.base64 > debug.keystore
           fi
-          gradle assembleDebug
+          gradle --version
+          gradle assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.2.apk
 
       - name: Verify APK & Generate SHA-256 Checksum
@@ -73,6 +100,12 @@ jobs:
         run: |
           TAG_NAME="${{ github.event.inputs.release_tag || 'v0.2' }}"
           TITLE="ترازینو نسخه ۰.۲ — Tarazino v0.2"
+          NOTES_FILE="RELEASE_NOTES_v0.2.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "ترازینو نسخه ۰.۲ (Tarazino v0.2)" > /tmp/release_notes.md
+            NOTES_FILE="/tmp/release_notes.md"
+          fi
+
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" \
               releases/Tarazino-v0.2.apk \
@@ -80,7 +113,7 @@ jobs:
               --clobber
             gh release edit "$TAG_NAME" \
               --title "$TITLE" \
-              --notes-file RELEASE_NOTES_v0.2.md \
+              --notes-file "$NOTES_FILE" \
               --draft=false \
               --prerelease=false
           else
@@ -89,6 +122,6 @@ jobs:
               releases/Tarazino-v0.2.apk.sha256 \
               --target "${{ github.sha }}" \
               --title "$TITLE" \
-              --notes-file RELEASE_NOTES_v0.2.md \
+              --notes-file "$NOTES_FILE" \
               --latest
           fi

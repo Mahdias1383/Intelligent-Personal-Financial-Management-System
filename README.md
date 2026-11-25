@@ -243,7 +243,7 @@ graph TD
 
 ### پیش‌نیازها
 
-- <bdi dir="ltr">JDK 17</bdi>
+- <bdi dir="ltr">JDK 21 (Temurin) / JDK 17+</bdi>
 - <bdi dir="ltr">Android SDK (API Level 36, minSdk 24)</bdi>
 - <bdi dir="ltr">Gradle 9.3.1</bdi>
 
