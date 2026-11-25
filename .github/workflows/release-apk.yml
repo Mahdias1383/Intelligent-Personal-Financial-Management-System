@@ -1,4 +1,4 @@
-name: Publish Tarazino v0.2 APK to GitHub Releases
+name: Publish Tarazino v0.1 & v0.2 Clean APKs to GitHub Releases
 
 on:
   push:
@@ -17,38 +17,26 @@ permissions:
   contents: write
 
 jobs:
-  publish-release-v0-2:
-    name: Publish Tarazino-v0.2.apk to GitHub Releases
+  publish-clean-releases:
+    name: Build & Publish Clean Tarazino v0.1 and v0.2 APKs
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check if Pre-Built v0.2 APK Exists
-        id: check_apk
-        run: |
-          if [ -f "releases/Tarazino-v0.2.apk" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up JDK 21 (Fallback Build if APK Missing)
-        if: steps.check_apk.outputs.exists != 'true'
+      - name: Set up JDK 21
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Android SDK (Fallback Build if APK Missing)
-        if: steps.check_apk.outputs.exists != 'true'
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
 
       - name: Accept Android SDK Licenses & Verify SDK 36.1
-        if: steps.check_apk.outputs.exists != 'true'
         run: |
           SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           SDK_MGR="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
@@ -62,14 +50,12 @@ jobs:
             "$SDK_MGR" --install "platform-tools" "platforms;android-36.1" "build-tools;36.0.0"
           fi
 
-      - name: Set up Gradle 9.3.1 (Fallback Build if APK Missing)
-        if: steps.check_apk.outputs.exists != 'true'
+      - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
 
       - name: Ensure Gradle 9.3.1 Binary Is Available
-        if: steps.check_apk.outputs.exists != 'true'
         run: |
           if ! command -v gradle >/dev/null 2>&1; then
             curl -sSL -o /tmp/gradle-9.3.1-bin.zip https://services.gradle.org/distributions/gradle-9.3.1-bin.zip
@@ -77,8 +63,7 @@ jobs:
             echo "/tmp/gradle-dist/gradle-9.3.1/bin" >> "$GITHUB_PATH"
           fi
 
-      - name: Build Tarazino-v0.2.apk (Fallback Build if APK Missing)
-        if: steps.check_apk.outputs.exists != 'true'
+      - name: Build Clean Production APKs for v0.1 and v0.2 (Zero Demo/Test Data)
         run: |
           mkdir -p releases
           if [ ! -f ".env" ] && [ -f ".env.example" ]; then
@@ -104,43 +89,88 @@ jobs:
           fi
           ls -lh debug.keystore
           gradle --version
-          gradle assembleDebug --no-daemon --no-configuration-cache --max-workers=2 --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.2.apk
 
-      - name: Verify APK & Generate SHA-256 Checksum
-        run: |
-          ls -lh releases/Tarazino-v0.2.apk
+          # 1. Build clean Tarazino-v0.1.apk (versionCode=1, versionName=0.1, zero demo data)
+          gradle assembleDebug \
+            -PoverrideVersionCode=1 \
+            -PoverrideVersionName=0.1 \
+            -PpreloadDevSampleData=false \
+            --no-daemon --no-configuration-cache --max-workers=2 --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.1.apk
+          sha256sum releases/Tarazino-v0.1.apk > releases/Tarazino-v0.1.apk.sha256
+
+          # 2. Build clean Tarazino-v0.2.apk (versionCode=2, versionName=0.2, zero demo data)
+          gradle assembleDebug \
+            -PoverrideVersionCode=2 \
+            -PoverrideVersionName=0.2 \
+            -PpreloadDevSampleData=false \
+            --no-daemon --no-configuration-cache --max-workers=2 --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk releases/Tarazino-v0.2.apk
           sha256sum releases/Tarazino-v0.2.apk > releases/Tarazino-v0.2.apk.sha256
+
+          ls -lh releases/
+          cat releases/Tarazino-v0.1.apk.sha256
           cat releases/Tarazino-v0.2.apk.sha256
 
-      - name: Create or Update GitHub Release v0.2 via GitHub CLI
+      - name: Update Both GitHub Releases (v0.1 and v0.2) with Clean APKs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG_NAME="${{ github.event.inputs.release_tag || 'v0.2' }}"
-          TITLE="ترازینو نسخه ۰.۲ — Tarazino v0.2"
-          NOTES_FILE="RELEASE_NOTES_v0.2.md"
-          if [ ! -f "$NOTES_FILE" ]; then
-            echo "ترازینو نسخه ۰.۲ (Tarazino v0.2)" > /tmp/release_notes.md
-            NOTES_FILE="/tmp/release_notes.md"
+          # --- Update / Create Release v0.1 (Clean Zero-Data APK) ---
+          TAG_V1="v0.1"
+          TITLE_V1="ترازینو نسخه ۰.۱ — Tarazino v0.1"
+          NOTES_V1="RELEASE_NOTES_v0.1.md"
+          if [ ! -f "$NOTES_V1" ]; then
+            echo "ترازینو نسخه ۰.۱ (Tarazino v0.1) — نسخه خام و بدون داده آزمایشی" > /tmp/release_notes_v01.md
+            NOTES_V1="/tmp/release_notes_v01.md"
           fi
 
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            gh release upload "$TAG_NAME" \
-              releases/Tarazino-v0.2.apk \
-              releases/Tarazino-v0.2.apk.sha256 \
+          if gh release view "$TAG_V1" >/dev/null 2>&1; then
+            gh release upload "$TAG_V1" \
+              releases/Tarazino-v0.1.apk \
+              releases/Tarazino-v0.1.apk.sha256 \
               --clobber
-            gh release edit "$TAG_NAME" \
-              --title "$TITLE" \
-              --notes-file "$NOTES_FILE" \
+            gh release edit "$TAG_V1" \
+              --title "$TITLE_V1" \
+              --notes-file "$NOTES_V1" \
               --draft=false \
               --prerelease=false
           else
-            gh release create "$TAG_NAME" \
+            gh release create "$TAG_V1" \
+              releases/Tarazino-v0.1.apk \
+              releases/Tarazino-v0.1.apk.sha256 \
+              --target "${{ github.sha }}" \
+              --title "$TITLE_V1" \
+              --notes-file "$NOTES_V1" \
+              --latest=false
+          fi
+
+          # --- Update / Create Release v0.2 (Latest Clean Zero-Data APK) ---
+          TAG_V2="${{ github.event.inputs.release_tag || 'v0.2' }}"
+          TITLE_V2="ترازینو نسخه ۰.۲ — Tarazino v0.2"
+          NOTES_V2="RELEASE_NOTES_v0.2.md"
+          if [ ! -f "$NOTES_V2" ]; then
+            echo "ترازینو نسخه ۰.۲ (Tarazino v0.2) — نسخه خام و بدون داده آزمایشی" > /tmp/release_notes_v02.md
+            NOTES_V2="/tmp/release_notes_v02.md"
+          fi
+
+          if gh release view "$TAG_V2" >/dev/null 2>&1; then
+            gh release upload "$TAG_V2" \
+              releases/Tarazino-v0.2.apk \
+              releases/Tarazino-v0.2.apk.sha256 \
+              --clobber
+            gh release edit "$TAG_V2" \
+              --title "$TITLE_V2" \
+              --notes-file "$NOTES_V2" \
+              --draft=false \
+              --prerelease=false \
+              --latest
+          else
+            gh release create "$TAG_V2" \
               releases/Tarazino-v0.2.apk \
               releases/Tarazino-v0.2.apk.sha256 \
               --target "${{ github.sha }}" \
-              --title "$TITLE" \
-              --notes-file "$NOTES_FILE" \
+              --title "$TITLE_V2" \
+              --notes-file "$NOTES_V2" \
               --latest
           fi

@@ -323,8 +323,7 @@ object RecurringCashflowHealthEngine {
     }
 
     fun deserializeItems(serialized: String?): List<RecurringCashflowItem> {
-        if (serialized == null) return defaultSampleRecurringItems()
-        if (serialized.isBlank() || serialized == "EMPTY") return emptyList()
+        if (serialized.isNullOrBlank() || serialized == "EMPTY") return emptyList()
         return try {
             val lines = serialized.lines().filter { it.isNotBlank() }
             val result = mutableListOf<RecurringCashflowItem>()
@@ -343,9 +342,9 @@ object RecurringCashflowHealthEngine {
                     )
                 }
             }
-            if (result.isEmpty() && serialized != "EMPTY") defaultSampleRecurringItems() else result
+            result
         } catch (_: Exception) {
-            defaultSampleRecurringItems()
+            emptyList()
         }
     }
 }

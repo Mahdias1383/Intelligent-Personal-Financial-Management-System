@@ -2,9 +2,9 @@ package com.example.ui.theme
 
 import android.app.Activity
 import android.view.View
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -14,11 +14,15 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.LayoutDirection
@@ -599,89 +603,93 @@ private val VelvetAmethystScheme = darkColorScheme(
     scrim = Color(0xB805080E)
 )
 
-private val ThemeMorphSpec = tween<Color>(durationMillis = 420, easing = FastOutSlowInEasing)
+private val ThemeMorphSpringSpec = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessHigh,
+    visibilityThreshold = 0.015f
+)
 
-@Composable
-private fun animColor(target: Color, label: String): Color {
-    val color by animateColorAsState(targetValue = target, animationSpec = ThemeMorphSpec, label = label)
-    return color
-}
-
-@Composable
-private fun animateTarazinoColorScheme(target: ColorScheme): ColorScheme {
-    return target.copy(
-        primary = animColor(target.primary, "cs_primary"),
-        onPrimary = animColor(target.onPrimary, "cs_onPrimary"),
-        primaryContainer = animColor(target.primaryContainer, "cs_primaryContainer"),
-        onPrimaryContainer = animColor(target.onPrimaryContainer, "cs_onPrimaryContainer"),
-        secondary = animColor(target.secondary, "cs_secondary"),
-        onSecondary = animColor(target.onSecondary, "cs_onSecondary"),
-        secondaryContainer = animColor(target.secondaryContainer, "cs_secondaryContainer"),
-        onSecondaryContainer = animColor(target.onSecondaryContainer, "cs_onSecondaryContainer"),
-        tertiary = animColor(target.tertiary, "cs_tertiary"),
-        onTertiary = animColor(target.onTertiary, "cs_onTertiary"),
-        tertiaryContainer = animColor(target.tertiaryContainer, "cs_tertiaryContainer"),
-        onTertiaryContainer = animColor(target.onTertiaryContainer, "cs_onTertiaryContainer"),
-        background = animColor(target.background, "cs_background"),
-        onBackground = animColor(target.onBackground, "cs_onBackground"),
-        surface = animColor(target.surface, "cs_surface"),
-        onSurface = animColor(target.onSurface, "cs_onSurface"),
-        surfaceVariant = animColor(target.surfaceVariant, "cs_surfaceVariant"),
-        onSurfaceVariant = animColor(target.onSurfaceVariant, "cs_onSurfaceVariant"),
-        surfaceContainerLowest = animColor(target.surfaceContainerLowest, "cs_scLowest"),
-        surfaceContainerLow = animColor(target.surfaceContainerLow, "cs_scLow"),
-        surfaceContainer = animColor(target.surfaceContainer, "cs_sc"),
-        surfaceContainerHigh = animColor(target.surfaceContainerHigh, "cs_scHigh"),
-        surfaceContainerHighest = animColor(target.surfaceContainerHighest, "cs_scHighest"),
-        inverseSurface = animColor(target.inverseSurface, "cs_invSurface"),
-        inverseOnSurface = animColor(target.inverseOnSurface, "cs_invOnSurface"),
-        inversePrimary = animColor(target.inversePrimary, "cs_invPrimary"),
-        outline = animColor(target.outline, "cs_outline"),
-        outlineVariant = animColor(target.outlineVariant, "cs_outlineVariant"),
-        error = animColor(target.error, "cs_error"),
-        onError = animColor(target.onError, "cs_onError"),
-        errorContainer = animColor(target.errorContainer, "cs_errorContainer"),
-        onErrorContainer = animColor(target.onErrorContainer, "cs_onErrorContainer"),
-        scrim = animColor(target.scrim, "cs_scrim")
+private fun lerpColorScheme(from: ColorScheme, to: ColorScheme, t: Float): ColorScheme {
+    if (t >= 0.985f || from === to) return to
+    if (t <= 0.015f) return from
+    return to.copy(
+        primary = lerp(from.primary, to.primary, t),
+        onPrimary = lerp(from.onPrimary, to.onPrimary, t),
+        primaryContainer = lerp(from.primaryContainer, to.primaryContainer, t),
+        onPrimaryContainer = lerp(from.onPrimaryContainer, to.onPrimaryContainer, t),
+        secondary = lerp(from.secondary, to.secondary, t),
+        onSecondary = lerp(from.onSecondary, to.onSecondary, t),
+        secondaryContainer = lerp(from.secondaryContainer, to.secondaryContainer, t),
+        onSecondaryContainer = lerp(from.onSecondaryContainer, to.onSecondaryContainer, t),
+        tertiary = lerp(from.tertiary, to.tertiary, t),
+        onTertiary = lerp(from.onTertiary, to.onTertiary, t),
+        tertiaryContainer = lerp(from.tertiaryContainer, to.tertiaryContainer, t),
+        onTertiaryContainer = lerp(from.onTertiaryContainer, to.onTertiaryContainer, t),
+        background = lerp(from.background, to.background, t),
+        onBackground = lerp(from.onBackground, to.onBackground, t),
+        surface = lerp(from.surface, to.surface, t),
+        onSurface = lerp(from.onSurface, to.onSurface, t),
+        surfaceVariant = lerp(from.surfaceVariant, to.surfaceVariant, t),
+        onSurfaceVariant = lerp(from.onSurfaceVariant, to.onSurfaceVariant, t),
+        surfaceContainerLowest = lerp(from.surfaceContainerLowest, to.surfaceContainerLowest, t),
+        surfaceContainerLow = lerp(from.surfaceContainerLow, to.surfaceContainerLow, t),
+        surfaceContainer = lerp(from.surfaceContainer, to.surfaceContainer, t),
+        surfaceContainerHigh = lerp(from.surfaceContainerHigh, to.surfaceContainerHigh, t),
+        surfaceContainerHighest = lerp(from.surfaceContainerHighest, to.surfaceContainerHighest, t),
+        inverseSurface = lerp(from.inverseSurface, to.inverseSurface, t),
+        inverseOnSurface = lerp(from.inverseOnSurface, to.inverseOnSurface, t),
+        inversePrimary = lerp(from.inversePrimary, to.inversePrimary, t),
+        outline = lerp(from.outline, to.outline, t),
+        outlineVariant = lerp(from.outlineVariant, to.outlineVariant, t),
+        error = lerp(from.error, to.error, t),
+        onError = lerp(from.onError, to.onError, t),
+        errorContainer = lerp(from.errorContainer, to.errorContainer, t),
+        onErrorContainer = lerp(from.onErrorContainer, to.onErrorContainer, t),
+        scrim = lerp(from.scrim, to.scrim, t)
     )
 }
 
-@Composable
-private fun animateTarazinoExtendedColors(target: TarazinoExtendedColors): TarazinoExtendedColors {
-    return target.copy(
-        auroraPrimary = animColor(target.auroraPrimary, "ext_aurora1"),
-        auroraSecondary = animColor(target.auroraSecondary, "ext_aurora2"),
-        auroraTertiary = animColor(target.auroraTertiary, "ext_aurora3"),
-        cardBorderTop = animColor(target.cardBorderTop, "ext_borderTop"),
-        cardBorderBottom = animColor(target.cardBorderBottom, "ext_borderBottom"),
-        cardGlassTop = animColor(target.cardGlassTop, "ext_glassTop"),
-        cardGlassBottom = animColor(target.cardGlassBottom, "ext_glassBottom"),
-        glassSurface = animColor(target.glassSurface, "ext_glass"),
-        dockSurface = animColor(target.dockSurface, "ext_dock"),
-        elevatedSurface = animColor(target.elevatedSurface, "ext_elevated"),
-        shimmerHighlight = animColor(target.shimmerHighlight, "ext_shimmer"),
-        positive = animColor(target.positive, "ext_positive"),
-        onPositive = animColor(target.onPositive, "ext_onPositive"),
-        warning = animColor(target.warning, "ext_warning"),
-        danger = animColor(target.danger, "ext_danger"),
-        info = animColor(target.info, "ext_info"),
-        heroStart = animColor(target.heroStart, "ext_heroStart"),
-        heroMid = animColor(target.heroMid, "ext_heroMid"),
-        heroEnd = animColor(target.heroEnd, "ext_heroEnd"),
-        heroAccent = animColor(target.heroAccent, "ext_heroAccent"),
-        heroOnSurface = animColor(target.heroOnSurface, "ext_heroOn"),
-        heroOnSurfaceMuted = animColor(target.heroOnSurfaceMuted, "ext_heroOnMuted"),
-        miniCardStart = animColor(target.miniCardStart, "ext_miniStart"),
-        miniCardEnd = animColor(target.miniCardEnd, "ext_miniEnd"),
-        miniCardOnSurface = animColor(target.miniCardOnSurface, "ext_miniOn"),
-        miniCardOnSurfaceMuted = animColor(target.miniCardOnSurfaceMuted, "ext_miniMuted"),
-        fabStart = animColor(target.fabStart, "ext_fabStart"),
-        fabMid = animColor(target.fabMid, "ext_fabMid"),
-        fabEnd = animColor(target.fabEnd, "ext_fabEnd"),
-        fabOnContent = animColor(target.fabOnContent, "ext_fabOn"),
-        lockBackdropStart = animColor(target.lockBackdropStart, "ext_lockStart"),
-        lockBackdropEnd = animColor(target.lockBackdropEnd, "ext_lockEnd"),
-        tourCardSurface = animColor(target.tourCardSurface, "ext_tourSurface")
+private fun lerpExtendedColors(
+    from: TarazinoExtendedColors,
+    to: TarazinoExtendedColors,
+    t: Float
+): TarazinoExtendedColors {
+    if (t >= 0.985f || from === to) return to
+    if (t <= 0.015f) return from
+    return to.copy(
+        auroraPrimary = lerp(from.auroraPrimary, to.auroraPrimary, t),
+        auroraSecondary = lerp(from.auroraSecondary, to.auroraSecondary, t),
+        auroraTertiary = lerp(from.auroraTertiary, to.auroraTertiary, t),
+        cardBorderTop = lerp(from.cardBorderTop, to.cardBorderTop, t),
+        cardBorderBottom = lerp(from.cardBorderBottom, to.cardBorderBottom, t),
+        cardGlassTop = lerp(from.cardGlassTop, to.cardGlassTop, t),
+        cardGlassBottom = lerp(from.cardGlassBottom, to.cardGlassBottom, t),
+        glassSurface = lerp(from.glassSurface, to.glassSurface, t),
+        dockSurface = lerp(from.dockSurface, to.dockSurface, t),
+        elevatedSurface = lerp(from.elevatedSurface, to.elevatedSurface, t),
+        shimmerHighlight = lerp(from.shimmerHighlight, to.shimmerHighlight, t),
+        positive = lerp(from.positive, to.positive, t),
+        onPositive = lerp(from.onPositive, to.onPositive, t),
+        warning = lerp(from.warning, to.warning, t),
+        danger = lerp(from.danger, to.danger, t),
+        info = lerp(from.info, to.info, t),
+        heroStart = lerp(from.heroStart, to.heroStart, t),
+        heroMid = lerp(from.heroMid, to.heroMid, t),
+        heroEnd = lerp(from.heroEnd, to.heroEnd, t),
+        heroAccent = lerp(from.heroAccent, to.heroAccent, t),
+        heroOnSurface = lerp(from.heroOnSurface, to.heroOnSurface, t),
+        heroOnSurfaceMuted = lerp(from.heroOnSurfaceMuted, to.heroOnSurfaceMuted, t),
+        miniCardStart = lerp(from.miniCardStart, to.miniCardStart, t),
+        miniCardEnd = lerp(from.miniCardEnd, to.miniCardEnd, t),
+        miniCardOnSurface = lerp(from.miniCardOnSurface, to.miniCardOnSurface, t),
+        miniCardOnSurfaceMuted = lerp(from.miniCardOnSurfaceMuted, to.miniCardOnSurfaceMuted, t),
+        fabStart = lerp(from.fabStart, to.fabStart, t),
+        fabMid = lerp(from.fabMid, to.fabMid, t),
+        fabEnd = lerp(from.fabEnd, to.fabEnd, t),
+        fabOnContent = lerp(from.fabOnContent, to.fabOnContent, t),
+        lockBackdropStart = lerp(from.lockBackdropStart, to.lockBackdropStart, t),
+        lockBackdropEnd = lerp(from.lockBackdropEnd, to.lockBackdropEnd, t),
+        tourCardSurface = lerp(from.tourCardSurface, to.tourCardSurface, t)
     )
 }
 
@@ -711,9 +719,23 @@ fun TarazinoTheme(
         TarazinoThemeMode.VELVET_AMETHYST -> VelvetAmethystExtendedColors
     }
 
-    // Velvety 420ms cross-theme liquid color morphing across every Material 3 & extended token
-    val animatedColorScheme = animateTarazinoColorScheme(targetColorScheme)
-    val animatedExtendedColors = animateTarazinoExtendedColors(targetExtendedColors)
+    // Single Animatable with explicit spring replaces 66 concurrent animateColorAsState coroutines!
+    var fromScheme by remember { mutableStateOf(targetColorScheme) }
+    var fromExtended by remember { mutableStateOf(targetExtendedColors) }
+    val morphAnim = remember { Animatable(1f, visibilityThreshold = 0.015f) }
+
+    LaunchedEffect(themeMode) {
+        if (fromExtended.themeMode != themeMode) {
+            morphAnim.snapTo(0f)
+            morphAnim.animateTo(targetValue = 1f, animationSpec = ThemeMorphSpringSpec)
+            fromScheme = targetColorScheme
+            fromExtended = targetExtendedColors
+        }
+    }
+
+    val morphProgress = morphAnim.value
+    val animatedColorScheme = lerpColorScheme(fromScheme, targetColorScheme, morphProgress)
+    val animatedExtendedColors = lerpExtendedColors(fromExtended, targetExtendedColors, morphProgress)
 
     val typography = remember(fontScale) { buildTarazinoTypography(fontScale.scaleFactor) }
 

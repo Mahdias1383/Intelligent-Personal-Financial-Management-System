@@ -114,11 +114,8 @@ fun DebtConsolidationSimulatorSection(
     }
     val sampleDebts = remember { DebtConsolidationEngine.sampleScenarioDebts() }
 
-    var sourceMode by remember(liveDebts.size) {
-        mutableStateOf(
-            if (liveDebts.isNotEmpty()) ConsolidationSourceMode.LIVE_PORTFOLIO
-            else ConsolidationSourceMode.SAMPLE_SCENARIO
-        )
+    var sourceMode by remember {
+        mutableStateOf(ConsolidationSourceMode.LIVE_PORTFOLIO)
     }
 
     val activeDebts = if (sourceMode == ConsolidationSourceMode.LIVE_PORTFOLIO) liveDebts else sampleDebts

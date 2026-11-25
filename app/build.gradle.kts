@@ -16,8 +16,12 @@ android {
     applicationId = "com.aistudio.tarazino.fntk"
     minSdk = 24
     targetSdk = 36
-    versionCode = 2
-    versionName = "0.2"
+    val overrideVersionCode = (project.findProperty("overrideVersionCode") as? String)?.toIntOrNull()
+    val overrideVersionName = (project.findProperty("overrideVersionName") as? String)?.takeIf { it.isNotBlank() }
+    val preloadDevSampleData = (project.findProperty("preloadDevSampleData") as? String)?.toBoolean() ?: false
+    versionCode = overrideVersionCode ?: 2
+    versionName = overrideVersionName ?: "0.2"
+    buildConfigField("boolean", "PRELOAD_DEV_SAMPLE_DATA", preloadDevSampleData.toString())
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

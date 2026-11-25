@@ -137,14 +137,12 @@ fun FinancialHealthRadarChartCard(
         entranceTriggered = true
     }
 
-    val radarAnimProgress by animateFloatAsState(
+    val radarAnim = rememberSpringFloatAnimatable(
         targetValue = if (entranceTriggered) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.80f,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "FinancialHealthRadarSweep"
+        initialValue = 0f,
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
     )
+    val radarAnimProgress = radarAnim.value
 
     val focusedAxis: RadarCategoryAxisMetric? = remember(focusedAxisIndex, radarReport) {
         focusedAxisIndex?.let { idx -> radarReport.axes.getOrNull(idx) }

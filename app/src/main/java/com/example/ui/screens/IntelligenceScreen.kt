@@ -164,16 +164,14 @@ fun IntelligenceScreen(
                 val statusColor = Color(dti.statusColorHex)
 
                 val incomeSafe = dti.monthlyIncomeToman.coerceAtLeast(1L).toFloat()
-                val livingFrac by animateFloatAsState(
+                val livingFrac = com.example.ui.components.rememberSpringFloatAnimatable(
                     targetValue = (dti.essentialLivingExpenseToman / incomeSafe).coerceIn(0f, 1f),
-                    animationSpec = spring(stiffness = Spring.StiffnessLow),
-                    label = "LivingBar"
-                )
-                val debtFrac by animateFloatAsState(
+                    springSpec = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
+                ).value
+                val debtFrac = com.example.ui.components.rememberSpringFloatAnimatable(
                     targetValue = (dti.currentMonthDebtDueToman / incomeSafe).coerceIn(0f, (1f - livingFrac).coerceAtLeast(0f)),
-                    animationSpec = spring(stiffness = Spring.StiffnessLow),
-                    label = "DebtBar"
-                )
+                    springSpec = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
+                ).value
                 val safeCapFrac = (1f - livingFrac - debtFrac).coerceIn(0f, 1f)
 
                 TarazinoGlassCard(
@@ -568,11 +566,12 @@ fun IntelligenceScreen(
 
                 var chartEntered by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) { chartEntered = true }
-                val barEntrance by animateFloatAsState(
+                val barEntranceAnim = com.example.ui.components.rememberSpringFloatAnimatable(
                     targetValue = if (chartEntered) 1f else 0f,
-                    animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessVeryLow),
-                    label = "ForwardBarEntrance"
+                    initialValue = 0f,
+                    springSpec = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
                 )
+                val barEntrance = barEntranceAnim.value
 
                 TarazinoGlassCard {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -1205,11 +1204,12 @@ private fun FinancialHealthSpeedometerGauge(
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(score) { entered = true }
 
-    val animatedFraction by animateFloatAsState(
+    val animatedFractionAnim = com.example.ui.components.rememberSpringFloatAnimatable(
         targetValue = if (entered) (score / 100f).coerceIn(0f, 1f) else 0f,
-        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessVeryLow),
-        label = "HealthSpeedometerSweep"
+        initialValue = 0f,
+        springSpec = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
     )
+    val animatedFraction = animatedFractionAnim.value
     val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
 
     Box(

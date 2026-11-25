@@ -1963,7 +1963,7 @@ fun ReportsAndSettingsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "برای بررسی سریع امکانات برنامه، داده‌های نمونه واقع‌گرایانه (اسنپ‌پی، دیجی‌پی، بانک مهر و...) بارگذاری شده است. هر زمان بخواهید می‌توانید با یک کلیک تمام داده‌های نمونه را پاک کرده و از صفر شروع کنید:",
+                            text = "نسخه نهایی برنامه به‌صورت پیش‌فرض کاملاً خام و بدون داده آزمایشی است تا از صفر شروع کنید. در این بخش می‌توانید تمام داده‌های فعلی را پاکسازی کنید یا فقط جهت تست در محیط توسعه داده‌های نمونه را بارگذاری نمایید:",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1984,7 +1984,7 @@ fun ReportsAndSettingsScreen(
                             Icon(imageVector = Icons.Default.DeleteForever, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
                             TarazinoAutoSizeText(
-                                text = "پاکسازی داده‌های نمونه (شروع از صفر)",
+                                text = "پاکسازی کامل داده‌ها (شروع از صفر)",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -2005,7 +2005,7 @@ fun ReportsAndSettingsScreen(
                             Icon(imageVector = Icons.Default.Restore, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
                             TarazinoAutoSizeText(
-                                text = "بازگردانی مجدد داده‌های نمونه آزمایشی",
+                                text = "بارگذاری داده‌های نمونه آزمایشی (ویژه تست و توسعه)",
                                 style = MaterialTheme.typography.labelLarge,
                                 maxLines = 1,
                                 minFontSize = 9.5.sp,
@@ -2214,28 +2214,13 @@ private fun ThemePreviewSwatchCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val borderCol by animateColorAsState(
-        targetValue = if (selected) accentPreview else MaterialTheme.colorScheme.outlineVariant,
-        animationSpec = tween(320, easing = FastOutSlowInEasing),
-        label = "ThemeSwatchBorder_${mode.name}"
-    )
-    val cardScale by animateFloatAsState(
-        targetValue = if (selected) 1.02f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "ThemeSwatchScale_${mode.name}"
-    )
-    val shimmerTransition = rememberInfiniteTransition(label = "ThemeCardSheen_${mode.name}")
-    val shimmerX by shimmerTransition.animateFloat(
-        initialValue = -0.4f,
-        targetValue = 1.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3600, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ThemeCardSheenX_${mode.name}"
+    val borderCol = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = if (selected) accentPreview else MaterialTheme.colorScheme.outlineVariant
+    ).value
+    val cardScaleAnim = com.example.ui.components.rememberSpringFloatAnimatable(
+        targetValue = if (selected) 1.015f else 1.0f,
+        initialValue = if (selected) 1.015f else 1.0f,
+        springSpec = com.example.ui.components.TarazinoMotionSpecs.pressScaleSpring()
     )
 
     Surface(
@@ -2249,15 +2234,16 @@ private fun ThemePreviewSwatchCard(
         shadowElevation = if (selected) 4.dp else 0.dp,
         modifier = modifier
             .graphicsLayer {
-                scaleX = cardScale
-                scaleY = cardScale
+                val s = cardScaleAnim.value
+                scaleX = s
+                scaleY = s
             }
-            .tarazinoPressScale(scaleDown = 0.95f, onClick = onClick)
+            .tarazinoPressScale(scaleDown = 0.96f, onClick = onClick)
     ) {
         Column(
             modifier = Modifier.padding(10.dp)
         ) {
-            // Miniature Living App Interface Preview with Radial Aurora + Active Shimmer
+            // Miniature App Interface Preview with Cached Radial Aurora
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2297,19 +2283,18 @@ private fun ThemePreviewSwatchCard(
                         radius = size.width * 0.52f,
                         center = Offset(size.width * 0.16f, size.height * 0.88f)
                     )
-                    // Subtle live specular sweep on selected theme card
+                    // Static diagonal sheen on selected theme card
                     if (selected) {
-                        val sweepX = size.width * shimmerX
                         drawRect(
                             brush = Brush.linearGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.White.copy(alpha = if (isLightTheme) 0.28f else 0.12f),
-                                    accentPreview.copy(alpha = 0.14f),
+                                    Color.White.copy(alpha = if (isLightTheme) 0.22f else 0.10f),
+                                    accentPreview.copy(alpha = 0.12f),
                                     Color.Transparent
                                 ),
-                                start = Offset(sweepX - size.width * 0.28f, 0f),
-                                end = Offset(sweepX + size.width * 0.28f, size.height)
+                                start = Offset(size.width * 0.22f, 0f),
+                                end = Offset(size.width * 0.78f, size.height)
                             )
                         )
                     }

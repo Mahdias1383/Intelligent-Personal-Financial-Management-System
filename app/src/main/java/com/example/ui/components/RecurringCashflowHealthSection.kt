@@ -153,17 +153,15 @@ fun RecurringCashflowHealthSection(
     val statusColor = Color(summary.healthStatusColorHex)
     val totalIncomeSafe = summary.totalRecurringIncomeToman.coerceAtLeast(1L).toFloat()
 
-    val nonLoanFrac by animateFloatAsState(
+    val nonLoanFrac = rememberSpringFloatAnimatable(
         targetValue = (summary.totalRecurringNonLoanExpenseToman / totalIncomeSafe).coerceIn(0f, 1f),
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "NonLoanBarFrac"
-    )
-    val loanFrac by animateFloatAsState(
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
+    ).value
+    val loanFrac = rememberSpringFloatAnimatable(
         targetValue = (summary.currentMonthLoanInstallmentsToman / totalIncomeSafe)
             .coerceIn(0f, (1f - nonLoanFrac).coerceAtLeast(0f)),
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "LoanBarFrac"
-    )
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
+    ).value
     val freeFrac = (1f - nonLoanFrac - loanFrac).coerceIn(0f, 1f)
 
     TarazinoGlassCard(

@@ -237,11 +237,12 @@ fun DashboardScreen(
     val progressRatio = if (totalPayable > 0L) {
         (totalPaid.toFloat() / totalPayable.toFloat()).coerceIn(0f, 1f)
     } else 1f
-    val donutSweepScale by animateFloatAsState(
+    val donutSweepAnim = com.example.ui.components.rememberSpringFloatAnimatable(
         targetValue = if (hasAnimatedIn) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessVeryLow),
-        label = "DonutSweepEntrance"
+        initialValue = 0f,
+        springSpec = com.example.ui.components.TarazinoMotionSpecs.chartSweepSpring()
     )
+    val donutSweepScale = donutSweepAnim.value
     val progressPercent = (progressRatio * 100).toInt()
 
     // Calculate Category Share Slices for Interactive Donut Chart

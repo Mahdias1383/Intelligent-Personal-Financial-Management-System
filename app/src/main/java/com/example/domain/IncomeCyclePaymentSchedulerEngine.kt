@@ -128,7 +128,7 @@ object IncomeCyclePaymentSchedulerEngine {
         val detectedPaydays = detectPaydayClusters(effectiveHistory)
         val totalMonthlyIncome = detectedPaydays.sumOf { it.averageAmountToman }
             .coerceAtLeast(activeIncomes.sumOf { it.monthlyAmountToman })
-            .coerceAtLeast(fallbackMonthlyIncomeToman.coerceAtLeast(1_000_000L))
+            .coerceAtLeast(fallbackMonthlyIncomeToman.coerceAtLeast(0L))
 
         // 3. Extract active debt installments (non-receivable) and historical on-time payment days
         val debtObligationMap = obligations
@@ -425,18 +425,18 @@ object IncomeCyclePaymentSchedulerEngine {
 
         val today = JalaliCalendarEngine.parseJalali(todayJalali)
         if (userLogged.size < 3) {
-            val sources = if (activeIncomes.isNotEmpty()) {
-                activeIncomes
-            } else {
-                listOf(
+            val sources = when {
+                activeIncomes.isNotEmpty() -> activeIncomes
+                fallbackMonthlyIncomeToman > 0L -> listOf(
                     RecurringCashflowItem(
                         id = 9001L,
                         titleFa = "حقوق و درآمد ماهانه",
                         category = RecurringCashflowCategory.SALARY,
-                        monthlyAmountToman = fallbackMonthlyIncomeToman.coerceAtLeast(10_000_000L),
+                        monthlyAmountToman = fallbackMonthlyIncomeToman,
                         dayOfShamsiMonth = 1
                     )
                 )
+                else -> emptyList()
             }
             var syntheticId = -1L
             for (monthsBack in 1..3) {

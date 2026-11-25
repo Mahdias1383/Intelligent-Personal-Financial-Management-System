@@ -31,12 +31,12 @@ data class UserPreferencesState(
     val themeMode: TarazinoThemeMode = TarazinoThemeMode.OBSIDIAN_EMERALD_DARK,
     val currencyUnit: CurrencyUnit = CurrencyUnit.TOMAN,
     val fontScale: FontScalePreset = FontScalePreset.STANDARD,
-    val monthlyIncomeToman: Long = 58_000_000L,
+    val monthlyIncomeToman: Long = 0L,
     val livingExpensePercent: Int = 50,
     val alertAdvanceDays: Int = 7,
-    val monthlySavingsGoalTitle: String = "پس‌انداز و ذخیره طلایی ماه",
-    val monthlySavingsTargetToman: Long = 8_000_000L,
-    val monthlySavingsSavedToman: Long = 5_200_000L,
+    val monthlySavingsGoalTitle: String = "هدف پس‌انداز ماهانه",
+    val monthlySavingsTargetToman: Long = 0L,
+    val monthlySavingsSavedToman: Long = 0L,
     val privacyMaskEnabled: Boolean = false,
     val pinHash: String = "",
     val pinLength: Int = 4,
@@ -74,6 +74,25 @@ class TarazinoRepository(
     val subRecordsFlow: Flow<List<LedgerSubRecordEntity>> = dao.observeAllSubRecords()
 
     private fun loadPreferences(): UserPreferencesState {
+        if (!com.example.BuildConfig.PRELOAD_DEV_SAMPLE_DATA &&
+            !prefs.getBoolean("is_clean_release_purged_v1", false)
+        ) {
+            val hadLegacyAutoSeed = prefs.getBoolean("is_initial_seed_v2_done", false) &&
+                !prefs.getBoolean("is_user_manual_demo_seed", false)
+            if (hadLegacyAutoSeed || !prefs.contains("is_initial_seed_v2_done")) {
+                prefs.edit()
+                    .putLong("monthly_income_toman", 0L)
+                    .putLong("monthly_savings_target_toman", 0L)
+                    .putLong("monthly_savings_saved_toman", 0L)
+                    .putString("recurring_non_loan_cashflow_items_v1", "EMPTY")
+                    .putString("offline_fx_debt_positions_v1", "EMPTY")
+                    .remove("historical_income_cycles_v1")
+                    .remove("debt_category_tag_overrides_v1")
+                    .remove("daily_ai_financial_tip_cache_v1")
+                    .apply()
+            }
+        }
+
         val themeName = prefs.getString("theme_mode", TarazinoThemeMode.OBSIDIAN_EMERALD_DARK.name)
             ?: TarazinoThemeMode.OBSIDIAN_EMERALD_DARK.name
         val unitName = prefs.getString("currency_unit", CurrencyUnit.TOMAN.name)
@@ -88,15 +107,15 @@ class TarazinoRepository(
                 .getOrDefault(CurrencyUnit.TOMAN),
             fontScale = runCatching { FontScalePreset.valueOf(fontName) }
                 .getOrDefault(FontScalePreset.STANDARD),
-            monthlyIncomeToman = prefs.getLong("monthly_income_toman", 58_000_000L),
+            monthlyIncomeToman = prefs.getLong("monthly_income_toman", 0L),
             livingExpensePercent = prefs.getInt("living_expense_percent", 50),
             alertAdvanceDays = prefs.getInt("alert_advance_days", 7),
             monthlySavingsGoalTitle = prefs.getString(
                 "monthly_savings_goal_title",
-                "پس‌انداز و ذخیره طلایی ماه"
-            ) ?: "پس‌انداز و ذخیره طلایی ماه",
-            monthlySavingsTargetToman = prefs.getLong("monthly_savings_target_toman", 8_000_000L),
-            monthlySavingsSavedToman = prefs.getLong("monthly_savings_saved_toman", 5_200_000L),
+                "هدف پس‌انداز ماهانه"
+            ) ?: "هدف پس‌انداز ماهانه",
+            monthlySavingsTargetToman = prefs.getLong("monthly_savings_target_toman", 0L),
+            monthlySavingsSavedToman = prefs.getLong("monthly_savings_saved_toman", 0L),
             privacyMaskEnabled = prefs.getBoolean("privacy_mask_enabled", false),
             pinHash = prefs.getString("pin_hash", "") ?: "",
             pinLength = prefs.getInt("pin_length", 4),
@@ -225,6 +244,23 @@ class TarazinoRepository(
     }
 
     suspend fun ensureSeedDataLoadedIfFirstLaunch() {
+        if (!com.example.BuildConfig.PRELOAD_DEV_SAMPLE_DATA) {
+            if (!prefs.getBoolean("is_clean_release_purged_v1", false)) {
+                val hadLegacyAutoSeed = prefs.getBoolean("is_initial_seed_v2_done", false) &&
+                    !prefs.getBoolean("is_user_manual_demo_seed", false)
+                if (hadLegacyAutoSeed) {
+                    clearAllDataToZero()
+                }
+                prefs.edit()
+                    .putBoolean("is_clean_release_purged_v1", true)
+                    .putBoolean("is_initial_seed_v2_done", true)
+                    .putBoolean("is_palette_v4_teal_gold_migrated", true)
+                    .apply()
+                updatePreferences { it.copy(isInitialSeedDone = true) }
+            }
+            return
+        }
+
         val seedV2Done = prefs.getBoolean("is_initial_seed_v2_done", false)
         if (!seedV2Done) {
             SeedDataEngine.populateRealisticIranianSeedData(dao)
@@ -233,29 +269,29 @@ class TarazinoRepository(
                 .putBoolean("is_palette_v4_teal_gold_migrated", true)
                 .apply()
             updatePreferences { it.copy(isInitialSeedDone = true) }
-        } else if (!prefs.getBoolean("is_palette_v4_teal_gold_migrated", false)) {
-            val existing = dao.getAllCounterpartiesOnce()
-            existing.forEach { cp ->
-                val upgradedHex = when (cp.avatarColorHex) {
-                    0xFF3B82F6L, 0xFF38BDF8L, 0xFF0EA5E9L -> 0xFF4DA3B8L
-                    0xFF2563EBL, 0xFF60A5FAL -> 0xFF5E96AEL
-                    0xFF10B981L, 0xFF10D9A0L -> 0xFF35B8ABL
-                    0xFF06B6D4L, 0xFF2DD4BFL -> 0xFF47B0C4L
-                    0xFF8B5CF6L, 0xFF818CF8L -> 0xFF689EB8L
-                    0xFFF59E0BL, 0xFFFBBF24L -> 0xFFDAB978L
-                    0xFFEC4899L, 0xFFF472B6L -> 0xFFC99B68L
-                    else -> cp.categoryEnum.defaultColorHex
-                }
-                if (upgradedHex != cp.avatarColorHex) {
-                    dao.updateCounterparty(cp.copy(avatarColorHex = upgradedHex))
-                }
-            }
-            prefs.edit().putBoolean("is_palette_v4_teal_gold_migrated", true).apply()
         }
     }
 
     suspend fun reloadDemoSeedData() {
         SeedDataEngine.populateRealisticIranianSeedData(dao)
+        prefs.edit()
+            .putBoolean("is_user_manual_demo_seed", true)
+            .putBoolean("is_clean_release_purged_v1", true)
+            .putString(
+                "recurring_non_loan_cashflow_items_v1",
+                com.example.domain.RecurringCashflowHealthEngine.serializeItems(
+                    com.example.domain.RecurringCashflowHealthEngine.defaultSampleRecurringItems()
+                )
+            )
+            .apply()
+        updatePreferences {
+            it.copy(
+                monthlyIncomeToman = 58_000_000L,
+                monthlySavingsTargetToman = 8_000_000L,
+                monthlySavingsSavedToman = 5_200_000L,
+                isInitialSeedDone = true
+            )
+        }
         TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 
@@ -264,6 +300,22 @@ class TarazinoRepository(
         dao.clearAllSubRecords()
         dao.clearAllObligations()
         dao.clearAllCounterparties()
+        prefs.edit()
+            .putBoolean("is_user_manual_demo_seed", false)
+            .putBoolean("is_clean_release_purged_v1", true)
+            .putString("recurring_non_loan_cashflow_items_v1", "EMPTY")
+            .putString("offline_fx_debt_positions_v1", "EMPTY")
+            .remove("historical_income_cycles_v1")
+            .remove("debt_category_tag_overrides_v1")
+            .remove("daily_ai_financial_tip_cache_v1")
+            .apply()
+        updatePreferences {
+            it.copy(
+                monthlyIncomeToman = 0L,
+                monthlySavingsTargetToman = 0L,
+                monthlySavingsSavedToman = 0L
+            )
+        }
         TarazinoQuickLogWidgetProvider.requestRefreshAll(appContext)
     }
 

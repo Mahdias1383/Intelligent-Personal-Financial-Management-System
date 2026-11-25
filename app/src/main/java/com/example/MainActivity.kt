@@ -306,21 +306,11 @@ fun TarazinoAppRoot(
                                         minFontSize = 15.sp
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val livePulse = rememberInfiniteTransition(label = "LiveVaultPulse")
-                                        val dotAlpha by livePulse.animateFloat(
-                                            initialValue = 0.45f,
-                                            targetValue = 1f,
-                                            animationSpec = infiniteRepeatable(
-                                                animation = tween(1400, easing = FastOutSlowInEasing),
-                                                repeatMode = RepeatMode.Reverse
-                                            ),
-                                            label = "LiveDotAlpha"
-                                        )
                                         Box(
                                             modifier = Modifier
                                                 .size(6.dp)
                                                 .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = dotAlpha))
+                                                .background(MaterialTheme.colorScheme.primary)
                                         )
                                         Spacer(modifier = Modifier.width(5.dp))
                                         TarazinoAutoSizeText(
@@ -545,26 +535,7 @@ fun TarazinoAppRoot(
                             }
                         }
 
-                        // Elevated Center Emerald Jewel FAB seated cleanly inside its own 62dp mask ring (No border collision!)
-                        val haloTransition = rememberInfiniteTransition(label = "FabHaloSpin")
-                        val haloAngle by haloTransition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 8000, easing = androidx.compose.animation.core.LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "FabHaloAngle"
-                        )
-                        val haloPulse by haloTransition.animateFloat(
-                            initialValue = 0.78f,
-                            targetValue = 1.0f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
-                                repeatMode = RepeatMode.Reverse
-                            ),
-                            label = "FabHaloPulse"
-                        )
+                        // Elevated Center Emerald Jewel FAB seated cleanly inside its own 62dp mask ring (Zero idle frame invalidations!)
                         val primaryHaloColor = MaterialTheme.colorScheme.primary
                         val secondaryHaloColor = MaterialTheme.colorScheme.secondary
                         Box(
@@ -579,27 +550,25 @@ fun TarazinoAppRoot(
                                 drawCircle(
                                     brush = Brush.radialGradient(
                                         colors = listOf(
-                                            primaryHaloColor.copy(alpha = 0.24f * haloPulse),
+                                            primaryHaloColor.copy(alpha = 0.22f),
                                             Color.Transparent
                                         )
                                     ),
-                                    radius = size.minDimension * 0.5f * haloPulse
+                                    radius = size.minDimension * 0.48f
                                 )
-                                rotate(degrees = haloAngle) {
-                                    drawCircle(
-                                        brush = Brush.sweepGradient(
-                                            listOf(
-                                                primaryHaloColor.copy(alpha = 0.92f),
-                                                secondaryHaloColor.copy(alpha = 0.55f),
-                                                Color.Transparent,
-                                                Color.Transparent,
-                                                primaryHaloColor.copy(alpha = 0.92f)
-                                            )
-                                        ),
-                                        radius = size.minDimension / 2f - 2.dp.toPx(),
-                                        style = Stroke(width = 1.5.dp.toPx())
-                                    )
-                                }
+                                drawCircle(
+                                    brush = Brush.sweepGradient(
+                                        listOf(
+                                            primaryHaloColor.copy(alpha = 0.88f),
+                                            secondaryHaloColor.copy(alpha = 0.52f),
+                                            primaryHaloColor.copy(alpha = 0.18f),
+                                            secondaryHaloColor.copy(alpha = 0.45f),
+                                            primaryHaloColor.copy(alpha = 0.88f)
+                                        )
+                                    ),
+                                    radius = size.minDimension / 2f - 2.dp.toPx(),
+                                    style = Stroke(width = 1.4.dp.toPx())
+                                )
                             }
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -748,29 +717,31 @@ fun TarazinoAppRoot(
                         }
                     }
 
-                    // Active Tab Screen Content with Silky RTL Shared-Axis Spring Transitions
+                    // Active Tab Screen Content with Explicit High-Responsiveness RTL Spring Transition
                     Box(modifier = Modifier.weight(1f)) {
                         AnimatedContent(
                             targetState = uiState.activeTab,
                             transitionSpec = {
                                 val movingForward = targetState.ordinal >= initialState.ordinal
-                                // In RTL, moving forward (index 0 -> 1) glides naturally from left into view
                                 val enterOffset = if (movingForward) -1 else 1
                                 (slideInHorizontally(
                                     animationSpec = spring(
-                                        dampingRatio = 0.86f,
-                                        stiffness = Spring.StiffnessMediumLow
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessHigh
                                     )
-                                ) { width -> enterOffset * (width / 10) } +
-                                    scaleIn(
-                                        initialScale = 0.985f,
-                                        animationSpec = tween(240, easing = FastOutSlowInEasing)
-                                    ) +
-                                    fadeIn(animationSpec = tween(220))) togetherWith
-                                    (slideOutHorizontally(
-                                        animationSpec = tween(160, easing = FastOutSlowInEasing)
-                                    ) { width -> -enterOffset * (width / 14) } +
-                                        fadeOut(animationSpec = tween(140)))
+                                ) { width -> enterOffset * (width / 22) } +
+                                    fadeIn(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessHigh
+                                        )
+                                    )) togetherWith
+                                    (fadeOut(
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessHigh
+                                        )
+                                    ))
                             },
                             label = "TarazinoMainTabTransition"
                         ) { targetTab ->
@@ -1062,39 +1033,16 @@ private fun DockTabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val contentColor by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "DockTabColor_${dest.tab.name}"
-    )
-    val pillBg by animateColorAsState(
-        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "DockTabBg_${dest.tab.name}"
-    )
-    val iconScale by animateFloatAsState(
-        targetValue = if (selected) 1.14f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "DockIconScale_${dest.tab.name}"
-    )
-    val iconLiftDp by animateDpAsState(
-        targetValue = if (selected) (-1.5).dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "DockIconLift_${dest.tab.name}"
-    )
-    val indicatorWidth by animateDpAsState(
-        targetValue = if (selected) 20.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = 0.72f,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "DockPillW_${dest.tab.name}"
+    val contentColor = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    ).value
+    val pillBg = com.example.ui.components.rememberSpringColorAnimatable(
+        targetColor = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
+    ).value
+    val selectionAnim = com.example.ui.components.rememberSpringFloatAnimatable(
+        targetValue = if (selected) 1f else 0f,
+        initialValue = if (selected) 1f else 0f,
+        springSpec = com.example.ui.components.TarazinoMotionSpecs.pressScaleSpring()
     )
 
     Column(
@@ -1114,10 +1062,12 @@ private fun DockTabItem(
             tint = contentColor,
             modifier = Modifier
                 .size(20.dp)
-                .offset(y = iconLiftDp)
                 .graphicsLayer {
-                    scaleX = iconScale
-                    scaleY = iconScale
+                    val p = selectionAnim.value
+                    val s = 1f + (0.12f * p)
+                    scaleX = s
+                    scaleY = s
+                    translationY = (-1.5).dp.toPx() * p
                 }
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -1134,21 +1084,22 @@ private fun DockTabItem(
         Spacer(modifier = Modifier.height(2.dp))
         Box(
             modifier = Modifier
-                .width(indicatorWidth)
+                .width(20.dp)
                 .height(2.8.dp)
+                .graphicsLayer {
+                    val p = selectionAnim.value.coerceIn(0f, 1f)
+                    scaleX = p
+                    alpha = p
+                }
                 .clip(CircleShape)
                 .background(
-                    if (selected) {
-                        Brush.horizontalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
-                            )
+                    Brush.horizontalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f)
                         )
-                    } else {
-                        Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                    }
+                    )
                 )
         )
     }

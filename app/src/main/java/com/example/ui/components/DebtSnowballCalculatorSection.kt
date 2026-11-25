@@ -127,46 +127,11 @@ fun DebtSnowballCalculatorSection(
     }
 
     var sourceMode by remember {
-        mutableStateOf(
-            if (portfolioAccounts.isNotEmpty()) SnowballSourceMode.LIVE_PORTFOLIO
-            else SnowballSourceMode.CUSTOM_SCENARIO
-        )
+        mutableStateOf(SnowballSourceMode.LIVE_PORTFOLIO)
     }
 
-    // Editable custom scenario list pre-seeded with realistic Iranian debts for instant exploration
     val customAccounts = remember {
-        mutableStateListOf(
-            SnowballDebtAccount(
-                id = "custom_1",
-                titleFa = "قرض دوستانه / کارت اعتباری",
-                counterpartyFa = "اسنپ‌پی",
-                balanceToman = 8_000_000L,
-                minimumMonthlyPaymentToman = 2_000_000L,
-                annualInterestRatePercent = 0.0,
-                categoryTag = DebtCategoryTag.CREDIT_CARD,
-                isFromPortfolio = false
-            ),
-            SnowballDebtAccount(
-                id = "custom_2",
-                titleFa = "خرید اقساطی لوازم منزل",
-                counterpartyFa = "دیجی‌پی",
-                balanceToman = 24_000_000L,
-                minimumMonthlyPaymentToman = 3_000_000L,
-                annualInterestRatePercent = 23.0,
-                categoryTag = DebtCategoryTag.CREDIT_CARD,
-                isFromPortfolio = false
-            ),
-            SnowballDebtAccount(
-                id = "custom_3",
-                titleFa = "وام بانکی قرض‌الحسنه",
-                counterpartyFa = "بانک مهر ایران",
-                balanceToman = 65_000_000L,
-                minimumMonthlyPaymentToman = 4_500_000L,
-                annualInterestRatePercent = 4.0,
-                categoryTag = DebtCategoryTag.BANK_LOAN,
-                isFromPortfolio = false
-            )
-        )
+        mutableStateListOf<SnowballDebtAccount>()
     }
 
     var extraSnowballBudgetToman by remember(initialExtraBudgetToman) {
@@ -196,11 +161,12 @@ fun DebtSnowballCalculatorSection(
 
     var curveEntered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { curveEntered = true }
-    val curveProgress by animateFloatAsState(
+    val curveProgressAnim = rememberSpringFloatAnimatable(
         targetValue = if (curveEntered) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessLow),
-        label = "SnowballCurveEntrance"
+        initialValue = 0f,
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
     )
+    val curveProgress = curveProgressAnim.value
 
     val extraPresets = remember {
         listOf(

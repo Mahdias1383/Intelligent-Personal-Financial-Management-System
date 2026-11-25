@@ -347,12 +347,12 @@ object GoalThresholdNotificationManager {
 
     fun evaluateFromPreferences(context: Context): GoalThresholdEvaluationSummary {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savingsTitle = prefs.getString("monthly_savings_goal_title", "پس‌انداز و ذخیره طلایی ماه")
-            ?: "پس‌انداز و ذخیره طلایی ماه"
-        val savingsTarget = prefs.getLong("monthly_savings_target_toman", 8_000_000L)
-        val savingsSaved = prefs.getLong("monthly_savings_saved_toman", 5_200_000L)
+        val savingsTitle = prefs.getString("monthly_savings_goal_title", "هدف پس‌انداز ماهانه")
+            ?: "هدف پس‌انداز ماهانه"
+        val savingsTarget = prefs.getLong("monthly_savings_target_toman", 0L)
+        val savingsSaved = prefs.getLong("monthly_savings_saved_toman", 0L)
 
-        val monthlyIncome = prefs.getLong("monthly_income_toman", 58_000_000L).coerceAtLeast(1_000_000L)
+        val monthlyIncome = prefs.getLong("monthly_income_toman", 0L)
         val livingPercent = prefs.getInt("living_expense_percent", 50).coerceIn(20, 80)
         val expenseBudgetCap = (monthlyIncome * livingPercent) / 100L
 

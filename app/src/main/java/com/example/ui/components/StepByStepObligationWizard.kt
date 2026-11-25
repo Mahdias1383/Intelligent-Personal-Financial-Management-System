@@ -261,11 +261,10 @@ fun StepByStepObligationWizardModal(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         val ext = LocalTarazinoColors.current
-        val animStepProgress by animateFloatAsState(
+        val animStepProgress = rememberSpringFloatAnimatable(
             targetValue = currentStep / 3f,
-            animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow),
-            label = "WizardStepProgress"
-        )
+            springSpec = TarazinoMotionSpecs.snappyControlSpring()
+        ).value
 
         Surface(
             modifier = Modifier
@@ -487,17 +486,19 @@ fun StepByStepObligationWizardModal(
                     }
                 }
 
-                // Animated Wizard Step Body (Smooth Directional Slide + Fade)
+                // Animated Wizard Step Body (Fast Directional Slide + Fade)
                 AnimatedContent(
                     targetState = currentStep,
                     transitionSpec = {
                         val forward = targetState > initialState
                         if (forward) {
-                            (slideInHorizontally(tween(260)) { -it / 4 } + fadeIn(tween(240)))
-                                .togetherWith(slideOutHorizontally(tween(200)) { it / 5 } + fadeOut(tween(180)))
+                            (slideInHorizontally(tween(165)) { -it / 10 } +
+                                fadeIn(tween(150)))
+                                .togetherWith(fadeOut(tween(105)))
                         } else {
-                            (slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(240)))
-                                .togetherWith(slideOutHorizontally(tween(200)) { -it / 5 } + fadeOut(tween(180)))
+                            (slideInHorizontally(tween(165)) { it / 10 } +
+                                fadeIn(tween(150)))
+                                .togetherWith(fadeOut(tween(105)))
                         }
                     },
                     label = "WizardStepContent",

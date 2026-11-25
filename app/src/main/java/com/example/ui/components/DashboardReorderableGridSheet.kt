@@ -704,28 +704,24 @@ fun DashboardReorderableGridModal(
                                 val globalIdx = rowIdx * 2 + colIdx
                                 val isHidden = moduleId in layoutConfig.hiddenModules
                                 val isDragging = draggingModule == moduleId
-                                val tileScale by animateFloatAsState(
+                                val tileScale = rememberSpringFloatAnimatable(
                                     targetValue = if (isDragging) 1.05f else 1f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    ),
-                                    label = "GridTileScale_${moduleId.name}"
-                                )
+                                    springSpec = TarazinoMotionSpecs.pressScaleSpring()
+                                ).value
                                 val tileElevation by animateDpAsState(
                                     targetValue = if (isDragging) 16.dp else if (ext.isDark) 0.dp else 3.dp,
+                                    animationSpec = TarazinoMotionSpecs.dpSpring(),
                                     label = "GridTileElev_${moduleId.name}"
                                 )
                                 val moduleAccent = Color(moduleId.accentColorHex)
-                                val borderColor by animateColorAsState(
-                                    targetValue = when {
+                                val borderColor = rememberSpringColorAnimatable(
+                                    targetColor = when {
                                         isDragging -> MaterialTheme.colorScheme.primary
                                         isHidden -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         globalIdx < 3 -> moduleAccent.copy(alpha = 0.65f)
                                         else -> MaterialTheme.colorScheme.outlineVariant
-                                    },
-                                    label = "GridTileBorder_${moduleId.name}"
-                                )
+                                    }
+                                ).value
 
                                 Surface(
                                     shape = RoundedCornerShape(20.dp),

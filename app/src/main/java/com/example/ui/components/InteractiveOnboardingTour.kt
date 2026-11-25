@@ -169,11 +169,10 @@ fun InteractiveOnboardingTourOverlay(
         label = "PointerBounce"
     )
 
-    val stepProgress by animateFloatAsState(
+    val stepProgress = rememberSpringFloatAnimatable(
         targetValue = (currentStepIndex + 1).toFloat() / steps.size.coerceAtLeast(1).toFloat(),
-        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-        label = "TourStepProgress"
-    )
+        springSpec = TarazinoMotionSpecs.snappyControlSpring()
+    ).value
 
     BoxWithConstraints(
         modifier = Modifier
@@ -209,14 +208,11 @@ fun InteractiveOnboardingTourOverlay(
         val desiredBottom = targetRect?.let { (it.bottom + padPx).coerceIn(desiredTop + 36f, screenHeightPx - navBarBottomPx - 6f) }
             ?: (statusBarTopPx + screenHeightPx * 0.30f)
 
-        val glideSpec = spring<Float>(
-            dampingRatio = 0.84f,
-            stiffness = Spring.StiffnessMediumLow
-        )
-        val animLeft by animateFloatAsState(targetValue = desiredLeft, animationSpec = glideSpec, label = "SpotLeft")
-        val animTop by animateFloatAsState(targetValue = desiredTop, animationSpec = glideSpec, label = "SpotTop")
-        val animRight by animateFloatAsState(targetValue = desiredRight, animationSpec = glideSpec, label = "SpotRight")
-        val animBottom by animateFloatAsState(targetValue = desiredBottom, animationSpec = glideSpec, label = "SpotBottom")
+        val glideSpec = TarazinoMotionSpecs.spotlightGlideSpring()
+        val animLeft = rememberSpringFloatAnimatable(targetValue = desiredLeft, springSpec = glideSpec).value
+        val animTop = rememberSpringFloatAnimatable(targetValue = desiredTop, springSpec = glideSpec).value
+        val animRight = rememberSpringFloatAnimatable(targetValue = desiredRight, springSpec = glideSpec).value
+        val animBottom = rememberSpringFloatAnimatable(targetValue = desiredBottom, springSpec = glideSpec).value
 
         // Compare genuine unobstructed vertical space ABOVE vs BELOW the target spotlight
         val spaceAbovePx = (desiredTop - statusBarTopPx).coerceAtLeast(0f)
@@ -375,8 +371,9 @@ fun InteractiveOnboardingTourOverlay(
         AnimatedContent(
             targetState = step,
             transitionSpec = {
-                (fadeIn(tween(220)) + slideInVertically(tween(240)) { if (dockCardAtBottom) it / 12 else -it / 12 })
-                    .togetherWith(fadeOut(tween(160)) + slideOutVertically(tween(160)) { if (dockCardAtBottom) -it / 14 else it / 14 })
+                (fadeIn(tween(150, easing = FastOutSlowInEasing)) +
+                    slideInVertically(tween(160, easing = FastOutSlowInEasing)) { if (dockCardAtBottom) it / 16 else -it / 16 })
+                    .togetherWith(fadeOut(tween(105)))
             },
             label = "TourStepCardTransition",
             modifier = Modifier

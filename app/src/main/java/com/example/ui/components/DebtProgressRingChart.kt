@@ -186,21 +186,21 @@ fun DebtPaidVsOutstandingRingCard(
         entranceTriggered = true
     }
 
-    val animProgress by animateFloatAsState(
+    val animProgressState = rememberSpringFloatAnimatable(
         targetValue = if (entranceTriggered) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.82f,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "DebtProgressRingSweep"
+        initialValue = 0f,
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
     )
+    val animProgress = animProgressState.value
 
     val paidStrokeDp by animateDpAsState(
         targetValue = if (focusedSegment == DebtRingFocusSegment.PAID) 17.dp else 13.5.dp,
+        animationSpec = TarazinoMotionSpecs.dpSpring(),
         label = "PaidStrokeDp"
     )
     val outstandingStrokeDp by animateDpAsState(
         targetValue = if (focusedSegment == DebtRingFocusSegment.OUTSTANDING) 17.dp else 13.5.dp,
+        animationSpec = TarazinoMotionSpecs.dpSpring(),
         label = "OutstandingStrokeDp"
     )
 

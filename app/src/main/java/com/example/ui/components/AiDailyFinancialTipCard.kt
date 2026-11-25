@@ -83,26 +83,34 @@ fun AiDailyFinancialTipCard(
     val ext = LocalTarazinoColors.current
     val isLoading = tipState is DailyAiTipUiState.Loading
 
-    val spinTransition = rememberInfiniteTransition(label = "AiRefreshSpin")
-    val spinDegrees by spinTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "AiRefreshAngle"
-    )
-
-    val shimmerAlpha by spinTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.65f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 850, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "AiShimmerAlpha"
-    )
+    val spinDegrees: Float
+    val shimmerAlpha: Float
+    if (isLoading) {
+        val spinTransition = rememberInfiniteTransition(label = "AiRefreshSpin")
+        val animSpin by spinTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "AiRefreshAngle"
+        )
+        val animShimmer by spinTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 0.65f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 750, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "AiShimmerAlpha"
+        )
+        spinDegrees = animSpin
+        shimmerAlpha = animShimmer
+    } else {
+        spinDegrees = 0f
+        shimmerAlpha = 0.45f
+    }
 
     val accentStart = MaterialTheme.colorScheme.primary
     val accentEnd = MaterialTheme.colorScheme.secondary

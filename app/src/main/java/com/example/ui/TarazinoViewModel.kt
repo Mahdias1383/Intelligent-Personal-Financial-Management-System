@@ -1061,7 +1061,7 @@ class TarazinoViewModel(application: Application) : AndroidViewModel(application
     fun updateBudgetPlannerSettings(monthlyIncomeToman: Long, livingExpensePercent: Int, alertDays: Int) {
         repository.updatePreferences {
             it.copy(
-                monthlyIncomeToman = monthlyIncomeToman.coerceAtLeast(1_000_000L),
+                monthlyIncomeToman = monthlyIncomeToman.coerceAtLeast(0L),
                 livingExpensePercent = livingExpensePercent.coerceIn(20, 80),
                 alertAdvanceDays = alertDays.coerceIn(1, 30)
             )

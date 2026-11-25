@@ -675,11 +675,12 @@ private fun MlCashflowTrajectoryChart(
 ) {
     var revealed by remember(points.size) { mutableStateOf(false) }
     LaunchedEffect(points.size) { revealed = true }
-    val revealProgress by animateFloatAsState(
+    val revealProgressAnim = rememberSpringFloatAnimatable(
         targetValue = if (revealed) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = Spring.StiffnessVeryLow),
-        label = "MlChartReveal"
+        initialValue = 0f,
+        springSpec = TarazinoMotionSpecs.chartSweepSpring()
     )
+    val revealProgress = revealProgressAnim.value
 
     val maxVal = max(
         points.maxOfOrNull { max(it.upperConfidenceNetToman, it.projectedNetBalanceToman) } ?: 1_000_000L,

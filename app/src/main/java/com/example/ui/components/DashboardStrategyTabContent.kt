@@ -101,7 +101,7 @@ fun DashboardStrategyTabContent(
     onOpenObligationInTree: (ObligationEntity, EntityCategory?) -> Unit,
     onOpenNewObligationWizard: () -> Unit,
     onOpenIntelligenceTab: () -> Unit,
-    monthlyIncomeToman: Long = 58_000_000L,
+    monthlyIncomeToman: Long = 0L,
     autoPaymentScheduleEnabled: Boolean = false,
     preferredAutoPayDayOfMonth: Int = 0,
     preferredSecondaryPayDayOfMonth: Int = 0,

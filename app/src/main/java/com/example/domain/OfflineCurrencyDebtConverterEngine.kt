@@ -372,8 +372,7 @@ object OfflineCurrencyDebtConverterEngine {
     }
 
     fun deserializePositionsFromJson(serialized: String?): List<ForeignCurrencyDebtPosition> {
-        if (serialized == null) return defaultSampleForeignDebts()
-        if (serialized.isBlank() || serialized == "EMPTY") return emptyList()
+        if (serialized.isNullOrBlank() || serialized == "EMPTY") return emptyList()
         return try {
             val lines = serialized.lines().filter { it.isNotBlank() }
             val result = mutableListOf<ForeignCurrencyDebtPosition>()
@@ -394,9 +393,9 @@ object OfflineCurrencyDebtConverterEngine {
                     )
                 }
             }
-            if (result.isEmpty() && serialized != "EMPTY") defaultSampleForeignDebts() else result
+            result
         } catch (_: Exception) {
-            defaultSampleForeignDebts()
+            emptyList()
         }
     }
 }
